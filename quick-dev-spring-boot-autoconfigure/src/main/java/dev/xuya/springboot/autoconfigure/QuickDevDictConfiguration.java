@@ -1,6 +1,8 @@
 package dev.xuya.springboot.autoconfigure;
 
 import dev.xuya.core.translate.DictCacheService;
+import dev.xuya.core.translate.DictLoader;
+import dev.xuya.core.translate.JdbcDictLoader;
 import dev.xuya.core.translate.DictResolver;
 import dev.xuya.core.translate.DictReverseResolver;
 import dev.xuya.core.translate.JdbcDictProvider;
@@ -28,13 +30,26 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @ConditionalOnProperty(prefix = "quick-dev.dict", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class QuickDevDictConfiguration {
 
+    /**
+     * 内置数据库字典来源（表/列可配）；用户注册自定义 DictLoader Bean 后自动让位
+     * （远程字典服务/配置中心等，实现 loadAll 返回全量条目即可）。
+     */
     @Bean
-    @ConditionalOnMissingBean
-    public DictCacheService dictCacheService(QuickDevProperties properties,
-                                             ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+    @ConditionalOnMissingBean(DictLoader.class)
+    @ConditionalOnClass(JdbcTemplate.class)
+    public DictLoader jdbcDictLoader(QuickDevProperties properties,
+                                     ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
         QuickDevProperties.Dict dict = properties.getDict();
-        return new DictCacheService(jdbcTemplateProvider,
+        return new JdbcDictLoader(jdbcTemplateProvider,
                 dict.getTable(), dict.getTypeColumn(), dict.getValueColumn(), dict.getLabelColumn());
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    @ConditionalOnMissingBean
+    public DictCacheService dictCacheService(QuickDevProperties properties, DictLoader loader) {
+        DictCacheService cacheService = new DictCacheService(loader);
+        cacheService.startAutoRefresh(properties.getDict().getRefreshIntervalSeconds());
+        return cacheService;
     }
 
     /**

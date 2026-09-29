@@ -39,6 +39,7 @@ class QuickCrudFlowTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+
     // ------------------------------------------------------------------
     // 匿名访问
     // ------------------------------------------------------------------
@@ -564,6 +565,83 @@ class QuickCrudFlowTest {
         assertThat(export).isNotNull();
         assertThat((String) ((Map<String, Object>) export.get("get")).get("summary"))
                 .contains("[QuickExport]");
+    }
+
+    // ------------------------------------------------------------------
+    // 字典定时自动刷新（refresh-interval-seconds=2，多实例最终一致方案）
+    // ------------------------------------------------------------------
+
+    @Test
+    void dictShouldAutoRefreshOnSchedule() throws Exception {
+        String adminToken = login("admin", "admin123");
+        // 改标签后不调刷新接口，等待定时刷新生效
+        jdbcTemplate.update("update sys_dict set dict_label = '离职' where dict_type = 'user_status' and dict_value = '1'");
+        try {
+            long deadline = System.currentTimeMillis() + 6000;
+            String status = null;
+            while (System.currentTimeMillis() < deadline) {
+                ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
+                status = (String) data(detail).get("status");
+                if ("离职".equals(status)) {
+                    break;
+                }
+                Thread.sleep(500);
+            }
+            assertThat(status).as("2 秒定时刷新应让新标签生效").isEqualTo("离职");
+        } finally {
+            jdbcTemplate.update("update sys_dict set dict_label = '启用' where dict_type = 'user_status' and dict_value = '1'");
+            // 尾部再等一轮定时刷新还原，避免影响其它测试（或直接手动刷新兜底）
+            call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // SAVE_OR_UPDATE：有 ID 更新、无 ID 新增
+    // ------------------------------------------------------------------
+
+    @Test
+    void saveOrUpdateShouldInsertWhenIdAbsentAndUpdateWhenPresent() {
+        String token = login("admin", "admin123");
+        // 无 ID -> 新增
+        ResponseEntity<Map> inserted = call(HttpMethod.POST, "/sys-user/save-or-update", token,
+                Map.of("username", "upsert01", "nickname", "新增", "email", "upsert01@quickdev.cn", "status", 1));
+        System.out.println("=== saveOrUpdate inserted body: " + inserted.getBody());
+        assertThat(code(inserted)).isEqualTo(200);
+        Long id = ((Number) data(inserted).get("id")).longValue();
+        assertThat(id).isNotNull();
+
+        try {
+            // 有 ID -> 更新（nickname，部分更新不要求全字段）
+            ResponseEntity<Map> updated = call(HttpMethod.POST, "/sys-user/save-or-update", token,
+                    Map.of("id", id, "nickname", "更新"));
+            assertThat(code(updated)).isEqualTo(200);
+            assertThat(data(call(HttpMethod.GET, "/sys-user/" + id, token, null)).get("nickname")).isEqualTo("更新");
+        } finally {
+            assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + id, token, null))).isEqualTo(200);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // 操作日志查询端点（log:manage 权限，审计闭环）
+    // ------------------------------------------------------------------
+
+    @Test
+    void logQueryShouldReturnPersistedRecords() {
+        // 匿名 401
+        assertThat(call(HttpMethod.GET, "/quick-dev/log/page", null, null)
+                .getStatusCode().value()).isEqualTo(401);
+
+        String token = login("admin", "admin123");
+        // 触发一次 @QuickLog（同步落库），确保有记录且不依赖其它测试的执行顺序
+        assertThat(code(call(HttpMethod.GET, "/hello", token, null))).isEqualTo(200);
+
+        ResponseEntity<Map> page = call(HttpMethod.GET,
+                "/quick-dev/log/page?uri=/hello&current=1&size=10", token, null);
+        assertThat(code(page)).isEqualTo(200);
+        assertThat(((Number) data(page).get("total")).intValue()).isGreaterThanOrEqualTo(1);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        assertThat(records.get(0).get("URI")).isEqualTo("/hello");
+        assertThat(records.get(0).get("MODULE")).isEqualTo("演示"); // 按 id 倒序，最新在前
     }
 
     // ------------------------------------------------------------------

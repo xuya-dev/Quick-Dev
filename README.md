@@ -30,7 +30,7 @@ public class SysUserController {
 }
 ```
 
-启动后自动注册 8 个接口：
+启动后自动注册 9 个接口：
 
 | 方法 | 路径 | 权限码 | 说明 |
 |---|---|---|---|
@@ -40,6 +40,7 @@ public class SysUserController {
 | GET | `/sys-user/{id}` | `sys:user:detail` | 详情 |
 | POST | `/sys-user` | `sys:user:add` | 新增（支持 Bean Validation 校验） |
 | POST | `/sys-user/batch` | `sys:user:add` | 批量新增（JSON 数组，逐条校验 + Db.saveBatch） |
+| POST | `/sys-user/save-or-update` | `sys:user:add` | 有 ID 更新、无 ID 新增（更新分支不做整实体校验） |
 | PUT | `/sys-user` | `sys:user:edit` | 修改（按 ID，null 字段不更新） |
 | DELETE | `/sys-user/{ids}` | `sys:user:remove` | 删除，`ids` 逗号分隔支持批量 |
 
@@ -287,7 +288,8 @@ public R<Object> create(@RequestBody Order order) { ... }
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
 结果码、是否成功、异常信息、耗时。落地三选一：
 
-1. **内置落库（零代码）**：`quick-dev.log.jdbc: true` 写入 `log_record` 表（表结构见 JdbcOperationLogSink Javadoc，表名 `quick-dev.log.table` 可配）
+1. **内置落库（零代码）**：`quick-dev.log.jdbc: true` 写入 `log_record` 表（表结构见 JdbcOperationLogSink Javadoc，表名 `quick-dev.log.table` 可配）；
+   落库模式自动注册查询端点 `GET /quick-dev/log/page`（`log:manage` 权限，筛选 module/operator/uri/success，审计闭环）
 2. 自定义 `OperationLogSink` Bean（写库/ES/MQ，建议配合 `quick-dev.log.async: true` 异步）
 3. 默认输出到 Slf4j logger `quick-dev.operation-log`
 
@@ -384,6 +386,7 @@ quick-dev:
 
 - **全量驻留内存**：字典表一次性加载构建双向索引（值↔标签），翻译/反解**不查库**；首次访问自动懒加载
 - **刷新接口**：字典数据变更后 `POST /quick-dev/dict/refresh` 全量重建（需 `dict:refresh` 权限码，未登录 401 / 无权限 403），同时清空翻译结果缓存，**新字典立即生效**
+- **定时刷新**：`quick-dev.dict.refresh-interval-seconds`（默认 0 禁用）自管理后台线程周期重建，多实例部署的最终一致方案
 - **管理接口（可选）**：`quick-dev.dict.admin-endpoint-enabled=true`（默认开）自动注册字典 CRUD，写操作**自动重建缓存**，管理界面保存即生效：
 
 ```bash
@@ -392,6 +395,29 @@ POST   /quick-dev/dict  -d '{"type":"user_status","value":"9","label":"封禁"}'
 DELETE "/quick-dev/dict?type=user_status&value=9"                # 删除
 ```
 （需 `dict:manage` 权限码；路径前缀 `quick-dev.dict.admin-path` 可配）
+
+### 自定义字典数据源（DictLoader SPI）
+
+字典不在数据库表、而来自远程字典服务/配置中心时，实现一个 `DictLoader` Bean 即可整体接管
+（懒加载、刷新接口、定时刷新、缓存全部复用，你只需提供"全量列表"）：
+
+```java
+@Component
+public class RemoteDictLoader implements DictLoader {
+    @Override
+    public List<DictEntry> loadAll() {
+        return remoteDictClient.fetchAll().stream()
+                .map(d -> new DictEntry(d.type(), d.value(), d.label()))
+                .toList();
+    }
+}
+```
+
+- 注册后内置 `JdbcDictLoader`（quick-dev.dict.table）自动让位
+- 字典变更后仍用 `POST /quick-dev/dict/refresh` 重建（会重新调 `loadAll()`）
+- 多实例最终一致：`quick-dev.dict.refresh-interval-seconds` 定时自动刷新
+
+### 内置字典缓存其余说明
 
 - `@Translate(dict = "user_status")` 正反双向全自动；已自定义 `DictResolver` / `DictReverseResolver` 任一实现时内置方案自动让位
 - 也可注入 `DictCacheService` Bean 自行编排（如字典管理界面保存后自动 `refresh()`）
@@ -552,9 +578,12 @@ curl http://localhost:8080/product/page
 | `dict.value-column` | `dict_value` | 字典值列 |
 | `dict.label-column` | `dict_label` | 字典标签列 |
 | `dict.refresh-endpoint-enabled` | `true` | 字典缓存刷新端点开关 |
+| `dict.refresh-interval-seconds` | `0` | 字典定时自动刷新间隔秒数（0 禁用） |
 | `dict.refresh-path` | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限） |
 | `dict.admin-endpoint-enabled` | `true` | 字典管理接口开关 |
 | `dict.admin-path` | `/quick-dev/dict` | 管理接口前缀（需 dict:manage 权限） |
+| `log.query-endpoint-enabled` | `true` | 操作日志查询端点开关（log.jdbc=true 时生效） |
+| `log.query-path` | `/quick-dev/log` | 日志查询端点前缀（需 log:manage 权限） |
 | `limits.export-max-rows` | `100000` | 单次导出行数上限（超出截断并告警） |
 | `limits.import-max-rows` | `10000` | 单次导入行数上限（超出拒绝） |
 | `limits.in-max-size` | `1000` | 单字段 IN 条件值数量上限（超出报 400） |

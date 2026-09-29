@@ -13,12 +13,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import java.io.Serializable;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -26,12 +24,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -93,6 +88,7 @@ public class QuickCrudHandler {
             case DETAIL -> QuickCrudHandler.class.getMethod("detail", String.class);
             case SAVE -> QuickCrudHandler.class.getMethod("save", String.class);
             case SAVE_BATCH -> QuickCrudHandler.class.getMethod("saveBatch", String.class);
+            case SAVE_OR_UPDATE -> QuickCrudHandler.class.getMethod("saveOrUpdate", String.class);
             case UPDATE -> QuickCrudHandler.class.getMethod("update", String.class);
             case REMOVE -> QuickCrudHandler.class.getMethod("remove", String.class);
             case IMPORT -> QuickCrudHandler.class.getMethod("importExcel", MultipartFile.class);
@@ -183,6 +179,21 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
+    // 新增或修改：POST {base}/save-or-update（有 ID 走更新、无 ID 走新增；入库前校验）
+    // ---------------------------------------------------------------------
+    public R<Object> saveOrUpdate(@RequestBody String body) {
+        // 先解析不校验：按有无 ID 分支决定校验策略（更新是部分更新，不做整实体校验）
+        Object entity = parseAndValidate(body, false);
+        Object id = idValue(entity);
+        if (id != null && !String.valueOf(id).isEmpty()) {
+            return R.ok("更新成功", mapper.updateById(entity) > 0);
+        }
+        validateEntity(entity);
+        mapper.insert(entity);
+        return R.ok("新增成功", entity);
+    }
+
+    // ---------------------------------------------------------------------
     // 修改：PUT {base}（ID 必填，null 字段不更新；部分更新不做整实体校验）
     // ---------------------------------------------------------------------
     public R<Object> update(@RequestBody String body) {
@@ -208,7 +219,7 @@ public class QuickCrudHandler {
         if (idList.isEmpty()) {
             throw new ParamException("请指定要删除的ID");
         }
-        return R.ok("删除成功", mapper.deleteBatchIds(idList));
+        return R.ok("删除成功", mapper.deleteByIds(idList));
     }
 
     // ---------------------------------------------------------------------
@@ -226,14 +237,12 @@ public class QuickCrudHandler {
         Map<String, String> params = new HashMap<>();
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-        if (attributes != null) {
-            HttpServletRequest request = attributes.getRequest();
-            request.getParameterMap().forEach((k, v) -> {
-                if (v != null && v.length > 0) {
-                    params.put(k, v[0]);
-                }
-            });
-        }
+        HttpServletRequest request = attributes.getRequest();
+        request.getParameterMap().forEach((k, v) -> {
+            if (v != null && v.length > 0) {
+                params.put(k, v[0]);
+            }
+        });
         List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService));
         ExcelSupport.write(response, meta.getEntityClass(), data);
     }
@@ -254,16 +263,23 @@ public class QuickCrudHandler {
         } catch (Exception e) {
             throw new ParamException("请求体解析失败: " + e.getLocalizedMessage(), e);
         }
-        if (validate && validator != null) {
-            Set<ConstraintViolation<Object>> violations = validator.validate(entity);
-            if (!violations.isEmpty()) {
-                String message = violations.stream()
-                        .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                        .collect(Collectors.joining("; "));
-                throw new ParamException("参数校验失败: " + message);
-            }
+        if (validate) {
+            validateEntity(entity);
         }
         return entity;
+    }
+
+    private void validateEntity(Object entity) {
+        if (validator == null) {
+            return;
+        }
+        Set<ConstraintViolation<Object>> violations = validator.validate(entity);
+        if (!violations.isEmpty()) {
+            String message = violations.stream()
+                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                    .collect(Collectors.joining("; "));
+            throw new ParamException("参数校验失败: " + message);
+        }
     }
 
     private Object convertId(String id) {

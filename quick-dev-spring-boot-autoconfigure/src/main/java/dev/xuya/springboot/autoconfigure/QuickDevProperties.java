@@ -105,6 +105,17 @@ public class QuickDevProperties {
         /** 管理接口路径前缀 */
         private String adminPath = "/quick-dev/dict";
 
+        /** 定时自动刷新间隔秒数（0 禁用；多实例部署下的最终一致方案） */
+        private long refreshIntervalSeconds = 0;
+
+        public long getRefreshIntervalSeconds() {
+            return refreshIntervalSeconds;
+        }
+
+        public void setRefreshIntervalSeconds(long refreshIntervalSeconds) {
+            this.refreshIntervalSeconds = refreshIntervalSeconds;
+        }
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -216,6 +227,28 @@ public class QuickDevProperties {
 
         /** 操作日志表名（log.jdbc=true 时使用） */
         private String table = "log_record";
+
+        /** 是否注册日志查询端点（log.jdbc=true 时生效，需 log:manage 权限） */
+        private boolean queryEndpointEnabled = true;
+
+        /** 日志查询端点路径前缀 */
+        private String queryPath = "/quick-dev/log";
+
+        public boolean isQueryEndpointEnabled() {
+            return queryEndpointEnabled;
+        }
+
+        public void setQueryEndpointEnabled(boolean queryEndpointEnabled) {
+            this.queryEndpointEnabled = queryEndpointEnabled;
+        }
+
+        public String getQueryPath() {
+            return queryPath;
+        }
+
+        public void setQueryPath(String queryPath) {
+            this.queryPath = queryPath;
+        }
 
         public boolean isEnabled() {
             return enabled;

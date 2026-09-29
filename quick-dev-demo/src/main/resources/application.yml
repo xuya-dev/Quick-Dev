@@ -36,6 +36,7 @@ quick-dev:
     type-column: dict_type
     value-column: dict_value
     label-column: dict_label
+    refresh-interval-seconds: 2   # 定时自动刷新演示（多实例最终一致方案，默认 0 禁用）
   log:
     enabled: true
     jdbc: true              # 操作日志落 log_record 表（内置 JDBC Sink 演示）

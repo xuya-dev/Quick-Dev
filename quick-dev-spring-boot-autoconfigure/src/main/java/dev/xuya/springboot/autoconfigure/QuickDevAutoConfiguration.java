@@ -26,6 +26,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -99,6 +100,15 @@ public class QuickDevAutoConfiguration {
                 .getIfAvailable(ObjectMapper::new);
         OperationLogSink effective = AsyncOperationLogSink.wrap(sink, properties.getLog().isAsync());
         return new QuickLogAspect(effective, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(JdbcTemplate.class)
+    @ConditionalOnExpression("${quick-dev.log.jdbc:false} and ${quick-dev.log.query-endpoint-enabled:true}")
+    public QuickLogQueryController quickLogQueryController(JdbcTemplate jdbcTemplate,
+                                                           QuickDevProperties properties) {
+        return new QuickLogQueryController(jdbcTemplate, properties);
     }
 
     @Bean
