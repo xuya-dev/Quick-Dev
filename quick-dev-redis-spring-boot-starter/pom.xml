@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>dev.xuya</groupId>
+        <artifactId>quick-dev</artifactId>
+        <version>0.1.0</version>
+    </parent>
+
+    <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
+    <name>Quick Dev Redis Spring Boot Starter</name>
+    <description>可选 Redis 支持：Sa-Token 登录态/权限缓存到 Redis + 防重复提交 Redis 原子实现</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>dev.xuya</groupId>
+            <artifactId>quick-dev-spring-boot-autoconfigure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Sa-Token 数据存到 Redis（jackson 序列化），引入即生效 -->
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-redis-jackson</artifactId>
+        </dependency>
+    </dependencies>
+</project>

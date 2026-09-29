@@ -56,6 +56,12 @@
             <artifactId>fastexcel</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Redis 版防重复提交（classpath 存在时自动装配） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

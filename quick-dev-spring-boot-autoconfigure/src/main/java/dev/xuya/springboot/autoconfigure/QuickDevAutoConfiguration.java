@@ -13,7 +13,9 @@ import dev.xuya.core.log.QuickLogAspect;
 import dev.xuya.core.log.Slf4jOperationLogSink;
 import dev.xuya.core.methodop.QuickOpAspect;
 import dev.xuya.core.web.GlobalExceptionHandler;
+import dev.xuya.core.web.MemoryRepeatSubmitStore;
 import dev.xuya.core.web.RepeatSubmitInterceptor;
+import dev.xuya.core.web.RepeatSubmitStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -108,8 +110,10 @@ public class QuickDevAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "quick-dev.repeat-submit", name = "enabled",
             havingValue = "true", matchIfMissing = true)
-    public RepeatSubmitInterceptor repeatSubmitInterceptor() {
-        return new RepeatSubmitInterceptor();
+    public RepeatSubmitInterceptor repeatSubmitInterceptor(
+            ObjectProvider<RepeatSubmitStore> storeProvider) {
+        RepeatSubmitStore store = storeProvider.getIfAvailable(MemoryRepeatSubmitStore::new);
+        return new RepeatSubmitInterceptor(store);
     }
 
     @Bean
