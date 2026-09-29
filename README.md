@@ -21,6 +21,7 @@
 - [Redis 支持](#redis-支持可选) / [运行演示应用](#运行演示应用)
 - [附录：配置项总表](#附录配置项总表前缀-quick-dev)
 - [开源协议与贡献](#开源协议与贡献)
+- 详细文档：[使用手册](docs/user-guide.md) · [AI 助手说明](docs/AGENT.md)
 
 ```java
 @QuickCrud(entity = SysUser.class, permission = "sys:user")

@@ -560,6 +560,7 @@ See the Sa-Token docs for `sa-token.*` (token-name, timeout, …) and Spring Boo
 - Contributions are welcome — see the [Contributing Guide](CONTRIBUTING.md) (commit format, tests, module responsibilities)
 - Community standards: [Code of Conduct](CODE_OF_CONDUCT.md)
 - Bugs and ideas: [open an issue](https://github.com/xuya-dev/Quick-Dev/issues) (bug report / feature request templates provided)
+- Detailed docs (Chinese): [User Guide](docs/user-guide.md) · [AI assistant guide](docs/AGENT.md)
 
 ## Requirements
 
