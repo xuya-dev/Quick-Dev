@@ -37,6 +37,34 @@ public final class ExcelSupport {
         FastExcel.write(response.getOutputStream(), headClass).sheet(headClass.getSimpleName()).doWrite(data);
     }
 
+    /**
+     * 导出翻译版 Excel：@Translate 字段输出为标签（经 Jackson 序列化管线，
+     * 翻译与 @JsonIgnore 同时生效），列顺序/列名与普通导出保持一致。
+     */
+    public static void writeTranslated(HttpServletResponse response, Class<?> headClass, List<?> data,
+                                       com.fasterxml.jackson.databind.ObjectMapper objectMapper) throws IOException {
+        List<java.lang.reflect.Field> fields = ExcelRowMapper.excelFields(headClass);
+        List<List<String>> head = new java.util.ArrayList<>(fields.size());
+        for (java.lang.reflect.Field field : fields) {
+            head.add(List.of(ExcelRowMapper.headNameOf(field)));
+        }
+        List<List<Object>> rows = new java.util.ArrayList<>(data.size());
+        for (Object entity : data) {
+            // convertValue 走完整序列化管线：@Translate 翻译、@JsonIgnore 排除
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> translated =
+                    objectMapper.convertValue(entity, java.util.Map.class);
+            List<Object> row = new java.util.ArrayList<>(fields.size());
+            for (java.lang.reflect.Field field : fields) {
+                row.add(translated.get(field.getName()));
+            }
+            rows.add(row);
+        }
+        prepareDownloadHeaders(response, headClass, "");
+        FastExcel.write(response.getOutputStream()).head(head)
+                .sheet(headClass.getSimpleName()).doWrite(rows);
+    }
+
     /** 生成导入模板：只有表头、没有数据的 Excel */
     public static void writeTemplate(HttpServletResponse response, Class<?> headClass) throws IOException {
         prepareDownloadHeaders(response, headClass, "-template");

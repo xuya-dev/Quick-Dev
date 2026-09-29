@@ -117,9 +117,14 @@ public class ExcelRowMapper {
         return result;
     }
 
-    private static String headName(Field field) {
+    /** Excel 列头名：@ExcelProperty 值，未标注用字段名（导出/导入两侧保持一致） */
+    static String headNameOf(Field field) {
         ExcelProperty property = field.getAnnotation(ExcelProperty.class);
         return property != null && property.value().length > 0 && !property.value()[0].isEmpty()
                 ? property.value()[0] : field.getName();
+    }
+
+    private static String headName(Field field) {
+        return headNameOf(field);
     }
 }

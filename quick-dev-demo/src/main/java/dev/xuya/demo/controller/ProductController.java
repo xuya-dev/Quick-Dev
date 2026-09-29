@@ -52,8 +52,8 @@ public class ProductController {
         return null;
     }
 
-    /** 导出：GET /product/export（复用 page 的查询条件，如 ?name=键盘） */
-    @QuickExport(entity = Product.class)
+    /** 导出：GET /product/export（复用 page 的查询条件；translate 导出翻译后的中文标签） */
+    @QuickExport(entity = Product.class, translate = true)
     @GetMapping("/export")
     public void export(HttpServletResponse response) {
         // 由框架查询并写出 Excel

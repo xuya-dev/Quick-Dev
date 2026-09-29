@@ -176,8 +176,13 @@ public class QuickOpAspect {
             });
         }
         List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService()));
-        ExcelSupport.write(response, entityClass, data);
-        log.info("QuickExport[{}] 导出 {} 行", entityClass.getSimpleName(), data.size());
+        if (annotation.translate()) {
+            ExcelSupport.writeTranslated(response, entityClass, data, objectMapper());
+            log.info("QuickExport[{}] 导出 {} 行（已翻译）", entityClass.getSimpleName(), data.size());
+        } else {
+            ExcelSupport.write(response, entityClass, data);
+            log.info("QuickExport[{}] 导出 {} 行", entityClass.getSimpleName(), data.size());
+        }
         return null;
     }
 
@@ -278,6 +283,11 @@ public class QuickOpAspect {
             }
         }
         return conversionService;
+    }
+
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+        return applicationContext.getBeanProvider(com.fasterxml.jackson.databind.ObjectMapper.class)
+                .getIfAvailable(com.fasterxml.jackson.databind.ObjectMapper::new);
     }
 
     private Validator validator() {

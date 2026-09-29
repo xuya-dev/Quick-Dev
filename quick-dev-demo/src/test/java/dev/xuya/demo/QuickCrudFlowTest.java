@@ -247,6 +247,13 @@ class QuickCrudFlowTest {
         assertThat(body.length).isGreaterThan(100);
         assertThat(body[0]).isEqualTo((byte) 'P'); // xlsx 即 zip，魔数 PK
         assertThat(body[1]).isEqualTo((byte) 'K');
+
+        // translate = true：读回验证 @Translate 字段导出为中文标签
+        List<Map<Integer, String>> rows = FastExcel.read(new java.io.ByteArrayInputStream(body))
+                .sheet().headRowNumber(0).doReadSync();
+        assertThat((String) rows.get(0).get(2)).isEqualTo("type");       // 表头第三列
+        assertThat((String) rows.get(1).get(2)).isEqualTo("普通商品");   // 值 1 已翻译
+        assertThat((String) rows.get(1).get(3)).isEqualTo("线上");       // channel 1 已翻译
     }
 
     @Test

@@ -11,11 +11,13 @@ import java.lang.annotation.Target;
  * （与 page 接口同一套 @QueryField 条件规则）查询并以 Excel 附件下载。
  *
  * <pre>
- * &#64;QuickExport(entity = Product.class)
+ * &#64;QuickExport(entity = Product.class, translate = true)
  * &#64;GetMapping("/export")
  * public void export(HttpServletResponse response) { }
  * </pre>
  * <p>列名：实体字段加 FastExcel 的 @ExcelProperty("中文名")，未加则按字段名导出。</p>
+ * <p>{@code translate = true} 时 @Translate 字段（字典/枚举/关联）导出为翻译后的标签，
+ * 与导入反解配合可实现"导出 -> 修改 -> 导回"闭环。</p>
  */
 @Documented
 @Target(ElementType.METHOD)
@@ -27,4 +29,7 @@ public @interface QuickExport {
 
     /** 完整权限码，空串表示不鉴权 */
     String permission() default "";
+
+    /** 是否把 @Translate 字段导出为翻译后的标签（默认 false 导出原始值） */
+    boolean translate() default false;
 }
