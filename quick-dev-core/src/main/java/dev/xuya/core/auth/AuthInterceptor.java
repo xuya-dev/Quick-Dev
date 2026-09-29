@@ -5,6 +5,8 @@ import dev.xuya.core.crud.QuickCrudHandler;
 import dev.xuya.core.methodop.QuickMethodOps;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.lang.annotation.Annotation;
+import java.util.Arrays;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.web.method.HandlerMethod;
@@ -93,8 +95,8 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (requiresRole != null) {
             RoleChecker roleChecker = getRoleChecker();
             boolean pass = Logical.OR == requiresRole.logical()
-                    ? java.util.Arrays.stream(requiresRole.value()).anyMatch(r -> roleChecker.hasRole(user, r))
-                    : java.util.Arrays.stream(requiresRole.value()).allMatch(r -> roleChecker.hasRole(user, r));
+                    ? Arrays.stream(requiresRole.value()).anyMatch(r -> roleChecker.hasRole(user, r))
+                    : Arrays.stream(requiresRole.value()).allMatch(r -> roleChecker.hasRole(user, r));
             if (!pass) {
                 throw new ForbiddenException("缺少所需角色: " + String.join(", ", requiresRole.value()));
             }
@@ -108,7 +110,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         AuthContext.clear();
     }
 
-    private <A extends java.lang.annotation.Annotation> A findAnnotation(HandlerMethod handlerMethod, Class<A> type) {
+    private <A extends Annotation> A findAnnotation(HandlerMethod handlerMethod, Class<A> type) {
         A annotation = handlerMethod.getMethodAnnotation(type);
         if (annotation == null) {
             annotation = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getBeanType(), type);

@@ -1,7 +1,12 @@
 package dev.xuya.demo;
 
 import cn.idev.excel.FastExcel;
+import dev.xuya.core.log.LogRecord;
 import dev.xuya.demo.entity.Product;
+import dev.xuya.demo.log.MemoryLogSink;
+import java.io.ByteArrayInputStream;
+import java.time.Year;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -32,10 +38,10 @@ class QuickCrudFlowTest {
     private TestRestTemplate rest;
 
     @Autowired
-    private dev.xuya.demo.log.MemoryLogSink memoryLogSink;
+    private MemoryLogSink memoryLogSink;
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     // ------------------------------------------------------------------
     // 匿名访问
@@ -212,7 +218,7 @@ class QuickCrudFlowTest {
         assertThat(code(call(HttpMethod.DELETE, "/product/" + id, null, null))).isEqualTo(200);
 
         // BETWEEN 范围查询 + COUNT 统计（删除 testbook 后剩两粒今年创建的种子数据）
-        int year = java.time.Year.now().getValue();
+        int year = Year.now().getValue();
         String createTimeRange = (year - 1) + "-01-01T00:00:00," + year + "-12-31T23:59:59";
         ResponseEntity<Map> range = call(HttpMethod.GET,
                 "/product/page?createTime=" + createTimeRange, null, null);
@@ -249,7 +255,7 @@ class QuickCrudFlowTest {
         assertThat(body[1]).isEqualTo((byte) 'K');
 
         // translate = true：读回验证 @Translate 字段导出为中文标签
-        List<Map<Integer, String>> rows = FastExcel.read(new java.io.ByteArrayInputStream(body))
+        List<Map<Integer, String>> rows = FastExcel.read(new ByteArrayInputStream(body))
                 .sheet().headRowNumber(0).doReadSync();
         assertThat((String) rows.get(0).get(2)).isEqualTo("type");       // 表头第三列
         assertThat((String) rows.get(1).get(2)).isEqualTo("普通商品");   // 值 1 已翻译
@@ -367,7 +373,7 @@ class QuickCrudFlowTest {
         ResponseEntity<Map> resp = call(HttpMethod.GET, "/hello", token, null);
         assertThat(code(resp)).isEqualTo(200);
 
-        dev.xuya.core.log.LogRecord record = memoryLogSink.lastRecord();
+        LogRecord record = memoryLogSink.lastRecord();
         assertThat(record).isNotNull();
         assertThat(record.getModule()).isEqualTo("演示");
         assertThat(record.getDescription()).isEqualTo("打招呼");
@@ -435,7 +441,7 @@ class QuickCrudFlowTest {
     // 字典缓存：内置刷新接口
     // ------------------------------------------------------------------
 
-    @org.junit.jupiter.api.Test
+    @Test
     void dictRefreshShouldReloadCacheAndApplyChanges() {
         // 未登录 401；viewer 无 dict:refresh 权限 403
         assertThat(call(HttpMethod.POST, "/quick-dev/dict/refresh", null, null)
@@ -542,8 +548,8 @@ class QuickCrudFlowTest {
                         List.of("价格"), List.of("库存")))
                 .sheet("商品")
                 .doWrite(List.of(
-                        java.util.Arrays.asList("标签导入A", "普通商品", "线上", 11.11, 10),
-                        java.util.Arrays.asList("标签导入B", "赠品", "线下", 22.22, 20)));
+                        Arrays.asList("标签导入A", "普通商品", "线上", 11.11, 10),
+                        Arrays.asList("标签导入B", "赠品", "线下", 22.22, 20)));
         byte[] excel = out.toByteArray();
 
         String adminToken = login("admin", "admin123");

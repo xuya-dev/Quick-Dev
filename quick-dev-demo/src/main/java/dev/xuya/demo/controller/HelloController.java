@@ -7,6 +7,7 @@ import dev.xuya.core.common.R;
 import dev.xuya.core.log.QuickLog;
 import dev.xuya.demo.auth.DbAuthService;
 import dev.xuya.demo.entity.SysUser;
+import java.time.LocalDateTime;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +52,6 @@ public class HelloController {
     @NoRepeatSubmit(interval = 3000)
     @PostMapping("/repeat/submit")
     public R<Object> repeatSubmit() {
-        return R.ok("提交成功", java.time.LocalDateTime.now());
+        return R.ok("提交成功", LocalDateTime.now());
     }
 }

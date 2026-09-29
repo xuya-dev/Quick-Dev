@@ -2,6 +2,7 @@ package dev.xuya.core.methodop;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.R;
 import dev.xuya.core.crud.EntityMeta;
@@ -13,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.util.Collection;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -143,7 +145,7 @@ public class QuickOpAspect {
                 }
             } else if (arg instanceof Number number) {
                 idList.add(convertId(meta, String.valueOf(number)));
-            } else if (arg instanceof java.util.Collection<?> ids) {
+            } else if (arg instanceof Collection<?> ids) {
                 ids.forEach(id -> idList.add(convertId(meta, String.valueOf(id))));
             }
         }
@@ -285,9 +287,9 @@ public class QuickOpAspect {
         return conversionService;
     }
 
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-        return applicationContext.getBeanProvider(com.fasterxml.jackson.databind.ObjectMapper.class)
-                .getIfAvailable(com.fasterxml.jackson.databind.ObjectMapper::new);
+    private ObjectMapper objectMapper() {
+        return applicationContext.getBeanProvider(ObjectMapper.class)
+                .getIfAvailable(ObjectMapper::new);
     }
 
     private Validator validator() {

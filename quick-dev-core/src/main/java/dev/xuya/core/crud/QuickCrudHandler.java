@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import java.io.Serializable;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -135,7 +136,7 @@ public class QuickCrudHandler {
     // 详情：GET {base}/{id}
     // ---------------------------------------------------------------------
     public R<Object> detail(@PathVariable("id") String id) {
-        Object entity = mapper.selectById((java.io.Serializable) convertId(id));
+        Object entity = mapper.selectById((Serializable) convertId(id));
         if (entity == null) {
             return R.fail(404, "记录不存在");
         }

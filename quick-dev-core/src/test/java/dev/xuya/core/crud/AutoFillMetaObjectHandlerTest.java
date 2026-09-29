@@ -1,5 +1,6 @@
 package dev.xuya.core.crud;
 
+import dev.xuya.core.auth.AuthContext;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,7 @@ class AutoFillMetaObjectHandlerTest {
 
     @Test
     void operatorShouldBeFilledWhenLoggedIn() {
-        dev.xuya.core.auth.AuthContext.set(1L, "test-token");
+        AuthContext.set(1L, "test-token");
         try {
             SampleEntity entity = new SampleEntity();
             handler.insertFill(SystemMetaObject.forObject(entity));
@@ -81,7 +82,7 @@ class AutoFillMetaObjectHandlerTest {
             handler.updateFill(SystemMetaObject.forObject(entity));
             assertThat(entity.getUpdateBy()).isEqualTo("1");
         } finally {
-            dev.xuya.core.auth.AuthContext.clear();
+            AuthContext.clear();
         }
     }
 

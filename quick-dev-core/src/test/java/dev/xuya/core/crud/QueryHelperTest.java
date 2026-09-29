@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.format.support.DefaultFormattingConversionService;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class QueryHelperTest {
@@ -71,7 +72,7 @@ class QueryHelperTest {
         params.put("notAField", "whatever");
 
         QueryWrapper<Object> wrapper = QueryHelper.build(meta, params,
-                new org.springframework.format.support.DefaultFormattingConversionService());
+                new DefaultFormattingConversionService());
 
         String sql = wrapper.getSqlSegment().toLowerCase();
         assertThat(sql).contains("username =");

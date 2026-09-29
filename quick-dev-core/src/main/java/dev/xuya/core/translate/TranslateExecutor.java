@@ -1,10 +1,12 @@
 package dev.xuya.core.translate;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.EntityMeta;
 import dev.xuya.core.crud.MapperResolver;
+import java.io.Serializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.support.DefaultConversionService;
@@ -90,7 +92,7 @@ public class TranslateExecutor {
                     SpringContextHolder.getContext(), entityClass, Void.class);
             Object id = convertId(value, meta);
             Object target = null;
-            if (id instanceof java.io.Serializable serializable) {
+            if (id instanceof Serializable serializable) {
                 target = mapper.selectById(serializable);
             }
             if (target == null) {
@@ -181,7 +183,7 @@ public class TranslateExecutor {
         BaseMapper<Object> mapper = MapperResolver.resolve(
                 SpringContextHolder.getContext(), entityClass, Void.class);
         List<Object> matched = mapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Object>()
+                new QueryWrapper<Object>()
                         .eq(column, label)
                         .last("limit 1"));
         if (matched == null || matched.isEmpty()) {

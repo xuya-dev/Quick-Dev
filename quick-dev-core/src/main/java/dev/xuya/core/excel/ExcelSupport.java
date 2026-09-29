@@ -1,7 +1,10 @@
 package dev.xuya.core.excel;
 
 import cn.idev.excel.FastExcel;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -42,20 +45,20 @@ public final class ExcelSupport {
      * 翻译与 @JsonIgnore 同时生效），列顺序/列名与普通导出保持一致。
      */
     public static void writeTranslated(HttpServletResponse response, Class<?> headClass, List<?> data,
-                                       com.fasterxml.jackson.databind.ObjectMapper objectMapper) throws IOException {
-        List<java.lang.reflect.Field> fields = ExcelRowMapper.excelFields(headClass);
-        List<List<String>> head = new java.util.ArrayList<>(fields.size());
-        for (java.lang.reflect.Field field : fields) {
+                                       ObjectMapper objectMapper) throws IOException {
+        List<Field> fields = ExcelRowMapper.excelFields(headClass);
+        List<List<String>> head = new ArrayList<>(fields.size());
+        for (Field field : fields) {
             head.add(List.of(ExcelRowMapper.headNameOf(field)));
         }
-        List<List<Object>> rows = new java.util.ArrayList<>(data.size());
+        List<List<Object>> rows = new ArrayList<>(data.size());
         for (Object entity : data) {
             // convertValue 走完整序列化管线：@Translate 翻译、@JsonIgnore 排除
             @SuppressWarnings("unchecked")
-            java.util.Map<String, Object> translated =
-                    objectMapper.convertValue(entity, java.util.Map.class);
-            List<Object> row = new java.util.ArrayList<>(fields.size());
-            for (java.lang.reflect.Field field : fields) {
+            Map<String, Object> translated =
+                    objectMapper.convertValue(entity, Map.class);
+            List<Object> row = new ArrayList<>(fields.size());
+            for (Field field : fields) {
                 row.add(translated.get(field.getName()));
             }
             rows.add(row);
@@ -70,7 +73,7 @@ public final class ExcelSupport {
         prepareDownloadHeaders(response, headClass, "-template");
         FastExcel.write(response.getOutputStream(), headClass)
                 .sheet(headClass.getSimpleName())
-                .doWrite(java.util.List.of());
+                .doWrite(List.of());
     }
 
     private static void prepareDownloadHeaders(HttpServletResponse response, Class<?> headClass, String suffix) {
