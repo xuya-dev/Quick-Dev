@@ -11,6 +11,30 @@
 
     <name>Quick Dev</name>
     <description>基于 Spring Boot 3 + MyBatis-Plus 的快速开发框架：注解式 CRUD + 权限控制</description>
+    <url>https://github.com/xuya-dev/Quick-Dev</url>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>xuya</id>
+            <name>Xu Ya</name>
+            <email>xuya_dev@qq.com</email>
+            <url>https://github.com/xuya-dev</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/xuya-dev/Quick-Dev</url>
+        <connection>scm:git:https://github.com/xuya-dev/Quick-Dev.git</connection>
+        <developerConnection>scm:git:git@github.com:xuya-dev/Quick-Dev.git</developerConnection>
+    </scm>
 
     <modules>
         <module>quick-dev-core</module>

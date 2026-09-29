@@ -1,6 +1,26 @@
 # Quick Dev
 
+[![CI](https://github.com/xuya-dev/Quick-Dev/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xuya-dev/Quick-Dev/actions/workflows/ci.yml)
+[![JDK](https://img.shields.io/badge/JDK-17%2B-blue)](https://adoptium.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![MyBatis-Plus](https://img.shields.io/badge/MyBatis--Plus-3.5.x-red)](https://baomidou.com/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green)](LICENSE)
+
+**简体中文** | [English](README.en.md)
+
 基于 **Spring Boot 3 + MyBatis-Plus** 的快速开发框架（标准 Spring Boot Starter 结构）：引入一个 `quick-dev-spring-boot-starter` 依赖，在 Controller 上贴一个 `@QuickCrud` 注解，即可自动获得一组带权限控制的 CRUD 接口。
+
+## 导航
+
+- [特性](#特性)
+- [模块结构](#模块结构) / [快速开始](#快速开始)
+- [查询参数约定](#查询参数约定) / [权限注解](#在普通接口上使用权限注解)
+- [方法级注解](#4-方法级注解不想整类接管时直接标注在方法上)（第 4 节）
+- [字段翻译](#字段翻译-translate)（含字典缓存/管理/导入反解）
+- [行级数据权限](#行级数据权限-datascope) / [防重复提交与操作日志](#防重复提交--操作日志)
+- [Redis 支持](#redis-支持可选) / [运行演示应用](#运行演示应用)
+- [附录：配置项总表](#附录配置项总表前缀-quick-dev)
+- [开源协议与贡献](#开源协议与贡献)
 
 ```java
 @QuickCrud(entity = SysUser.class, permission = "sys:user")
@@ -508,6 +528,13 @@ curl http://localhost:8080/product/page
 | `limits.in-max-size` | `1000` | 单字段 IN 条件值数量上限（超出报 400） |
 
 Sa-Token 自身配置见其官方文档（`sa-token.*`，如 token-name、timeout）；Redis 连接见 `spring.data.redis.*`。
+
+## 开源协议与贡献
+
+- 本项目基于 [Apache License 2.0](LICENSE) 开源，依赖的第三方项目见 [NOTICE](NOTICE)
+- 参与贡献请阅读 [贡献指南](CONTRIBUTING.md)（提交格式、测试要求、模块职责）
+- 社区行为规范见 [行为准则](CODE_OF_CONDUCT.md)
+- 发现问题或提出建议：[提交 Issue](https://github.com/xuya-dev/Quick-Dev/issues)（含 Bug 报告 / 功能建议模板）
 
 ## 环境要求
 

@@ -1,0 +1,11 @@
+Quick Dev
+Copyright 2026 dev.xuya
+
+This product includes software developed by the Quick Dev contributors
+(https://github.com/xuya-dev/Quick-Dev).
+
+This product depends on the following open source projects:
+- Spring Boot (Apache License 2.0)
+- MyBatis-Plus (Apache License 2.0)
+- Sa-Token (Apache License 2.0)
+- FastExcel (Apache License 2.0)
