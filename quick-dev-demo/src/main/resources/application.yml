@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: quick-dev-demo
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:quickdev;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+
+quick-dev:
+  enabled: true
+  db-type: h2
+  auth:
+    enabled: true
+    token-header: Authorization
+    token-param: token
+
+logging:
+  level:
+    dev.xuya: info
