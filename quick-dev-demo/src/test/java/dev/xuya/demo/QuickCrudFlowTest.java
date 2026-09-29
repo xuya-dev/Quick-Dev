@@ -293,6 +293,33 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 树形查询（CrudOp.TREE）
+    // ------------------------------------------------------------------
+
+    @Test
+    void treeShouldBuildHierarchyFromParentId() {
+        ResponseEntity<Map> resp = call(HttpMethod.GET, "/sys-dept/tree", null, null);
+        assertThat(code(resp)).isEqualTo(200);
+        List<Map<String, Object>> roots = (List<Map<String, Object>>) resp.getBody().get("data");
+        assertThat(roots).hasSize(1);
+        Map<String, Object> company = roots.get(0);
+        assertThat(company.get("name")).isEqualTo("总公司");
+
+        List<Map<String, Object>> level2 = (List<Map<String, Object>>) company.get("children");
+        assertThat(level2).extracting(d -> d.get("name")).containsExactlyInAnyOrder("研发部", "财务部");
+
+        Map<String, Object> devDept = level2.stream()
+                .filter(d -> "研发部".equals(d.get("name"))).findFirst().orElseThrow();
+        List<Map<String, Object>> level3 = (List<Map<String, Object>>) devDept.get("children");
+        assertThat(level3).extracting(d -> d.get("name")).containsExactlyInAnyOrder("前端组", "后端组");
+
+        // 财务部为叶子节点，children 应为空列表
+        Map<String, Object> financeDept = level2.stream()
+                .filter(d -> "财务部".equals(d.get("name"))).findFirst().orElseThrow();
+        assertThat((List<?>) financeDept.get("children")).isEmpty();
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

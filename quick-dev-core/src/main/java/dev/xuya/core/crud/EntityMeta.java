@@ -1,5 +1,6 @@
 package dev.xuya.core.crud;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
@@ -64,6 +65,9 @@ public class EntityMeta {
             }
         }
         for (String property : fields.keySet()) {
+            if (isNonColumnField(fields.get(property))) {
+                continue; // @TableField(exist = false)：非表字段（如树形 children），不参与查询条件
+            }
             columns.putIfAbsent(property, camelToSnake(property));
         }
         String idColumn = tableInfo != null && tableInfo.getKeyColumn() != null
@@ -73,9 +77,14 @@ public class EntityMeta {
         return new EntityMeta(entityClass, idField, idColumn, fields, columns);
     }
 
+    /** @TableField(exist = false) 标注的非表字段 */
+    private static boolean isNonColumnField(Field field) {
+        TableField tableField = field.getAnnotation(TableField.class);
+        return tableField != null && !tableField.exist();
+    }
+
     /** 驼峰转下划线 */
-    static String camelToSnake(String name) {
-        StringBuilder sb = new StringBuilder(name.length() + 4);
+    static String camelToSnake(String name) {        StringBuilder sb = new StringBuilder(name.length() + 4);
         for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);
             if (Character.isUpperCase(c)) {

@@ -13,6 +13,8 @@ public enum CrudOp {
     LIST("list", "/list", RequestMethod.GET, "list"),
     /** GET {base}/count 按条件统计数量 */
     COUNT("count", "/count", RequestMethod.GET, "list"),
+    /** GET {base}/tree 树形查询（实体需有 parentId 与 children 字段）；需手动加入 includes */
+    TREE("tree", "/tree", RequestMethod.GET, "list"),
     /** GET {base}/{id} 详情 */
     DETAIL("detail", "/{id}", RequestMethod.GET, "detail"),
     /** POST {base} 新增 */

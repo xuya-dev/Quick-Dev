@@ -46,6 +46,9 @@ public final class QueryHelper {
                 continue; // 非实体属性，忽略
             }
             String column = meta.getColumn(name);
+            if (column == null) {
+                continue; // 非表字段（如 @TableField(exist=false) 的 children），不参与条件
+            }
             QueryType type = field.isAnnotationPresent(QueryField.class)
                     ? field.getAnnotation(QueryField.class).value() : QueryType.EQ;
             switch (type) {

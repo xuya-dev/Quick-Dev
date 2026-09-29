@@ -77,6 +77,11 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
             EntityMeta meta = EntityMeta.of(entityClass);
             String basePath = resolveBasePath(beanClass, entityClass, quickCrud);
             Set<CrudOp> ops = resolveOps(quickCrud);
+            if (ops.contains(CrudOp.TREE) && (meta.getField("parentId") == null || meta.getField("children") == null)) {
+                throw new QuickDevException("实体 " + entityClass.getSimpleName()
+                        + " 开启 CrudOp.TREE 需要同时声明 parentId 字段与 children 字段"
+                        + "（children 需标注 @TableField(exist = false)）");
+            }
 
             QuickCrudHandler handler = new QuickCrudHandler(
                     meta, mapper, objectMapper(), conversionService(), validator(),

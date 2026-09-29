@@ -87,6 +87,7 @@ public class QuickCrudHandler {
             case PAGE -> QuickCrudHandler.class.getMethod("page", Map.class);
             case LIST -> QuickCrudHandler.class.getMethod("list", Map.class);
             case COUNT -> QuickCrudHandler.class.getMethod("count", Map.class);
+            case TREE -> QuickCrudHandler.class.getMethod("tree", Map.class);
             case DETAIL -> QuickCrudHandler.class.getMethod("detail", String.class);
             case SAVE -> QuickCrudHandler.class.getMethod("save", String.class);
             case SAVE_BATCH -> QuickCrudHandler.class.getMethod("saveBatch", String.class);
@@ -120,6 +121,14 @@ public class QuickCrudHandler {
     // ---------------------------------------------------------------------
     public R<Object> count(@RequestParam Map<String, String> params) {
         return R.ok(mapper.selectCount(QueryHelper.build(meta, params, conversionService)));
+    }
+
+    // ---------------------------------------------------------------------
+    // 树形查询：GET {base}/tree（实体需有 parentId + children 字段）
+    // ---------------------------------------------------------------------
+    public R<Object> tree(@RequestParam Map<String, String> params) {
+        List<Object> all = mapper.selectList(QueryHelper.build(meta, params, conversionService));
+        return R.ok(TreeBuilder.build(meta, all));
     }
 
     // ---------------------------------------------------------------------

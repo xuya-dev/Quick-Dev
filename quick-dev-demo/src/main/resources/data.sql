@@ -13,6 +13,14 @@ values (1, '*'),
 insert into sys_user_role (user_id, role_code)
 values (1, 'admin');
 
+-- 部门树：总公司(1) -> 研发部(2) -> 前端组(3)/后端组(4)；总公司 -> 财务部(5)
+insert into sys_dept (id, name, parent_id, create_time)
+values (1, '总公司', 0, current_timestamp),
+       (2, '研发部', 1, current_timestamp),
+       (3, '前端组', 2, current_timestamp),
+       (4, '后端组', 2, current_timestamp),
+       (5, '财务部', 1, current_timestamp);
+
 insert into product (id, name, price, stock, create_time)
 values ('p0000000000000000000000000001', '机械键盘', 399.00, 120, current_timestamp),
        ('p0000000000000000000000000002', '无线鼠标', 129.50, 300, current_timestamp);
