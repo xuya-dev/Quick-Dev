@@ -467,39 +467,6 @@ class QuickCrudFlowTest {
         assertThat(code(call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null))).isEqualTo(200);
     }
 
-    // ------------------------------------------------------------------
-    // 字典管理接口（内置 CRUD + 写后自动刷新缓存）
-    // ------------------------------------------------------------------
-
-    @Test
-    void dictImportShouldReplaceCacheWithUploadedData() {
-        String adminToken = login("admin", "admin123");
-
-        // 匿名 401
-        assertThat(call(HttpMethod.POST, "/quick-dev/dict/import", null, null)
-                .getStatusCode().value()).isEqualTo(401);
-
-        // 上传规定格式的全量数据（框架不查库，数据完全由使用方提供）
-        String body = """
-                [{"type":"user_status","value":"1","label":"在职"},
-                 {"type":"user_status","value":"0","label":"离职"},
-                 {"type":"user_status","value":"9","label":"封禁"},
-                 {"type":"product_channel","value":"1","label":"线上"},
-                 {"type":"product_channel","value":"2","label":"线下"}]
-                """;
-        ResponseEntity<Map> imported = call(HttpMethod.POST, "/quick-dev/dict/import", adminToken, body);
-        assertThat(code(imported)).isEqualTo(200);
-        assertThat(((Number) data(imported).get("size")).intValue()).isEqualTo(5);
-
-        // 导入后立即生效（上传的"在职"替换了库里的"启用"）
-        ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
-        assertThat(data(detail).get("status")).isEqualTo("在职");
-
-        // 还原：调刷新接口重新走 demo 的 DbDictLoader
-        assertThat(code(call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null))).isEqualTo(200);
-        ResponseEntity<Map> restored = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
-        assertThat(data(restored).get("status")).isEqualTo("启用");
-    }
 
     // ------------------------------------------------------------------
     // 防御性上限（demo 配置 export-max-rows=1 / import-max-rows=3）

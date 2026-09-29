@@ -253,16 +253,6 @@ public class QuickDevProperties {
         private String refreshPath = "/quick-dev/dict/refresh";
 
         /**
-         * 是否注册字典导入端点（POST 规定格式全量数据，需 dict:import 权限）
-         */
-        private boolean importEndpointEnabled = true;
-
-        /**
-         * 导入端点路径
-         */
-        private String importPath = "/quick-dev/dict/import";
-
-        /**
          * 定时自动刷新间隔秒数（0 禁用；依赖 DictLoader）
          */
         private long refreshIntervalSeconds = 0;
@@ -289,22 +279,6 @@ public class QuickDevProperties {
 
         public void setRefreshPath(String refreshPath) {
             this.refreshPath = refreshPath;
-        }
-
-        public boolean isImportEndpointEnabled() {
-            return importEndpointEnabled;
-        }
-
-        public void setImportEndpointEnabled(boolean importEndpointEnabled) {
-            this.importEndpointEnabled = importEndpointEnabled;
-        }
-
-        public String getImportPath() {
-            return importPath;
-        }
-
-        public void setImportPath(String importPath) {
-            this.importPath = importPath;
         }
 
         public long getRefreshIntervalSeconds() {

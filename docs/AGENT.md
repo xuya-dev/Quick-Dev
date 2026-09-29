@@ -66,8 +66,8 @@ PAGE/LIST/COUNT/DETAIL/SAVE/SAVE_BATCH/UPDATE/REMOVE；IMPORT/EXPORT/IMPORT_TEMP
 | `UserResolver`                  | `Object getUser(String token)`                                  | 自定义 token→用户（null=未登录）       | 有 Sa-Token 则自动桥接                                   |
 | `PermissionChecker`             | `boolean hasPermission(Object user, String code)`               | 自定义权限判定                         | 同上                                                     |
 | `RoleChecker`                   | `boolean hasRole(Object user, String role)`                     | 自定义角色判定                         | 同上                                                     |
-| `DictResolver`                  | `String resolve(String dictType, Object value)`                 | 字典正向（值→标签）                    | DictCacheProvider（数据来自 DictLoader/导入端点）        |
-| `DictLoader`                    | `List<DictEntry> loadAll()`                                     | 字典全量数据源（远程/配置中心/自有表） | 导入端点 POST /quick-dev/dict/import（dict:import 权限） |
+| `DictResolver` | `String resolve(String dictType, Object value)` | 字典正向（值→标签） | DictCacheProvider（数据来自 DictLoader） |
+| `DictLoader` | `List<DictEntry> loadAll()` | 字典全量数据源（远程/配置中心/自有表），必实现 | 无字典数据（刷新跳过） |
 | `DictReverseResolver`           | `Object reverse(String dictType, String label)`                 | 字典反向（标签→值，导入用）            | 同上                                                     |
 | `DataScopeResolver`             | `Collection<?> visibleScope(Class, String column, Object user)` | 行级数据范围（null=不限，空=全不可见） | 不过滤                                                   |
 | `OperationLogSink`              | `void save(LogRecord)`                                          | 操作日志落地（建议异步）               | 输出 Slf4j                                               |

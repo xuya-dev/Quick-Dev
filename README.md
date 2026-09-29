@@ -67,8 +67,7 @@ public class SysUserController {
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加
   `@TableField(fill = ...)` 即可，见下文）
 - **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带
-  TTL 缓存； **Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方提供（`DictLoader` SPI 或导入端点上传），
-  **框架不查任何数据库**
+  TTL 缓存； **Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方实现 `DictLoader` 接口提供，**框架不查任何数据库**
 - **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver`
   返回的可见范围过滤（"只看本部门"）
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为
@@ -385,14 +384,11 @@ public class OrderVO {
   `quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
 
-### 字典数据来源：DictLoader SPI 或导入端点（框架不查库）
+### 字典数据来源：DictLoader SPI（框架不查库）
 
-字典数据完全由使用方提供，两条路径任选（可并存）：
-
-**路径一：实现 DictLoader（远程字典服务/配置中心/自有表任选）**
+字典数据完全由使用方提供——实现 `DictLoader` 接口返回全量条目：
 
 ```java
-
 @Component
 public class RemoteDictLoader implements DictLoader {
     @Override
@@ -406,24 +402,11 @@ public class RemoteDictLoader implements DictLoader {
 
 注册后：首次访问懒加载、`POST /quick-dev/dict/refresh` 重建（重新 loadAll，需 `dict:refresh` 权限）、
 `quick-dev.dict.refresh-interval-seconds` 定时自动刷新（多实例最终一致）。
+也可注入 `DictCacheService` 编程式调 `replaceAll(entries)` 全量替换（立即生效）——
+适合在自己的管理界面保存后同步框架缓存。
 
-**路径二：导入端点上传（规定格式全量数据，无任何外部依赖）**
-
-```bash
-POST /quick-dev/dict/import        # 需 dict:import 权限
-[{"type":"user_status","value":"1","label":"启用"},
- {"type":"user_status","value":"0","label":"停用"}]
-```
-
-- 全量 **替换**缓存（非增量合并），导入后 **立即生效**（翻译结果缓存同步清空）
-- 返回 `{size}` 为有效条数；type/value/label 任一为空的条目自动跳过
-
-两条路径下 `@Translate(dict = "user_status")` 的正/反向翻译、Excel 导入反解全部自动工作；
+`@Translate(dict = "user_status")` 的正/反向翻译、Excel 导入反解全部自动工作；
 已自定义 `DictResolver` / `DictReverseResolver` 任一实现时内置解析器自动让位。
-
-```bash
-curl -X POST http://localhost:8080/quick-dev/dict/import -H "Authorization: {token}"   -H "Content-Type: application/json"   -d '[{"type":"user_status","value":"1","label":"启用"}]'
-```
 
 ### 导入反向转换（上传转换）
 
@@ -576,8 +559,6 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 禁用）                                                   |
 | `dict.enabled`                  | `true`                    | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效）                           |
 | `dict.refresh-endpoint-enabled` | `true`                    | 字典缓存刷新端点开关                                                             |
-| `dict.import-endpoint-enabled`  | `true`                    | 字典导入端点开关（dict:import 权限）                                             |
-| `dict.import-path`              | `/quick-dev/dict/import`  | 导入端点路径（POST 全量数据）                                                    |
 | `dict.refresh-interval-seconds` | `0`                       | 字典定时自动刷新间隔秒数（0 禁用）                                               |
 | `dict.refresh-path`             | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限）                                             |
 | `limits.export-max-rows`        | `100000`                  | 单次导出行数上限（超出截断并告警）                                               |

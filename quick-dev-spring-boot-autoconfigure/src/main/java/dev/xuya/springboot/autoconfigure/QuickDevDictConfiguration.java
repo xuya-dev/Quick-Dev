@@ -8,13 +8,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 
 /**
- * 字典配置：数据全量驻留内存（{@link DictCacheService}），框架**不查任何数据库**。
- * 数据来源三选一（可并存）：
- * <ul>
- *   <li>DictLoader SPI：用户实现 loadAll()（远程字典服务/配置中心/自有表任选）</li>
- *   <li>导入端点：POST /quick-dev/dict/import 按规定格式上传全量数据（dict:import 权限）</li>
- *   <li>刷新端点：有 loader 时 POST /quick-dev/dict/refresh 重新 loadAll（dict:refresh 权限）</li>
- * </ul>
+ * 字典配置：数据全量驻留内存（{@link DictCacheService}），框架不查任何数据库。
+ * 数据来源由使用方实现 {@link DictLoader} SPI 提供（远程字典服务/配置中心/自有表任选）；
+ * 字典变更后调刷新端点重新 loadAll，或编程式调用 {@link DictCacheService#replaceAll} 全量替换。
  */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "quick-dev.dict", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -49,11 +45,4 @@ public class QuickDevDictConfiguration {
         return new QuickDictRefreshController(cacheService, translateExecutor);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "quick-dev.dict", name = "import-endpoint-enabled",
-            havingValue = "true", matchIfMissing = true)
-    public QuickDictImportController quickDictImportController(DictCacheService cacheService) {
-        return new QuickDictImportController(cacheService);
-    }
 }

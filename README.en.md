@@ -377,14 +377,11 @@ public class OrderVO {
 - Dictionary sources: implement a `DictResolver` bean (dict table / enum / remote service);
   for fixed enums use `enumClass` directly (implement the `DictEnum` interface)
 
-### Dictionary Data Sources: DictLoader SPI or Import Endpoint (framework never queries the DB)
+### Dictionary Data Source: DictLoader SPI (framework never queries the DB)
 
-Dictionary data is entirely supplied by the user — choose either path (they can coexist):
-
-**Path 1: implement DictLoader (remote dict service / config center / your own tables)**
+Dictionary data is entirely supplied by the user — implement the `DictLoader` interface:
 
 ```java
-
 @Component
 public class RemoteDictLoader implements DictLoader {
     @Override
@@ -398,21 +395,11 @@ public class RemoteDictLoader implements DictLoader {
 
 Once registered: lazy-load on first access, rebuild via `POST /quick-dev/dict/refresh`
 (`dict:refresh` permission), and periodic auto-refresh via `quick-dev.dict.refresh-interval-seconds`.
+You can also inject `DictCacheService` and call `replaceAll(entries)` programmatically
+(full replacement, takes effect immediately).
 
-**Path 2: import endpoint (upload full data in the prescribed format, zero external dependencies)**
-
-```bash
-POST /quick-dev/dict/import        # requires dict:import permission
-[{"type":"user_status","value":"1","label":"Enabled"},
- {"type":"user_status","value":"0","label":"Disabled"}]
-```
-
-- **Replaces** the whole cache (not a merge); takes effect **immediately** (translation cache cleared)
-- Entries with a null type/value/label are skipped; the response carries the valid `size`
-
-Both paths make `@Translate(dict = "user_status")` work in both directions automatically,
-including Excel import reverse resolution; custom `DictResolver`/`DictReverseResolver` beans
-still take precedence.
+`@Translate(dict = "user_status")` works in both directions automatically, including Excel
+import reverse resolution; custom `DictResolver`/`DictReverseResolver` beans take precedence.
 
 ### Import Reverse Translation (Upload Conversion)
 
