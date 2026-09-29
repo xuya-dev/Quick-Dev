@@ -4,6 +4,7 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 新增内置数据库字典JdbcDictProvider零代码双向翻译
 - ✨ Features|新功能 Excel导入支持字典标签反向转换由DictReverseResolver自主实现
 - ✨ Features|新功能 新增DataScope行级数据权限按可见范围自动过滤
 - ✨ Features|新功能 字段翻译新增枚举字典模式免建字典表

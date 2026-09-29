@@ -34,7 +34,7 @@ public class SysUserController {
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
-- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存；**Excel 导入时反向自动转换**（中文标签 -> 库值，字典模式由 `DictReverseResolver` SPI 自主实现）
+- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存；**Excel 导入时反向自动转换**（中文标签 -> 库值）；**字典在数据库表时零代码接入**（内置 `JdbcDictProvider`，正反双向）
 - **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver` 返回的可见范围过滤（"只看本部门"）
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
@@ -313,6 +313,24 @@ public class OrderVO {
 - 翻译失败（无字典、无记录、未实现 SPI）**保留原值**输出，不影响接口
 - 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
+
+### 字典在数据库表：内置方案（零代码）
+
+字典不存在枚举里、而是维护在数据库表（常见做法）时，无需实现任何 SPI，配置表名即可：
+
+```yaml
+quick-dev:
+  dict:
+    enabled: true            # classpath 有 JdbcTemplate 时自动生效（默认 true）
+    table: sys_dict          # 字典表
+    type-column: dict_type
+    value-column: dict_value
+    label-column: dict_label
+```
+
+内置 `JdbcDictProvider` 同时提供正向（值-&gt;标签）与导入反向（标签-&gt;值）解析：
+`@Translate(dict = "user_status")` 正反双向全自动，查询结果由 TTL 缓存兜底。
+已自定义 `DictResolver` / `DictReverseResolver` 任一实现时，内置方案自动让位。
 
 ### 导入反向转换（上传转换）
 

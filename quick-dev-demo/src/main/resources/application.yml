@@ -25,6 +25,13 @@ sa-token:
 quick-dev:
   enabled: true
   db-type: h2
+  # 内置数据库字典：字典存 sys_dict 表，正/反向翻译零代码（此前需手写 DictResolver + DictReverseResolver）
+  dict:
+    enabled: true
+    table: sys_dict
+    type-column: dict_type
+    value-column: dict_value
+    label-column: dict_label
   auth:
     enabled: true
     token-header: Authorization

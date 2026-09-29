@@ -118,21 +118,37 @@ public class TranslateExecutor {
             return null;
         }
         try {
-            if (annotation.enumClass() != Void.class) {
-                return reverseByEnum(annotation.enumClass(), label);
+            // 缓存值统一字符串化即可，调用方（Excel 导入）随后会做字段类型转换
+            String cacheKey = "rev:" + cacheKey(annotation, label);
+            CacheEntry cached = cache.get(cacheKey);
+            long now = System.currentTimeMillis();
+            if (cached != null && (cacheMillis <= 0 || now - cached.at < cacheMillis)) {
+                return cached.value;
             }
-            if (!annotation.dict().isEmpty()) {
-                DictReverseResolver resolver = SpringContextHolder.getBeanIfAvailable(DictReverseResolver.class);
-                return resolver == null ? null : resolver.reverse(annotation.dict(), label);
+            Object result = doReverse(annotation, label);
+            if (cache.size() > CACHE_LIMIT) {
+                cache.clear();
             }
-            if (annotation.entity() != Void.class) {
-                return reverseByRef(annotation, label);
-            }
-            return null;
+            cache.put(cacheKey, new CacheEntry(result == null ? null : String.valueOf(result), now));
+            return result;
         } catch (Exception e) {
             log.debug("字典反解失败, 保留原值[{}]: {}", label, e.getMessage());
             return null;
         }
+    }
+
+    private Object doReverse(Translate annotation, String label) {
+        if (annotation.enumClass() != Void.class) {
+            return reverseByEnum(annotation.enumClass(), label);
+        }
+        if (!annotation.dict().isEmpty()) {
+            DictReverseResolver resolver = SpringContextHolder.getBeanIfAvailable(DictReverseResolver.class);
+            return resolver == null ? null : resolver.reverse(annotation.dict(), label);
+        }
+        if (annotation.entity() != Void.class) {
+            return reverseByRef(annotation, label);
+        }
+        return null;
     }
 
     private Object reverseByEnum(Class<?> enumClass, String label) {

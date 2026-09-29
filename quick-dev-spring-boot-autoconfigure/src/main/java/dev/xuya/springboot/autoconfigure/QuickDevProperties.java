@@ -34,6 +34,65 @@ public class QuickDevProperties {
     private final RepeatSubmit repeatSubmit = new RepeatSubmit();
     private final OperationLog log = new OperationLog();
     private final Translate translate = new Translate();
+    private final Dict dict = new Dict();
+
+    public static class Dict {
+
+        /** 是否启用内置数据库字典（classpath 有 JdbcTemplate 且未自定义 Resolver 时生效） */
+        private boolean enabled = true;
+
+        /** 字典表名 */
+        private String table = "sys_dict";
+
+        /** 字典类型列 */
+        private String typeColumn = "dict_type";
+
+        /** 字典值列 */
+        private String valueColumn = "dict_value";
+
+        /** 字典标签列 */
+        private String labelColumn = "dict_label";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getTable() {
+            return table;
+        }
+
+        public void setTable(String table) {
+            this.table = table;
+        }
+
+        public String getTypeColumn() {
+            return typeColumn;
+        }
+
+        public void setTypeColumn(String typeColumn) {
+            this.typeColumn = typeColumn;
+        }
+
+        public String getValueColumn() {
+            return valueColumn;
+        }
+
+        public void setValueColumn(String valueColumn) {
+            this.valueColumn = valueColumn;
+        }
+
+        public String getLabelColumn() {
+            return labelColumn;
+        }
+
+        public void setLabelColumn(String labelColumn) {
+            this.labelColumn = labelColumn;
+        }
+    }
 
     public static class Translate {
 
@@ -190,5 +249,9 @@ public class QuickDevProperties {
 
     public Translate getTranslate() {
         return translate;
+    }
+
+    public Dict getDict() {
+        return dict;
     }
 }
