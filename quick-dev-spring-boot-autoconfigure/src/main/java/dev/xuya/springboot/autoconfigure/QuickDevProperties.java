@@ -211,6 +211,12 @@ public class QuickDevProperties {
         /** 是否异步落地（后台单线程执行 sink，队列满丢弃并告警，不影响业务） */
         private boolean async = false;
 
+        /** 是否落库到内置 JDBC Sink（表结构见 JdbcOperationLogSink Javadoc，优先级高于 Slf4j 输出） */
+        private boolean jdbc = false;
+
+        /** 操作日志表名（log.jdbc=true 时使用） */
+        private String table = "log_record";
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -225,6 +231,22 @@ public class QuickDevProperties {
 
         public void setAsync(boolean async) {
             this.async = async;
+        }
+
+        public boolean isJdbc() {
+            return jdbc;
+        }
+
+        public void setJdbc(boolean jdbc) {
+            this.jdbc = jdbc;
+        }
+
+        public String getTable() {
+            return table;
+        }
+
+        public void setTable(String table) {
+            this.table = table;
         }
     }
 

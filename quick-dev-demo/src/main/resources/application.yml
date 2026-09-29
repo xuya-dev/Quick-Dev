@@ -36,6 +36,9 @@ quick-dev:
     type-column: dict_type
     value-column: dict_value
     label-column: dict_label
+  log:
+    enabled: true
+    jdbc: true              # 操作日志落 log_record 表（内置 JDBC Sink 演示）
   auth:
     enabled: true
     token-header: Authorization

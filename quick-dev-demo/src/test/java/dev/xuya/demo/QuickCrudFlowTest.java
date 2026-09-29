@@ -3,7 +3,6 @@ package dev.xuya.demo;
 import cn.idev.excel.FastExcel;
 import dev.xuya.core.log.LogRecord;
 import dev.xuya.demo.entity.Product;
-import dev.xuya.demo.log.MemoryLogSink;
 import java.io.ByteArrayInputStream;
 import java.time.Year;
 import java.util.Arrays;
@@ -36,9 +35,6 @@ class QuickCrudFlowTest {
 
     @Autowired
     private TestRestTemplate rest;
-
-    @Autowired
-    private MemoryLogSink memoryLogSink;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -377,15 +373,15 @@ class QuickCrudFlowTest {
         ResponseEntity<Map> resp = call(HttpMethod.GET, "/hello", token, null);
         assertThat(code(resp)).isEqualTo(200);
 
-        LogRecord record = memoryLogSink.lastRecord();
-        assertThat(record).isNotNull();
-        assertThat(record.getModule()).isEqualTo("演示");
-        assertThat(record.getDescription()).isEqualTo("打招呼");
-        assertThat(record.getUri()).isEqualTo("/hello");
-        assertThat(String.valueOf(record.getOperator())).isEqualTo("1"); // Sa-Token loginId
-        assertThat(record.isSuccess()).isTrue();
-        assertThat(record.getResultCode()).isEqualTo(200);
-        assertThat(record.getCostMs()).isGreaterThanOrEqualTo(0);
+        // 内置 JDBC Sink：操作日志落 log_record 表（同步模式，调用返回后即可查）
+        var records = jdbcTemplate.queryForMap(
+                "SELECT * FROM log_record WHERE uri = '/hello' ORDER BY id DESC LIMIT 1");
+        assertThat(records.get("MODULE")).isEqualTo("演示");
+        assertThat(records.get("DESCRIPTION")).isEqualTo("打招呼");
+        assertThat(String.valueOf(records.get("OPERATOR"))).isEqualTo("1"); // Sa-Token loginId
+        assertThat(((Number) records.get("SUCCESS")).intValue()).isEqualTo(1);
+        assertThat(((Number) records.get("RESULT_CODE")).intValue()).isEqualTo(200);
+        assertThat(((Number) records.get("COST_MS")).longValue()).isGreaterThanOrEqualTo(0);
     }
 
     // ------------------------------------------------------------------
