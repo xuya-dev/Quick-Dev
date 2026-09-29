@@ -25,6 +25,7 @@
 - ✨ Features|新功能 新增count统计接口与BETWEEN范围查询
 - ✨ Features|新功能 新增createTime和updateTime自动填充
 - ✨ Features|新功能 初始化quick-dev快速开发框架starter
+- ♻️ Refactoring|代码重构 移除框架JDBC直查改为DictLoader接口与导入端点提供字典数据
 - ✨ Features|新功能 字典数据源提供DictLoader接口支持用户自定义实现
 - ✨ Features|新功能 新增字典定时刷新saveOrUpdate与操作日志查询端点
 - ✨ Features|新功能 新增quick-dev-codegen代码生成器从表结构生成三件套

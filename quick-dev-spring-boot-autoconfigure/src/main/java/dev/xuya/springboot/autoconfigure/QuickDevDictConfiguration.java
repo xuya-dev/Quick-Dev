@@ -2,52 +2,35 @@ package dev.xuya.springboot.autoconfigure;
 
 import dev.xuya.core.translate.DictCacheService;
 import dev.xuya.core.translate.DictLoader;
-import dev.xuya.core.translate.JdbcDictLoader;
 import dev.xuya.core.translate.DictResolver;
 import dev.xuya.core.translate.DictReverseResolver;
-import dev.xuya.core.translate.JdbcDictProvider;
+import dev.xuya.core.translate.DictCacheProvider;
 import dev.xuya.core.translate.TranslateExecutor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * 内置数据库字典：字典存在数据库表（默认 sys_dict），零代码支持正向翻译与导入反向转换。
+ * 字典配置：数据全量驻留内存（{@link DictCacheService}），框架**不查任何数据库**。
+ * 数据来源三选一（可并存）：
  * <ul>
- *   <li>生效条件：classpath 有 JdbcTemplate、quick-dev.dict.enabled=true（默认）、
- *       且用户未自定义 DictResolver / DictReverseResolver</li>
- *   <li>表/列名可配：quick-dev.dict.table / type-column / value-column / label-column</li>
- *   <li>数据全量驻留内存（{@link DictCacheService}），翻译不查库；
- *       字典变更后调刷新接口重建（默认 POST /quick-dev/dict/refresh，需 dict:refresh 权限）</li>
+ *   <li>DictLoader SPI：用户实现 loadAll()（远程字典服务/配置中心/自有表任选）</li>
+ *   <li>导入端点：POST /quick-dev/dict/import 按规定格式上传全量数据（dict:import 权限）</li>
+ *   <li>刷新端点：有 loader 时 POST /quick-dev/dict/refresh 重新 loadAll（dict:refresh 权限）</li>
  * </ul>
  */
 @AutoConfiguration
-@ConditionalOnClass(JdbcTemplate.class)
 @ConditionalOnProperty(prefix = "quick-dev.dict", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class QuickDevDictConfiguration {
 
-    /**
-     * 内置数据库字典来源（表/列可配）；用户注册自定义 DictLoader Bean 后自动让位
-     * （远程字典服务/配置中心等，实现 loadAll 返回全量条目即可）。
-     */
-    @Bean
-    @ConditionalOnMissingBean(DictLoader.class)
-    @ConditionalOnClass(JdbcTemplate.class)
-    public DictLoader jdbcDictLoader(QuickDevProperties properties,
-                                     ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
-        QuickDevProperties.Dict dict = properties.getDict();
-        return new JdbcDictLoader(jdbcTemplateProvider,
-                dict.getTable(), dict.getTypeColumn(), dict.getValueColumn(), dict.getLabelColumn());
-    }
-
     @Bean(destroyMethod = "shutdown")
     @ConditionalOnMissingBean
-    public DictCacheService dictCacheService(QuickDevProperties properties, DictLoader loader) {
-        DictCacheService cacheService = new DictCacheService(loader);
+    public DictCacheService dictCacheService(QuickDevProperties properties,
+                                             ObjectProvider<DictLoader> loaderProvider) {
+        // loader 可空：无 DictLoader 时字典数据完全来自导入端点上传
+        DictCacheService cacheService = new DictCacheService(loaderProvider.getIfAvailable());
         cacheService.startAutoRefresh(properties.getDict().getRefreshIntervalSeconds());
         return cacheService;
     }
@@ -58,8 +41,8 @@ public class QuickDevDictConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean({DictResolver.class, DictReverseResolver.class})
-    public JdbcDictProvider jdbcDictProvider(DictCacheService cacheService) {
-        return new JdbcDictProvider(cacheService);
+    public DictCacheProvider dictCacheProvider(DictCacheService cacheService) {
+        return new DictCacheProvider(cacheService);
     }
 
     @Bean
@@ -73,12 +56,9 @@ public class QuickDevDictConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty(prefix = "quick-dev.dict", name = "admin-endpoint-enabled",
+    @ConditionalOnProperty(prefix = "quick-dev.dict", name = "import-endpoint-enabled",
             havingValue = "true", matchIfMissing = true)
-    public QuickDictAdminController quickDictAdminController(DictCacheService cacheService,
-                                                             TranslateExecutor translateExecutor,
-                                                             JdbcTemplate jdbcTemplate,
-                                                             QuickDevProperties properties) {
-        return new QuickDictAdminController(cacheService, translateExecutor, jdbcTemplate, properties);
+    public QuickDictImportController quickDictImportController(DictCacheService cacheService) {
+        return new QuickDictImportController(cacheService);
     }
 }

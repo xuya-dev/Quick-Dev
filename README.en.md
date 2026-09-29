@@ -361,44 +361,41 @@ public class OrderVO {
 - Dictionary sources: implement a `DictResolver` bean (dict table / enum / remote service);
   for fixed enums use `enumClass` directly (implement the `DictEnum` interface)
 
-### Dictionaries Stored in a Database Table: Built-in Cache (Zero Code)
+### Dictionary Data Sources: DictLoader SPI or Import Endpoint (framework never queries the DB)
 
-If dictionaries live in a database table (the common case), no SPI is needed — just configure the table:
+Dictionary data is entirely supplied by the user — choose either path (they can coexist):
 
-```yaml
-quick-dev:
-  dict:
-    enabled: true            # effective when JdbcTemplate is on the classpath (default true)
-    table: sys_dict          # dictionary table
-    type-column: dict_type
-    value-column: dict_value
-    label-column: dict_label
-    refresh-endpoint-enabled: true              # register the refresh endpoint (default true)
-    refresh-path: /quick-dev/dict/refresh       # refresh endpoint path
+**Path 1: implement DictLoader (remote dict service / config center / your own tables)**
+
+```java
+@Component
+public class RemoteDictLoader implements DictLoader {
+    @Override
+    public List<DictEntry> loadAll() {
+        return remoteDictClient.fetchAll().stream()
+                .map(d -> new DictEntry(d.type(), d.value(), d.label()))
+                .toList();
+    }
+}
 ```
 
-- **Fully in-memory**: the table is loaded once into a bidirectional index (value <-> label); translation never queries the DB;
-  lazy-loaded on first access
-- **Refresh endpoint**: after dict changes call `POST /quick-dev/dict/refresh` to rebuild
-  (requires the `dict:refresh` permission; 401 anonymous / 403 unauthorized). Translation result cache is cleared
-  at the same time — **new dictionaries take effect immediately**
-- **Admin endpoints (optional)**: `quick-dev.dict.admin-endpoint-enabled=true` (default on) registers dict CRUD;
-  writes **rebuild the cache automatically** — saving in a management UI takes effect instantly:
+Once registered: lazy-load on first access, rebuild via `POST /quick-dev/dict/refresh`
+(`dict:refresh` permission), and periodic auto-refresh via `quick-dev.dict.refresh-interval-seconds`.
+
+**Path 2: import endpoint (upload full data in the prescribed format, zero external dependencies)**
 
 ```bash
-GET    /quick-dev/dict/page?type=user_status&current=1&size=10   # paged query
-POST   /quick-dev/dict  -d '{"type":"user_status","value":"9","label":"Banned"}'  # upsert
-DELETE "/quick-dev/dict?type=user_status&value=9"                # delete
+POST /quick-dev/dict/import        # requires dict:import permission
+[{"type":"user_status","value":"1","label":"Enabled"},
+ {"type":"user_status","value":"0","label":"Disabled"}]
 ```
-(requires the `dict:manage` permission; prefix configurable via `quick-dev.dict.admin-path`)
 
-- `@Translate(dict = "user_status")` works in both directions automatically; if you define a custom
-  `DictResolver` or `DictReverseResolver`, the built-in provider steps aside
-- You can also inject the `DictCacheService` bean and orchestrate yourself (e.g. call `refresh()` after your dict UI saves)
+- **Replaces** the whole cache (not a merge); takes effect **immediately** (translation cache cleared)
+- Entries with a null type/value/label are skipped; the response carries the valid `size`
 
-```bash
-curl -X POST http://localhost:8080/quick-dev/dict/refresh -H "Authorization: {token}"
-```
+Both paths make `@Translate(dict = "user_status")` work in both directions automatically,
+including Excel import reverse resolution; custom `DictResolver`/`DictReverseResolver` beans
+still take precedence.
 
 ### Import Reverse Translation (Upload Conversion)
 

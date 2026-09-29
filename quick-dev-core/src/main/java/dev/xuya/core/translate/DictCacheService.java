@@ -28,7 +28,7 @@ public class DictCacheService {
     private volatile Snapshot snapshot;
     private volatile java.util.concurrent.ScheduledExecutorService autoRefreshScheduler;
 
-    /** 数据来源由 {@link DictLoader} 决定：内置数据库加载器或用户自定义实现（远程服务/配置中心等） */
+    /** 数据来源为用户自定义 {@link DictLoader}（远程服务/配置中心/自有表）；null 表示仅靠导入端点上传数据 */
     public DictCacheService(DictLoader loader) {
         this.loader = loader;
     }
@@ -70,13 +70,25 @@ public class DictCacheService {
         }
     }
 
-    /** 全量重建缓存（幂等，加锁防并发重刷） */
+    /** 全量重建缓存（走 DictLoader；未提供 loader 时不动作——数据来源为导入端点上传） */
     public synchronized void refresh() {
+        if (loader == null) {
+            log.debug("未提供 DictLoader，跳过刷新（字典数据来自导入端点）");
+            return;
+        }
         long start = System.currentTimeMillis();
-        List<DictLoader.DictEntry> rows = loader.loadAll();
+        replaceAll(loader.loadAll());
+        log.info("字典缓存已从 DictLoader 加载，耗时 {}ms", System.currentTimeMillis() - start);
+    }
+
+    /**
+     * 全量替换缓存数据（导入端点调用；也适用于任何"一次性给全量"的场景）。
+     * 规定格式：[{type, value, label}, ...]，全量替换而非增量合并。
+     */
+    public synchronized void replaceAll(List<DictLoader.DictEntry> entries) {
         Map<String, Map<String, String>> byValue = new HashMap<>();
         Map<String, Map<String, String>> byLabel = new HashMap<>();
-        for (DictLoader.DictEntry row : rows) {
+        for (DictLoader.DictEntry row : entries) {
             String type = row.type();
             String value = row.value();
             String label = row.label();
@@ -90,13 +102,11 @@ public class DictCacheService {
         int validCount = byValue.values().stream().mapToInt(Map::size).sum();
         this.snapshot = new Snapshot(
                 Map.copyOf(byValue), Map.copyOf(byLabel), validCount, Instant.now());
-        // 同步清空翻译结果缓存：否则 TTL（默认 60s）内仍返回旧标签，刷新语义不完整
+        // 同步清空翻译结果缓存：否则 TTL（默认 60s）内仍返回旧标签
         TranslateExecutor executor = TranslateExecutor.getInstance();
         if (executor != null) {
             executor.clearCache();
         }
-        log.info("字典缓存已加载 {} 条 / {} 个类型，耗时 {}ms",
-                rows.size(), byValue.size(), System.currentTimeMillis() - start);
     }
 
     /** 值 -> 标签（缓存未初始化时自动懒加载） */
@@ -130,7 +140,7 @@ public class DictCacheService {
     }
 
     private void ensureLoaded() {
-        if (snapshot == null) {
+        if (snapshot == null && loader != null) {
             refresh();
         }
     }

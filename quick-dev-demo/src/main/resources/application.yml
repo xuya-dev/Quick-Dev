@@ -29,17 +29,11 @@ quick-dev:
   limits:
     export-max-rows: 1
     import-max-rows: 3
-  # 内置数据库字典：字典存 sys_dict 表，正/反向翻译零代码（此前需手写 DictResolver + DictReverseResolver）
   dict:
-    enabled: true
-    table: sys_dict
-    type-column: dict_type
-    value-column: dict_value
-    label-column: dict_label
+    # 框架不查库：demo 自定义 DbDictLoader 提供数据（远程服务/配置中心同理）
     refresh-interval-seconds: 2   # 定时自动刷新演示（多实例最终一致方案，默认 0 禁用）
   log:
     enabled: true
-    jdbc: true              # 操作日志落 log_record 表（内置 JDBC Sink 演示）
   auth:
     enabled: true
     token-header: Authorization

@@ -11,7 +11,6 @@ import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
 import dev.xuya.core.log.AsyncOperationLogSink;
-import dev.xuya.core.log.JdbcOperationLogSink;
 import dev.xuya.core.log.OperationLogSink;
 import dev.xuya.core.log.QuickLogAspect;
 import dev.xuya.core.log.Slf4jOperationLogSink;
@@ -26,12 +25,10 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -76,15 +73,6 @@ public class QuickDevAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(OperationLogSink.class)
-    @ConditionalOnClass(JdbcTemplate.class)
-    @ConditionalOnProperty(prefix = "quick-dev.log", name = "jdbc", havingValue = "true")
-    public OperationLogSink jdbcOperationLogSink(QuickDevProperties properties,
-                                                 ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
-        return new JdbcOperationLogSink(jdbcTemplateProvider, properties.getLog().getTable());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(OperationLogSink.class)
     public OperationLogSink quickDevSlf4jOperationLogSink() {
         return new Slf4jOperationLogSink();
     }
@@ -100,15 +88,6 @@ public class QuickDevAutoConfiguration {
                 .getIfAvailable(ObjectMapper::new);
         OperationLogSink effective = AsyncOperationLogSink.wrap(sink, properties.getLog().isAsync());
         return new QuickLogAspect(effective, objectMapper);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnClass(JdbcTemplate.class)
-    @ConditionalOnExpression("${quick-dev.log.jdbc:false} and ${quick-dev.log.query-endpoint-enabled:true}")
-    public QuickLogQueryController quickLogQueryController(JdbcTemplate jdbcTemplate,
-                                                           QuickDevProperties properties) {
-        return new QuickLogQueryController(jdbcTemplate, properties);
     }
 
     @Bean

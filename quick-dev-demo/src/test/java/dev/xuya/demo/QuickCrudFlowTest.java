@@ -2,6 +2,7 @@ package dev.xuya.demo;
 
 import cn.idev.excel.FastExcel;
 import dev.xuya.core.log.LogRecord;
+import dev.xuya.demo.log.MemoryLogSink;
 import dev.xuya.demo.entity.Product;
 import java.io.ByteArrayInputStream;
 import java.time.Year;
@@ -38,6 +39,9 @@ class QuickCrudFlowTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private MemoryLogSink memoryLogSink;
 
 
     // ------------------------------------------------------------------
@@ -374,15 +378,16 @@ class QuickCrudFlowTest {
         ResponseEntity<Map> resp = call(HttpMethod.GET, "/hello", token, null);
         assertThat(code(resp)).isEqualTo(200);
 
-        // 内置 JDBC Sink：操作日志落 log_record 表（同步模式，调用返回后即可查）
-        var records = jdbcTemplate.queryForMap(
-                "SELECT * FROM log_record WHERE uri = '/hello' ORDER BY id DESC LIMIT 1");
-        assertThat(records.get("MODULE")).isEqualTo("演示");
-        assertThat(records.get("DESCRIPTION")).isEqualTo("打招呼");
-        assertThat(String.valueOf(records.get("OPERATOR"))).isEqualTo("1"); // Sa-Token loginId
-        assertThat(((Number) records.get("SUCCESS")).intValue()).isEqualTo(1);
-        assertThat(((Number) records.get("RESULT_CODE")).intValue()).isEqualTo(200);
-        assertThat(((Number) records.get("COST_MS")).longValue()).isGreaterThanOrEqualTo(0);
+        // 自定义 Sink（demo 的 MemoryLogSink）接收到记录
+        LogRecord record = memoryLogSink.lastRecord();
+        assertThat(record).isNotNull();
+        assertThat(record.getModule()).isEqualTo("演示");
+        assertThat(record.getDescription()).isEqualTo("打招呼");
+        assertThat(record.getUri()).isEqualTo("/hello");
+        assertThat(String.valueOf(record.getOperator())).isEqualTo("1"); // Sa-Token loginId
+        assertThat(record.isSuccess()).isTrue();
+        assertThat(record.getResultCode()).isEqualTo(200);
+        assertThat(record.getCostMs()).isGreaterThanOrEqualTo(0);
     }
 
     // ------------------------------------------------------------------
@@ -471,46 +476,33 @@ class QuickCrudFlowTest {
     // ------------------------------------------------------------------
 
     @Test
-    void dictAdminShouldSaveAndTakeEffectImmediately() {
+    void dictImportShouldReplaceCacheWithUploadedData() {
         String adminToken = login("admin", "admin123");
 
-        // 权限：匿名 401
-        assertThat(call(HttpMethod.GET, "/quick-dev/dict/page?type=user_status", null, null)
+        // 匿名 401
+        assertThat(call(HttpMethod.POST, "/quick-dev/dict/import", null, null)
                 .getStatusCode().value()).isEqualTo(401);
 
-        // 分页查询
-        ResponseEntity<Map> page = call(HttpMethod.GET,
-                "/quick-dev/dict/page?type=user_status&current=1&size=10", adminToken, null);
-        assertThat(code(page)).isEqualTo(200);
-        assertThat(((Number) data(page).get("total")).intValue()).isEqualTo(2);
+        // 上传规定格式的全量数据（框架不查库，数据完全由使用方提供）
+        String body = """
+                [{"type":"user_status","value":"1","label":"在职"},
+                 {"type":"user_status","value":"0","label":"离职"},
+                 {"type":"user_status","value":"9","label":"封禁"},
+                 {"type":"product_channel","value":"1","label":"线上"},
+                 {"type":"product_channel","value":"2","label":"线下"}]
+                """;
+        ResponseEntity<Map> imported = call(HttpMethod.POST, "/quick-dev/dict/import", adminToken, body);
+        assertThat(code(imported)).isEqualTo(200);
+        assertThat(((Number) data(imported).get("size")).intValue()).isEqualTo(5);
 
-        // 新增字典（user_status 9 -> 封禁），保存后缓存自动刷新
-        ResponseEntity<Map> saved = call(HttpMethod.POST, "/quick-dev/dict", adminToken,
-                Map.of("type", "user_status", "value", "9", "label", "封禁"));
-        assertThat(code(saved)).isEqualTo(200);
+        // 导入后立即生效（上传的"在职"替换了库里的"启用"）
+        ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
+        assertThat(data(detail).get("status")).isEqualTo("在职");
 
-        // 把种子用户 alice 的状态改为 9 -> 翻译立即生效为 "封禁"
-        jdbcTemplate.update("update sys_user set status = 9 where username = 'alice'");
-        try {
-            ResponseEntity<Map> detail = call(HttpMethod.GET,
-                    "/sys-user/page?username=alice", adminToken, null);
-            List<Map<String, Object>> records =
-                    (List<Map<String, Object>>) data(detail).get("records");
-            assertThat(records.get(0).get("status")).isEqualTo("封禁");
-
-            // 删除字典 -> 翻译回落为原始值 9
-            ResponseEntity<Map> deleted = call(HttpMethod.DELETE,
-                    "/quick-dev/dict?type=user_status&value=9", adminToken, null);
-            assertThat(code(deleted)).isEqualTo(200);
-            ResponseEntity<Map> afterDelete = call(HttpMethod.GET,
-                    "/sys-user/page?username=alice", adminToken, null);
-            List<Map<String, Object>> rows =
-                    (List<Map<String, Object>>) data(afterDelete).get("records");
-            assertThat(((Number) rows.get(0).get("status")).intValue()).isEqualTo(9);
-        } finally {
-            // 还原 alice 状态，保证其它测试稳定
-            jdbcTemplate.update("update sys_user set status = 1 where username = 'alice'");
-        }
+        // 还原：调刷新接口重新走 demo 的 DbDictLoader
+        assertThat(code(call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null))).isEqualTo(200);
+        ResponseEntity<Map> restored = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
+        assertThat(data(restored).get("status")).isEqualTo("启用");
     }
 
     // ------------------------------------------------------------------
@@ -621,28 +613,6 @@ class QuickCrudFlowTest {
         }
     }
 
-    // ------------------------------------------------------------------
-    // 操作日志查询端点（log:manage 权限，审计闭环）
-    // ------------------------------------------------------------------
-
-    @Test
-    void logQueryShouldReturnPersistedRecords() {
-        // 匿名 401
-        assertThat(call(HttpMethod.GET, "/quick-dev/log/page", null, null)
-                .getStatusCode().value()).isEqualTo(401);
-
-        String token = login("admin", "admin123");
-        // 触发一次 @QuickLog（同步落库），确保有记录且不依赖其它测试的执行顺序
-        assertThat(code(call(HttpMethod.GET, "/hello", token, null))).isEqualTo(200);
-
-        ResponseEntity<Map> page = call(HttpMethod.GET,
-                "/quick-dev/log/page?uri=/hello&current=1&size=10", token, null);
-        assertThat(code(page)).isEqualTo(200);
-        assertThat(((Number) data(page).get("total")).intValue()).isGreaterThanOrEqualTo(1);
-        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
-        assertThat(records.get(0).get("URI")).isEqualTo("/hello");
-        assertThat(records.get(0).get("MODULE")).isEqualTo("演示"); // 按 id 倒序，最新在前
-    }
 
     // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
