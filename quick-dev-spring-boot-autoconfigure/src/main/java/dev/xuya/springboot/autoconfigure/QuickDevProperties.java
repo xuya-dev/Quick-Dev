@@ -13,6 +13,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *     enabled: true        # 鉴权总开关
  *     token-header: Authorization
  *     token-param: token
+ *   auto-fill:
+ *     enabled: true        # createTime/updateTime 自动填充开关
  * </pre>
  */
 @ConfigurationProperties(prefix = "quick-dev")
@@ -25,6 +27,21 @@ public class QuickDevProperties {
     private DbType dbType;
 
     private final Auth auth = new Auth();
+    private final AutoFill autoFill = new AutoFill();
+
+    public static class AutoFill {
+
+        /** 是否启用 createTime/updateTime 自动填充 */
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
 
     public static class Auth {
 
@@ -80,5 +97,9 @@ public class QuickDevProperties {
 
     public Auth getAuth() {
         return auth;
+    }
+
+    public AutoFill getAutoFill() {
+        return autoFill;
     }
 }

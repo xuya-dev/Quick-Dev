@@ -1,6 +1,8 @@
 package dev.xuya.demo.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -11,7 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 /**
- * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验）
+ * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验、时间自动填充）
  */
 @TableName("sys_user")
 public class SysUser {
@@ -35,7 +37,11 @@ public class SysUser {
 
     private Integer status;
 
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 
     public Long getId() {
         return id;
@@ -91,5 +97,13 @@ public class SysUser {
 
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
     }
 }

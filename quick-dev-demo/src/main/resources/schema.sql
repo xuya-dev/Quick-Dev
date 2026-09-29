@@ -10,7 +10,8 @@ create table sys_user (
     password    varchar(100),
     email       varchar(100),
     status      int          default 1,
-    create_time timestamp
+    create_time timestamp,
+    update_time timestamp
 );
 
 create table sys_user_perm (
@@ -24,5 +25,6 @@ create table product (
     name        varchar(100),
     price       decimal(10, 2),
     stock       int,
-    create_time timestamp
+    create_time timestamp,
+    update_time timestamp
 );

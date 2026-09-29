@@ -25,9 +25,10 @@ public class SysUserController {
 - **一个注解完成 CRUD**：`@QuickCrud` 标注在 Controller 上，启动时通过 `RequestMappingHandlerMapping` 运行期注册端点（Spring 官方支持的方式），与手写接口完全共存
 - **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作` 约定自动鉴权
 - **零绑定权限实现**：框架只定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）两个 SPI，对接你自己的 RBAC / SSO / 网关鉴权均可
-- **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/...)`，同名请求参数自动变查询条件并做类型转换
+- **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
+- **时间字段自动填充**：`createTime`/`updateTime` 新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
 - **统一响应与异常**：`R<T>` 结构 + 全局异常处理（未登录 401、无权限 403、参数/校验错误 400）
-- MyBatis-Plus 既有能力全部可用：逻辑删除、乐观锁、自动填充、多租户、`@TableName` 映射等
+- MyBatis-Plus 既有能力全部可用：逻辑删除、乐观锁、多租户、`@TableName` 映射等
 
 ## 模块结构
 
@@ -65,12 +66,19 @@ public class SysUser {
     private String nickname;                    // ?nickname=张 -> LIKE '%张%'
     @QueryField(QueryType.IN)
     private Integer type;                       // ?type=1,2 -> IN (1,2)
-    private LocalDateTime createTime;           // ?createTime=2026-01-01T00:00:00 自动转类型
+    @TableField(fill = FieldFill.INSERT)
+    private LocalDateTime createTime;           // 新增时自动填充；?createTime=2026-01-01T00:00:00 自动转类型
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;           // 新增/修改时自动填充
     // getter/setter 略
 }
 
 public interface SysUserMapper extends BaseMapper<SysUser> { }
 ```
+
+> 自动填充是框架内置的 `MetaObjectHandler`（按属性名 `createTime`/`updateTime` 约定，已有值不覆盖），
+> 字段必须加 `@TableField(fill = ...)`，否则 MyBatis-Plus 生成 SQL 时会跳过 null 列导致填充不生效。
+> 不想用可设置 `quick-dev.auto-fill.enabled=false`，或注册自己的 `MetaObjectHandler` Bean 覆盖。
 
 ### 3. 一个注解出接口
 
@@ -108,6 +116,8 @@ public class MyAuthService implements UserResolver, PermissionChecker {
 quick-dev:
   enabled: true            # 关闭 @QuickCrud 端点注册
   db-type: mysql           # 分页插件方言（不配则通用模式；用户已定义 MybatisPlusInterceptor 时不生效）
+  auto-fill:
+    enabled: true          # createTime/updateTime 自动填充开关
   auth:
     enabled: true          # 鉴权总开关
     token-header: Authorization

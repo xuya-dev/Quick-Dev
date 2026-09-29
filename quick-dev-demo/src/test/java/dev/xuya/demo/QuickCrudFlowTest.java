@@ -68,17 +68,22 @@ class QuickCrudFlowTest {
         Map<String, Object> saved = data(save);
         Long newId = ((Number) saved.get("id")).longValue();
         assertThat(newId).isNotNull();
+        // createTime/updateTime 自动填充
+        assertThat(saved.get("createTime")).isNotNull();
+        assertThat(saved.get("updateTime")).isNotNull();
 
         // 详情
         ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/" + newId, token, null);
         assertThat(code(detail)).isEqualTo(200);
         assertThat(data(detail).get("username")).isEqualTo("tester01");
 
-        // 修改（nickname）
+        // 修改（nickname），updateTime 自动填充
         ResponseEntity<Map> update = call(HttpMethod.PUT, "/sys-user", token,
                 Map.of("id", newId, "nickname", "改名之后"));
         assertThat(code(update)).isEqualTo(200);
-        assertThat(data(call(HttpMethod.GET, "/sys-user/" + newId, token, null)).get("nickname")).isEqualTo("改名之后");
+        Map<String, Object> afterUpdate = data(call(HttpMethod.GET, "/sys-user/" + newId, token, null));
+        assertThat(afterUpdate.get("nickname")).isEqualTo("改名之后");
+        assertThat(afterUpdate.get("updateTime")).isNotNull();
 
         // 删除 + 再查 404
         assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + newId, token, null))).isEqualTo(200);
@@ -141,12 +146,15 @@ class QuickCrudFlowTest {
 
     @Test
     void productCrudWithStringId() {
-        // 新增：ASSIGN_UUID 自动回填 32 位主键
+        // 新增：ASSIGN_UUID 自动回填 32 位主键，时间字段自动填充
         ResponseEntity<Map> save = call(HttpMethod.POST, "/product", null,
                 Map.of("name", "testbook", "price", 59.9, "stock", 200));
         assertThat(code(save)).isEqualTo(200);
-        String id = (String) data(save).get("id");
+        Map<String, Object> saved = data(save);
+        String id = (String) saved.get("id");
         assertThat(id).hasSize(32);
+        assertThat(saved.get("createTime")).isNotNull();
+        assertThat(saved.get("updateTime")).isNotNull();
 
         // LIKE + GE 条件查询：name=testb, stock>=150
         ResponseEntity<Map> page = call(HttpMethod.GET, "/product/page?name=testb&stock=150", null, null);

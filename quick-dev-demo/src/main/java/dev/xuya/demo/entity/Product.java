@@ -1,6 +1,8 @@
 package dev.xuya.demo.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import dev.xuya.core.annotation.QueryField;
@@ -10,7 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 商品（同时演示：String UUID 主键、BigDecimal、范围查询）
+ * 商品（同时演示：String UUID 主键、BigDecimal、范围查询、时间自动填充）
  */
 @TableName("product")
 public class Product {
@@ -27,7 +29,11 @@ public class Product {
     @QueryField(QueryType.GE)
     private Integer stock;
 
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 
     public String getId() {
         return id;
@@ -67,5 +73,13 @@ public class Product {
 
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
+    }
+
+    public LocalDateTime getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(LocalDateTime updateTime) {
+        this.updateTime = updateTime;
     }
 }
