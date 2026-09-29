@@ -15,7 +15,9 @@ public class SysUserPerm {
 
     private Long userId;
 
-    /** 权限码，* 表示超级权限 */
+    /**
+     * 权限码，* 表示超级权限
+     */
     private String permCode;
 
     public Long getId() {

@@ -4,11 +4,7 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * 异步操作日志装饰器：把真正的 sink（如写库实现）放到后台单线程执行，
@@ -41,10 +37,22 @@ public class AsyncOperationLogSink implements OperationLogSink {
                 });
     }
 
-    /** 供测试注入同步执行器 */
+    /**
+     * 供测试注入同步执行器
+     */
     AsyncOperationLogSink(OperationLogSink delegate, ExecutorService executor) {
         this.delegate = delegate;
         this.executor = executor;
+    }
+
+    /**
+     * 便捷构造：wrap 仅在需要时包装（同步场景直接返回原 sink）
+     */
+    public static OperationLogSink wrap(OperationLogSink delegate, boolean async) {
+        if (!async || delegate instanceof AsyncOperationLogSink) {
+            return delegate;
+        }
+        return new AsyncOperationLogSink(delegate);
     }
 
     @Override
@@ -72,13 +80,5 @@ public class AsyncOperationLogSink implements OperationLogSink {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-    }
-
-    /** 便捷构造：wrap 仅在需要时包装（同步场景直接返回原 sink） */
-    public static OperationLogSink wrap(OperationLogSink delegate, boolean async) {
-        if (!async || delegate instanceof AsyncOperationLogSink) {
-            return delegate;
-        }
-        return new AsyncOperationLogSink(delegate);
     }
 }

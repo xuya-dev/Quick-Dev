@@ -10,18 +10,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DictCacheServiceTest {
 
-    /** 可变数据的内存 Loader：模拟用户自定义数据源（远程服务/配置中心） */
-    private static class MutableLoader implements DictLoader {
-        final List<DictEntry> entries = new ArrayList<>();
-        final AtomicInteger loadCount = new AtomicInteger();
-
-        @Override
-        public List<DictEntry> loadAll() {
-            loadCount.incrementAndGet();
-            return List.copyOf(entries);
-        }
-    }
-
     @Test
     void shouldLazilyLoadAndResolveBothDirections() {
         MutableLoader loader = new MutableLoader();
@@ -90,5 +78,19 @@ class DictCacheServiceTest {
         DictCacheService cache = new DictCacheService(loader);
         assertThat(cache.getLabel("t", "1")).isEqualTo("ok");
         assertThat(cache.size()).isEqualTo(1);
+    }
+
+    /**
+     * 可变数据的内存 Loader：模拟用户自定义数据源（远程服务/配置中心）
+     */
+    private static class MutableLoader implements DictLoader {
+        final List<DictEntry> entries = new ArrayList<>();
+        final AtomicInteger loadCount = new AtomicInteger();
+
+        @Override
+        public List<DictEntry> loadAll() {
+            loadCount.incrementAndGet();
+            return List.copyOf(entries);
+        }
     }
 }

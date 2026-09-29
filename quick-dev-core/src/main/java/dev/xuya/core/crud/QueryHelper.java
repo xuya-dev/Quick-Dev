@@ -13,11 +13,7 @@ import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.core.convert.ConversionService;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 将分页/列表接口的请求参数翻译为 MyBatis-Plus QueryWrapper。
@@ -111,7 +107,9 @@ public final class QueryHelper {
         return wrapper;
     }
 
-    /** 行级数据权限：实体标注 @DataScope 且注册 DataScopeResolver 时追加可见范围条件 */
+    /**
+     * 行级数据权限：实体标注 @DataScope 且注册 DataScopeResolver 时追加可见范围条件
+     */
     private static void applyDataScope(EntityMeta meta, QueryWrapper<Object> wrapper) {
         DataScope dataScope = meta.getEntityClass().getAnnotation(DataScope.class);
         if (dataScope == null) {

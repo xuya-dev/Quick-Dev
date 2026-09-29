@@ -1,8 +1,8 @@
 package dev.xuya.core.crud;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.IdType;
 import dev.xuya.core.common.QuickDevException;
 import org.junit.jupiter.api.Test;
 
@@ -12,33 +12,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TreeBuilderTest {
-
-    public static class Dept {
-        @TableId(type = IdType.AUTO)
-        private Long id;
-        private String name;
-        private Long parentId;
-
-        @TableField(exist = false)
-        private List<Dept> children;
-
-        public Dept(Long id, String name, Long parentId) {
-            this.id = id;
-            this.name = name;
-            this.parentId = parentId;
-        }
-
-        public Long getId() { return id; }
-        public String getName() { return name; }
-        public Long getParentId() { return parentId; }
-        public List<Dept> getChildren() { return children; }
-    }
-
-    public static class NoParentField {
-        @TableId
-        private Long id;
-        private String name;
-    }
 
     @Test
     void buildShouldNestChildrenUnderRoots() {
@@ -84,5 +57,43 @@ class TreeBuilderTest {
         assertThat(meta.getColumn("children")).isNull();      // exist=false 不参与查询条件
         assertThat(meta.getColumn("parentId")).isEqualTo("parent_id");
         assertThat(meta.getField("children")).isNotNull();     // 但树构建可用
+    }
+
+    public static class Dept {
+        @TableId(type = IdType.AUTO)
+        private Long id;
+        private String name;
+        private Long parentId;
+
+        @TableField(exist = false)
+        private List<Dept> children;
+
+        public Dept(Long id, String name, Long parentId) {
+            this.id = id;
+            this.name = name;
+            this.parentId = parentId;
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public Long getParentId() {
+            return parentId;
+        }
+
+        public List<Dept> getChildren() {
+            return children;
+        }
+    }
+
+    public static class NoParentField {
+        @TableId
+        private Long id;
+        private String name;
     }
 }

@@ -14,16 +14,17 @@
 ### 1.1 引入依赖
 
 ```xml
+
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
     <version>0.1.0</version>
 </dependency>
-<!-- 再加你的数据库驱动，例如： -->
+        <!-- 再加你的数据库驱动，例如： -->
 <dependency>
-    <groupId>com.mysql</groupId>
-    <artifactId>mysql-connector-j</artifactId>
-    <scope>runtime</scope>
+<groupId>com.mysql</groupId>
+<artifactId>mysql-connector-j</artifactId>
+<scope>runtime</scope>
 </dependency>
 ```
 
@@ -32,12 +33,18 @@
 ### 1.2 一个最小可运行应用
 
 ```java
+
 @SpringBootApplication
 @MapperScan("com.example.mapper")     // 你的 Mapper 包
-public class App { public static void main(String[] args) { SpringApplication.run(App.class, args); } }
+public class App {
+    public static void main(String[] args) {
+        SpringApplication.run(App.class, args);
+    }
+}
 ```
 
 ```java
+
 @TableName("t_user")
 public class User {
     @TableId(type = IdType.AUTO)
@@ -46,12 +53,15 @@ public class User {
     // getter/setter
 }
 
-public interface UserMapper extends BaseMapper<User> { }
+public interface UserMapper extends BaseMapper<User> {
+}
 ```
 
 ```java
+
 @QuickCrud(entity = User.class)       // 到这里 /user/** 八个接口已可用
-public class UserController { }
+public class UserController {
+}
 ```
 
 启动日志会打印每个注册的端点与权限码，可据此核对。
@@ -74,30 +84,31 @@ sa-token:
 
 ### 2.1 全部属性
 
-| 属性 | 默认 | 说明 |
-|---|---|---|
-| `entity` | 必填 | 实体类 |
-| `mapper` | 自动 | 按 `BaseMapper<实体>` 泛型查找；多 Mapper 匹配时需显式指定 |
-| `path` | 推导 | 优先类上 `@RequestMapping`，否则实体名转 kebab（SysUser → `/sys-user`） |
-| `permission` | 空 | 权限码前缀；空 = 开放（配合 `loginRequired=true` 可仅要求登录） |
-| `loginRequired` | false | 无权限码时仍要求登录 |
-| `includes` | 8 个默认操作 | PAGE/LIST/COUNT/DETAIL/SAVE/SAVE_BATCH/UPDATE/REMOVE |
-| `excludes` | 空 | 在 includes 基础上排除 |
+| 属性            | 默认         | 说明                                                                    |
+|-----------------|--------------|-------------------------------------------------------------------------|
+| `entity`        | 必填         | 实体类                                                                  |
+| `mapper`        | 自动         | 按 `BaseMapper<实体>` 泛型查找；多 Mapper 匹配时需显式指定              |
+| `path`          | 推导         | 优先类上 `@RequestMapping`，否则实体名转 kebab（SysUser → `/sys-user`） |
+| `permission`    | 空           | 权限码前缀；空 = 开放（配合 `loginRequired=true` 可仅要求登录）         |
+| `loginRequired` | false        | 无权限码时仍要求登录                                                    |
+| `includes`      | 8 个默认操作 | PAGE/LIST/COUNT/DETAIL/SAVE/SAVE_BATCH/UPDATE/REMOVE                    |
+| `excludes`      | 空           | 在 includes 基础上排除                                                  |
 
 ### 2.2 可选操作（需加入 includes）
 
-| CrudOp | 端点 | 权限后缀 | 说明 |
-|---|---|---|---|
-| `IMPORT` | `POST {base}/import` | `:import` | multipart 字段 `file`；逐行校验+事务插入 |
-| `EXPORT` | `GET {base}/export` | `:export` | 复用 page 查询条件导出 Excel |
-| `IMPORT_TEMPLATE` | `GET {base}/import-template` | `:import` | 下载仅表头的模板 |
-| `TREE` | `GET {base}/tree` | `:list` | 树形结构（实体需 `parentId`+`children`） |
+| CrudOp            | 端点                         | 权限后缀  | 说明                                     |
+|-------------------|------------------------------|-----------|------------------------------------------|
+| `IMPORT`          | `POST {base}/import`         | `:import` | multipart 字段 `file`；逐行校验+事务插入 |
+| `EXPORT`          | `GET {base}/export`          | `:export` | 复用 page 查询条件导出 Excel             |
+| `IMPORT_TEMPLATE` | `GET {base}/import-template` | `:import` | 下载仅表头的模板                         |
+| `TREE`            | `GET {base}/tree`            | `:list`   | 树形结构（实体需 `parentId`+`children`） |
 
 ### 2.3 与手写接口混用
 
 `@QuickCrud` 类可以照常写自定义方法，动态端点与手写端点共存：
 
 ```java
+
 @QuickCrud(entity = User.class, permission = "sys:user")
 public class UserController {
 
@@ -116,37 +127,49 @@ public class UserController {
 方法体留空（`return null`），框架 AOP 接管：
 
 ```java
+
 @RestController
 @RequestMapping("/order")
 public class OrderController {
 
     @QuickSave(entity = Order.class, permission = "order:add")
     @PostMapping
-    public R<Object> save(@RequestBody Order order) { return null; }
+    public R<Object> save(@RequestBody Order order) {
+        return null;
+    }
 
     @QuickSave(entity = Order.class)                        // List 参数自动批量（Db.saveBatch）
     @PostMapping("/batch")
-    public R<Object> saveBatch(@RequestBody List<Order> orders) { return null; }
+    public R<Object> saveBatch(@RequestBody List<Order> orders) {
+        return null;
+    }
 
     @QuickUpdate(entity = Order.class, permission = "order:edit")
     @PutMapping
-    public R<Object> update(@RequestBody Order order) { return null; }
+    public R<Object> update(@RequestBody Order order) {
+        return null;
+    }
 
     @QuickRemove(entity = Order.class, permission = "order:remove")
     @DeleteMapping("/{ids}")                                // "1" 或 "1,2,3"
-    public R<Object> remove(@PathVariable("ids") String ids) { return null; }
+    public R<Object> remove(@PathVariable("ids") String ids) {
+        return null;
+    }
 
     @QuickExport(entity = Order.class, translate = true)    // translate: 导出翻译后的标签
     @GetMapping("/export")
-    public void export(HttpServletResponse response) { }
+    public void export(HttpServletResponse response) {
+    }
 
     @QuickImport(entity = Order.class, permission = "order:import")
     @PostMapping("/import")
-    public R<Object> importExcel(MultipartFile file) { return null; }
+    public R<Object> importExcel(MultipartFile file) {
+        return null;
+    }
 }
 ```
 
-注意：方法级 `permission` 是**完整权限码**（区别于 `@QuickCrud.permission` 的前缀语义）。
+注意：方法级 `permission` 是 **完整权限码**（区别于 `@QuickCrud.permission` 的前缀语义）。
 
 ## 4. 查询与排序
 
@@ -176,7 +199,7 @@ public class Order {
 `GET {base}/page?current=1&size=20&orderBy=createTime&order=desc`
 
 - `current`/`size` 默认 1/10，size 上限 1000
-- `orderBy` 必须是**实体属性名**（防注入），`order` 为 `asc|desc`
+- `orderBy` 必须是 **实体属性名**（防注入），`order` 为 `asc|desc`
 
 ## 5. 登录与鉴权
 
@@ -194,8 +217,9 @@ public R<Object> login(@RequestBody LoginDTO dto) {
 // 权限/角色数据源（查你自己的表）
 @Component
 public class MyStpInterface implements StpInterface {
-    public List<String> getPermissionList(Object loginId, String loginType) { ... }
-    public List<String> getRoleList(Object loginId, String loginType) { ... }
+    public List<String> getPermissionList(Object loginId, String loginType) { ...}
+
+    public List<String> getRoleList(Object loginId, String loginType) { ...}
 }
 ```
 
@@ -217,6 +241,7 @@ public class MyStpInterface implements StpInterface {
 ### 6.1 三种模式
 
 ```java
+
 @Translate(dict = "order_status")                        // 字典（表/枚举/远程 由你决定）
 private Integer status;                                  // 1 -> "已支付"
 
@@ -227,7 +252,7 @@ private Integer type;                                    // 1 -> "普通商品"
 private String createBy;                                 // "1" -> "管理员"
 ```
 
-翻译发生在 JSON 序列化期：分页/详情/你的自定义接口**全部自动生效**，无需调用任何方法。
+翻译发生在 JSON 序列化期：分页/详情/你的自定义接口 **全部自动生效**，无需调用任何方法。
 失败（无字典/无记录/未实现）保留原值，不影响接口。
 
 ### 6.2 字典存数据库：零代码方案
@@ -253,7 +278,7 @@ quick-dev:
 
 - 列名：实体字段加 `@ExcelProperty("中文名")`，未加用字段名（导入导出模板两侧一致）
 - 导出：复用 page 的查询条件（含 @QueryField 与数据权限），`@QuickExport(translate=true)` 输出翻译标签
-- 导入策略：**任一行校验失败则整体不入库**（400 + 前 10 行错误明细），插入同一事务
+- 导入策略： **任一行校验失败则整体不入库**（400 + 前 10 行错误明细），插入同一事务
 - 导入返回 `{total, inserted}`；行数上限 1 万（`quick-dev.limits.import-max-rows`）
 - 导出行数上限 10 万，超出截断并告警（`quick-dev.limits.export-max-rows`）
 - `@JsonIgnore` 字段（如密码）不会出现在翻译导出中
@@ -261,10 +286,15 @@ quick-dev:
 ## 8. 审计填充
 
 ```java
-@TableField(fill = FieldFill.INSERT)          private LocalDateTime createTime;
-@TableField(fill = FieldFill.INSERT_UPDATE)  private LocalDateTime updateTime;
-@TableField(fill = FieldFill.INSERT)          private String createBy;
-@TableField(fill = FieldFill.INSERT_UPDATE)  private String updateBy;
+
+@TableField(fill = FieldFill.INSERT)
+private LocalDateTime createTime;
+@TableField(fill = FieldFill.INSERT_UPDATE)
+private LocalDateTime updateTime;
+@TableField(fill = FieldFill.INSERT)
+private String createBy;
+@TableField(fill = FieldFill.INSERT_UPDATE)
+private String updateBy;
 ```
 
 - 新增填四个，修改填 `updateTime`/`updateBy`；已有值不覆盖
@@ -274,9 +304,11 @@ quick-dev:
 ## 9. 数据权限
 
 ```java
+
 @DataScope(column = "dept_id")
 @TableName("sys_user")
-public class SysUser { ... }
+public class SysUser { ...
+}
 
 @Component
 public class MyDataScopeResolver implements DataScopeResolver {
@@ -292,13 +324,14 @@ public class MyDataScopeResolver implements DataScopeResolver {
 ## 10. 防重复提交与操作日志
 
 ```java
+
 @NoRepeatSubmit(interval = 2000)                    // 同一用户+接口 2 秒窗口，重复返回 400
 @PostMapping("/pay")
-public R<Object> pay(@RequestBody PayDTO dto) { ... }
+public R<Object> pay(@RequestBody PayDTO dto) { ...}
 
 @QuickLog(module = "订单", description = "创建订单")  // 记录操作人/URI/入参/结果/耗时/异常
 @PostMapping("/order")
-public R<Object> create(@RequestBody OrderDTO dto) { ... }
+public R<Object> create(@RequestBody OrderDTO dto) { ...}
 ```
 
 操作日志落地：实现 `OperationLogSink` Bean（建议异步写库），默认输出 Slf4j。
@@ -307,6 +340,7 @@ public R<Object> create(@RequestBody OrderDTO dto) { ... }
 ## 11. Redis 部署
 
 ```xml
+
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
@@ -321,7 +355,7 @@ spring:
 ```
 
 效果：Sa-Token 登录态/权限缓存落 Redis（多实例共享、重启不丢）；防重复提交切 Redis。
-注意：**内置字典缓存仍是单实例内存**——多实例下请在各实例调刷新接口，或自行实现共享。
+注意： **内置字典缓存仍是单实例内存**——多实例下请在各实例调刷新接口，或自行实现共享。
 
 ## 12. 响应与异常
 
@@ -366,7 +400,7 @@ Sa-Token 默认内存存储。多实例/重启保留登录请引入 redis starte
 字典标签拼写与库中一致（反解不区分大小写前会 trim）。
 
 **10. 为什么鉴权配置错误直接抛异常而不是放行？**
-框架鉴权是**失败关闭**设计：声明了权限要求但 SPI 缺失时快速暴露配置问题，避免裸奔上线。
+框架鉴权是 **失败关闭**设计：声明了权限要求但 SPI 缺失时快速暴露配置问题，避免裸奔上线。
 
 ---
 

@@ -2,27 +2,23 @@ package dev.xuya.demo;
 
 import cn.idev.excel.FastExcel;
 import dev.xuya.core.log.LogRecord;
-import dev.xuya.demo.log.MemoryLogSink;
 import dev.xuya.demo.entity.Product;
-import java.io.ByteArrayInputStream;
-import java.time.Year;
-import java.util.Arrays;
+import dev.xuya.demo.log.MemoryLogSink;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.time.Year;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 

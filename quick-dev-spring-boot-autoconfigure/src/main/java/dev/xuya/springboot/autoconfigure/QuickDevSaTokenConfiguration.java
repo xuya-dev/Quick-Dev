@@ -18,6 +18,7 @@ import org.springframework.context.annotation.Bean;
  *   <li>角色：StpUtil.hasRole(loginId, role)，角色数据来自 StpInterface.getRoleList</li>
  * </ul>
  * <p>即：登录用 StpUtil.login(userId)，权限/角色查询实现 StpInterface，框架的 @RequiresPerm /
+ *
  * @RequiresRole / @QuickCrud 权限码校验自动打通。</p>
  */
 @AutoConfiguration

@@ -49,7 +49,9 @@ public class R<T> implements Serializable {
         return new R<>(500, msg, null);
     }
 
-    /** 是否成功，便于前端判断 */
+    /**
+     * 是否成功，便于前端判断
+     */
     public boolean isSuccess() {
         return code == SUCCESS;
     }

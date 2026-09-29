@@ -5,8 +5,12 @@ package dev.xuya.core.auth;
  */
 public enum Logical {
 
-    /** 全部满足 */
+    /**
+     * 全部满足
+     */
     AND,
-    /** 任一满足 */
+    /**
+     * 任一满足
+     */
     OR
 }

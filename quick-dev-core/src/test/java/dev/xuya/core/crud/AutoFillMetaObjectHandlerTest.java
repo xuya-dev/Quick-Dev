@@ -11,28 +11,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AutoFillMetaObjectHandlerTest {
 
-    public static class SampleEntity {
-        private Long id;
-        private LocalDateTime createTime;
-        private LocalDateTime updateTime;
-        private String createBy;
-        private String updateBy;
-        private String name;
-
-        public Long getId() { return id; }
-        public void setId(Long id) { this.id = id; }
-        public LocalDateTime getCreateTime() { return createTime; }
-        public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
-        public LocalDateTime getUpdateTime() { return updateTime; }
-        public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
-        public String getCreateBy() { return createBy; }
-        public void setCreateBy(String createBy) { this.createBy = createBy; }
-        public String getUpdateBy() { return updateBy; }
-        public void setUpdateBy(String updateBy) { this.updateBy = updateBy; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-    }
-
     private final AutoFillMetaObjectHandler handler = new AutoFillMetaObjectHandler();
 
     @Test
@@ -94,5 +72,62 @@ class AutoFillMetaObjectHandlerTest {
         assertThat(entity.getUpdateBy()).isNull();
         // 时间字段不受登录态影响
         assertThat(entity.getCreateTime()).isNotNull();
+    }
+
+    public static class SampleEntity {
+        private Long id;
+        private LocalDateTime createTime;
+        private LocalDateTime updateTime;
+        private String createBy;
+        private String updateBy;
+        private String name;
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
+        }
+
+        public LocalDateTime getCreateTime() {
+            return createTime;
+        }
+
+        public void setCreateTime(LocalDateTime createTime) {
+            this.createTime = createTime;
+        }
+
+        public LocalDateTime getUpdateTime() {
+            return updateTime;
+        }
+
+        public void setUpdateTime(LocalDateTime updateTime) {
+            this.updateTime = updateTime;
+        }
+
+        public String getCreateBy() {
+            return createBy;
+        }
+
+        public void setCreateBy(String createBy) {
+            this.createBy = createBy;
+        }
+
+        public String getUpdateBy() {
+            return updateBy;
+        }
+
+        public void setUpdateBy(String updateBy) {
+            this.updateBy = updateBy;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
     }
 }

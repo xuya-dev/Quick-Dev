@@ -24,7 +24,9 @@ public class MemoryRepeatSubmitStore implements RepeatSubmitStore {
         return previous == null || now - previous >= intervalMillis;
     }
 
-    /** 惰性清理过期指纹，避免长期运行内存增长 */
+    /**
+     * 惰性清理过期指纹，避免长期运行内存增长
+     */
     private void clean(long now, long maxInterval) {
         Iterator<Map.Entry<String, Long>> iterator = lastSubmit.entrySet().iterator();
         while (iterator.hasNext()) {

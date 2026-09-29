@@ -1,10 +1,6 @@
 package dev.xuya.demo.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
@@ -32,18 +28,24 @@ public class SysUser {
     @QueryField(QueryType.LIKE)
     private String nickname;
 
-    /** 演示环境为方便使用明文存储，生产环境请使用 BCrypt 等哈希算法 */
+    /**
+     * 演示环境为方便使用明文存储，生产环境请使用 BCrypt 等哈希算法
+     */
     @JsonIgnore
     private String password;
 
     @NotBlank(message = "邮箱不能为空")
     private String email;
 
-    /** 字典翻译：1 -> 启用，0 -> 停用 */
+    /**
+     * 字典翻译：1 -> 启用，0 -> 停用
+     */
     @Translate(dict = "user_status")
     private Integer status;
 
-    /** 所属部门（数据权限按此列过滤） */
+    /**
+     * 所属部门（数据权限按此列过滤）
+     */
     private Long deptId;
 
     @TableField(fill = FieldFill.INSERT)
@@ -52,7 +54,9 @@ public class SysUser {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
-    /** 关联翻译：loginId -> 用户昵称（"1" -> "管理员"） */
+    /**
+     * 关联翻译：loginId -> 用户昵称（"1" -> "管理员"）
+     */
     @Translate(entity = SysUser.class, field = "nickname")
     @TableField(fill = FieldFill.INSERT)
     private String createBy;

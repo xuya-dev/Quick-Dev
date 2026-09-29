@@ -25,10 +25,14 @@ import java.util.List;
 @FunctionalInterface
 public interface DictLoader {
 
-    /** 全量加载字典条目（refresh 与首次懒加载时调用） */
+    /**
+     * 全量加载字典条目（refresh 与首次懒加载时调用）
+     */
     List<DictEntry> loadAll();
 
-    /** 一条字典：类型 + 值 + 标签 */
+    /**
+     * 一条字典：类型 + 值 + 标签
+     */
     record DictEntry(String type, String value, String label) {
     }
 }

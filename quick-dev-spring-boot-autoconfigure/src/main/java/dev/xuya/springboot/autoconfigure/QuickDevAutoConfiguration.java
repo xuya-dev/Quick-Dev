@@ -161,7 +161,9 @@ public class QuickDevAutoConfiguration {
         return new GlobalExceptionHandler(properties.isErrorDetail());
     }
 
-    /** 把 quick-dev.limits.* 写入 core 静态上限（core 静态工具无法走 Bean 注入） */
+    /**
+     * 把 quick-dev.limits.* 写入 core 静态上限（core 静态工具无法走 Bean 注入）
+     */
     @Bean
     public String quickDevLimitsConfigurer(QuickDevProperties properties) {
         QuickDevProperties.Limits limits = properties.getLimits();

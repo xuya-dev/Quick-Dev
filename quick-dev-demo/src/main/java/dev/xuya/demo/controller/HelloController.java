@@ -7,11 +7,11 @@ import dev.xuya.core.common.R;
 import dev.xuya.core.log.QuickLog;
 import dev.xuya.demo.auth.DbAuthService;
 import dev.xuya.demo.entity.SysUser;
-import java.time.LocalDateTime;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -37,7 +37,9 @@ public class HelloController {
         ));
     }
 
-    /** 角色注解：仅 admin 角色可访问（viewer 无角色 -> 403） */
+    /**
+     * 角色注解：仅 admin 角色可访问（viewer 无角色 -> 403）
+     */
     @RequiresRole("admin")
     @GetMapping("/admin/summary")
     public R<Object> adminSummary() {
@@ -48,7 +50,9 @@ public class HelloController {
         ));
     }
 
-    /** 防重复提交演示：3 秒内同一用户重复点击会被拒绝 */
+    /**
+     * 防重复提交演示：3 秒内同一用户重复点击会被拒绝
+     */
     @NoRepeatSubmit(interval = 3000)
     @PostMapping("/repeat/submit")
     public R<Object> repeatSubmit() {

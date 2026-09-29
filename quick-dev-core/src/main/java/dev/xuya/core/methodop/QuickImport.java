@@ -1,10 +1,6 @@
 package dev.xuya.core.methodop;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 方法级导入：标注在 Controller 方法上，方法体无需实现，框架读取上传的 Excel
@@ -21,9 +17,13 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface QuickImport {
 
-    /** 目标实体类 */
+    /**
+     * 目标实体类
+     */
     Class<?> entity();
 
-    /** 完整权限码，空串表示不鉴权 */
+    /**
+     * 完整权限码，空串表示不鉴权
+     */
     String permission() default "";
 }

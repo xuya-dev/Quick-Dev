@@ -28,12 +28,16 @@ public class DictCacheService {
     private volatile Snapshot snapshot;
     private volatile java.util.concurrent.ScheduledExecutorService autoRefreshScheduler;
 
-    /** 数据来源为用户自定义 {@link DictLoader}（远程服务/配置中心/自有表）；null 表示仅靠导入端点上传数据 */
+    /**
+     * 数据来源为用户自定义 {@link DictLoader}（远程服务/配置中心/自有表）；null 表示仅靠导入端点上传数据
+     */
     public DictCacheService(DictLoader loader) {
         this.loader = loader;
     }
 
-    /** 启用定时自动刷新（秒；非正数不启用）。自管理守护线程，不依赖 @EnableScheduling */
+    /**
+     * 启用定时自动刷新（秒；非正数不启用）。自管理守护线程，不依赖 @EnableScheduling
+     */
     public void startAutoRefresh(long intervalSeconds) {
         if (intervalSeconds <= 0 || autoRefreshScheduler != null) {
             return;
@@ -53,7 +57,9 @@ public class DictCacheService {
         }
     }
 
-    /** 定时任务入口：吞掉一切异常，否则 ScheduledExecutorService 会取消后续执行 */
+    /**
+     * 定时任务入口：吞掉一切异常，否则 ScheduledExecutorService 会取消后续执行
+     */
     private void refreshQuietly() {
         try {
             refresh();
@@ -62,7 +68,9 @@ public class DictCacheService {
         }
     }
 
-    /** @PreDestroy 等价清理（本类非必然为 Spring Bean，公共方法供装配方调用） */
+    /**
+     * @PreDestroy 等价清理（本类非必然为 Spring Bean，公共方法供装配方调用）
+     */
     public void shutdown() {
         java.util.concurrent.ScheduledExecutorService scheduler = this.autoRefreshScheduler;
         if (scheduler != null) {
@@ -70,7 +78,9 @@ public class DictCacheService {
         }
     }
 
-    /** 全量重建缓存（走 DictLoader；未提供 loader 时不动作——数据来源为导入端点上传） */
+    /**
+     * 全量重建缓存（走 DictLoader；未提供 loader 时不动作——数据来源为导入端点上传）
+     */
     public synchronized void refresh() {
         if (loader == null) {
             log.debug("未提供 DictLoader，跳过刷新（字典数据来自导入端点）");
@@ -109,14 +119,18 @@ public class DictCacheService {
         }
     }
 
-    /** 值 -> 标签（缓存未初始化时自动懒加载） */
+    /**
+     * 值 -> 标签（缓存未初始化时自动懒加载）
+     */
     public String getLabel(String type, String value) {
         ensureLoaded();
         Snapshot current = snapshot;
         return current == null ? null : current.byValue.getOrDefault(type, Map.of()).get(value);
     }
 
-    /** 标签 -> 值（缓存未初始化时自动懒加载） */
+    /**
+     * 标签 -> 值（缓存未初始化时自动懒加载）
+     */
     public String getValue(String type, String label) {
         ensureLoaded();
         Snapshot current = snapshot;
@@ -127,13 +141,17 @@ public class DictCacheService {
         return snapshot != null;
     }
 
-    /** 已缓存的字典条数 */
+    /**
+     * 已缓存的字典条数
+     */
     public int size() {
         Snapshot current = snapshot;
         return current == null ? 0 : current.size;
     }
 
-    /** 最近一次加载时间 */
+    /**
+     * 最近一次加载时间
+     */
     public Instant loadedAt() {
         Snapshot current = snapshot;
         return current == null ? null : current.loadedAt;

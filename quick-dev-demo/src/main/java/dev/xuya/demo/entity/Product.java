@@ -1,11 +1,7 @@
 package dev.xuya.demo.entity;
 
 import cn.idev.excel.annotation.ExcelProperty;
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
 import dev.xuya.core.translate.Translate;
@@ -20,7 +16,9 @@ import java.time.LocalDateTime;
 @TableName("product")
 public class Product {
 
-    /** 雪花/UUID 主键，插入时 MP 自动回填 */
+    /**
+     * 雪花/UUID 主键，插入时 MP 自动回填
+     */
     @TableId(type = IdType.ASSIGN_UUID)
     private String id;
 
@@ -29,11 +27,15 @@ public class Product {
     @QueryField(QueryType.LIKE)
     private String name;
 
-    /** 枚举字典翻译：1 -> 普通商品，2 -> 赠品（导入时反向自动反解） */
+    /**
+     * 枚举字典翻译：1 -> 普通商品，2 -> 赠品（导入时反向自动反解）
+     */
     @Translate(enumClass = ProductType.class)
     private Integer type;
 
-    /** 字典翻译：1 -> 线上，2 -> 线下（导入时由 DictReverseResolver 反解） */
+    /**
+     * 字典翻译：1 -> 线上，2 -> 线下（导入时由 DictReverseResolver 反解）
+     */
     @Translate(dict = "product_channel")
     private Integer channel;
 

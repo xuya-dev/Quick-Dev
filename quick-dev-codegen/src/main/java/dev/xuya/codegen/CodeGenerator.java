@@ -3,11 +3,7 @@ package dev.xuya.codegen;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 代码生成器：读取数据库表结构，生成 Quick Dev 三件套源码（实体 / Mapper / @QuickCrud Controller）。
@@ -25,18 +21,6 @@ import java.util.Set;
  */
 public final class CodeGenerator {
 
-    private CodeGenerator() {
-    }
-
-    /** 生成结果：三个源码文件的内容与类名 */
-    public record GenerateResult(String entityClassName, String mapperClassName, String controllerClassName,
-                                 String entitySource, String mapperSource, String controllerSource) {
-    }
-
-    /** 单列元数据 */
-    private record ColumnMeta(String columnName, String typeName, String remark, boolean primary) {
-    }
-
     private static final Map<String, String> TYPE_MAPPING = Map.ofEntries(
             Map.entry("BIGINT", "Long"),
             Map.entry("INT", "Integer"), Map.entry("INTEGER", "Integer"),
@@ -50,7 +34,12 @@ public final class CodeGenerator {
             Map.entry("TIMESTAMP", "LocalDateTime"), Map.entry("DATETIME", "LocalDateTime"),
             Map.entry("TIME", "LocalTime"));
 
-    /** 命令行入口 */
+    private CodeGenerator() {
+    }
+
+    /**
+     * 命令行入口
+     */
     public static void main(String[] args) throws Exception {
         Map<String, String> params = parseArgs(args);
         String url = required(params, "url");
@@ -72,7 +61,9 @@ public final class CodeGenerator {
         }
     }
 
-    /** 生成三件套源码（不写文件） */
+    /**
+     * 生成三件套源码（不写文件）
+     */
     public static GenerateResult generate(Connection connection, String tableName,
                                           String packageName, String author) throws Exception {
         List<ColumnMeta> columns = readColumns(connection, tableName);
@@ -90,7 +81,9 @@ public final class CodeGenerator {
                 renderController(packageName, entityName, author));
     }
 
-    /** 按包路径写出三个源码文件 */
+    /**
+     * 按包路径写出三个源码文件
+     */
     public static void writeFiles(GenerateResult result, java.nio.file.Path sourceRoot) throws Exception {
         String packagePath = packageOf(result.entitySource());
         java.nio.file.Path dir = sourceRoot.resolve(packagePath.replace('.', '/'));
@@ -99,10 +92,6 @@ public final class CodeGenerator {
         java.nio.file.Files.writeString(dir.resolve(result.mapperClassName() + ".java"), result.mapperSource());
         java.nio.file.Files.writeString(dir.resolve(result.controllerClassName() + ".java"), result.controllerSource());
     }
-
-    // ------------------------------------------------------------------
-    // 元数据读取
-    // ------------------------------------------------------------------
 
     private static List<ColumnMeta> readColumns(Connection connection, String tableName) throws Exception {
         // 不同库对未加引号标识符的大小写处理不同（H2/Oracle 大写、PostgreSQL 小写），
@@ -137,7 +126,7 @@ public final class CodeGenerator {
     }
 
     // ------------------------------------------------------------------
-    // 模板渲染
+    // 元数据读取
     // ------------------------------------------------------------------
 
     private static String renderEntity(String packageName, String entityName, String tableName,
@@ -198,6 +187,10 @@ public final class CodeGenerator {
                 + "public interface " + entityName + "Mapper extends BaseMapper<" + entityName + "> {\n}\n";
     }
 
+    // ------------------------------------------------------------------
+    // 模板渲染
+    // ------------------------------------------------------------------
+
     private static String renderController(String packageName, String entityName, String author) {
         String permission = toKebab(entityName).replace('-', ':');
         return "package " + packageName + ".controller;\n\n"
@@ -209,10 +202,6 @@ public final class CodeGenerator {
                 + "public class " + entityName + "Controller {\n}\n";
     }
 
-    // ------------------------------------------------------------------
-    // 工具
-    // ------------------------------------------------------------------
-
     private static boolean isAuditInsert(String column) {
         return column.equals("create_time") || column.equals("create_by");
     }
@@ -221,7 +210,13 @@ public final class CodeGenerator {
         return column.equals("update_time") || column.equals("update_by");
     }
 
-    /** order_item -> OrderItem */
+    // ------------------------------------------------------------------
+    // 工具
+    // ------------------------------------------------------------------
+
+    /**
+     * order_item -> OrderItem
+     */
     static String toPascal(String name) {
         String[] parts = name.toLowerCase().split("[_\\-]");
         StringBuilder sb = new StringBuilder();
@@ -233,13 +228,17 @@ public final class CodeGenerator {
         return sb.toString();
     }
 
-    /** order_no -> orderNo */
+    /**
+     * order_no -> orderNo
+     */
     static String toCamel(String name) {
         String pascal = toPascal(name);
         return Character.toLowerCase(pascal.charAt(0)) + pascal.substring(1);
     }
 
-    /** OrderItem -> order-item */
+    /**
+     * OrderItem -> order-item
+     */
     static String toKebab(String pascal) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < pascal.length(); i++) {
@@ -275,5 +274,18 @@ public final class CodeGenerator {
             throw new IllegalArgumentException("缺少必填参数 --" + key);
         }
         return value;
+    }
+
+    /**
+     * 生成结果：三个源码文件的内容与类名
+     */
+    public record GenerateResult(String entityClassName, String mapperClassName, String controllerClassName,
+                                 String entitySource, String mapperSource, String controllerSource) {
+    }
+
+    /**
+     * 单列元数据
+     */
+    private record ColumnMeta(String columnName, String typeName, String remark, boolean primary) {
     }
 }

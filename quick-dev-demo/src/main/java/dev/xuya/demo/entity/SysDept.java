@@ -1,10 +1,6 @@
 package dev.xuya.demo.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,10 +16,14 @@ public class SysDept {
 
     private String name;
 
-    /** 父部门 ID，0 表示根 */
+    /**
+     * 父部门 ID，0 表示根
+     */
     private Long parentId;
 
-    /** 子部门（非表字段） */
+    /**
+     * 子部门（非表字段）
+     */
     @TableField(exist = false)
     private List<SysDept> children;
 

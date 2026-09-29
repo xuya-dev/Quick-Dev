@@ -7,40 +7,74 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 public enum CrudOp {
 
-    /** GET {base}/page 分页查询 */
+    /**
+     * GET {base}/page 分页查询
+     */
     PAGE("page", "/page", RequestMethod.GET, "list"),
-    /** GET {base}/list 列表查询（不分页） */
+    /**
+     * GET {base}/list 列表查询（不分页）
+     */
     LIST("list", "/list", RequestMethod.GET, "list"),
-    /** GET {base}/count 按条件统计数量 */
+    /**
+     * GET {base}/count 按条件统计数量
+     */
     COUNT("count", "/count", RequestMethod.GET, "list"),
-    /** GET {base}/tree 树形查询（实体需有 parentId 与 children 字段）；需手动加入 includes */
+    /**
+     * GET {base}/tree 树形查询（实体需有 parentId 与 children 字段）；需手动加入 includes
+     */
     TREE("tree", "/tree", RequestMethod.GET, "list"),
-    /** GET {base}/{id} 详情 */
+    /**
+     * GET {base}/{id} 详情
+     */
     DETAIL("detail", "/{id}", RequestMethod.GET, "detail"),
-    /** POST {base} 新增 */
+    /**
+     * POST {base} 新增
+     */
     SAVE("save", "", RequestMethod.POST, "add"),
-    /** POST {base}/batch 批量新增（JSON 数组，逐条校验后批量插入） */
+    /**
+     * POST {base}/batch 批量新增（JSON 数组，逐条校验后批量插入）
+     */
     SAVE_BATCH("saveBatch", "/batch", RequestMethod.POST, "add"),
-    /** POST {base}/save-or-update 有 ID 更新、无 ID 新增 */
+    /**
+     * POST {base}/save-or-update 有 ID 更新、无 ID 新增
+     */
     SAVE_OR_UPDATE("saveOrUpdate", "/save-or-update", RequestMethod.POST, "add"),
-    /** PUT {base} 修改（按 ID 全量/非空更新） */
+    /**
+     * PUT {base} 修改（按 ID 全量/非空更新）
+     */
     UPDATE("update", "", RequestMethod.PUT, "edit"),
-    /** DELETE {base}/{ids} 删除，ids 逗号分隔支持批量 */
+    /**
+     * DELETE {base}/{ids} 删除，ids 逗号分隔支持批量
+     */
     REMOVE("remove", "/{ids}", RequestMethod.DELETE, "remove"),
-    /** POST {base}/import Excel 导入（文件字段 file）；需手动加入 includes */
+    /**
+     * POST {base}/import Excel 导入（文件字段 file）；需手动加入 includes
+     */
     IMPORT("importExcel", "/import", RequestMethod.POST, "import"),
-    /** GET {base}/export Excel 导出（复用查询条件）；需手动加入 includes */
+    /**
+     * GET {base}/export Excel 导出（复用查询条件）；需手动加入 includes
+     */
     EXPORT("export", "/export", RequestMethod.GET, "export"),
-    /** GET {base}/import-template 下载导入模板（仅表头）；需手动加入 includes */
+    /**
+     * GET {base}/import-template 下载导入模板（仅表头）；需手动加入 includes
+     */
     IMPORT_TEMPLATE("importTemplate", "/import-template", RequestMethod.GET, "import");
 
-    /** Handler 方法名 */
+    /**
+     * Handler 方法名
+     */
     private final String handlerMethod;
-    /** 追加到 base 路径后的子路径 */
+    /**
+     * 追加到 base 路径后的子路径
+     */
     private final String path;
-    /** HTTP 方法 */
+    /**
+     * HTTP 方法
+     */
     private final RequestMethod requestMethod;
-    /** 权限码后缀（拼接在 @QuickCrud.permission 之后），例如 "sys:user" + ":" + "list" */
+    /**
+     * 权限码后缀（拼接在 @QuickCrud.permission 之后），例如 "sys:user" + ":" + "list"
+     */
     private final String permissionSuffix;
 
     CrudOp(String handlerMethod, String path, RequestMethod requestMethod, String permissionSuffix) {

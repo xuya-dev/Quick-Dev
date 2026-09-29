@@ -1,11 +1,7 @@
 package dev.xuya.springboot.autoconfigure;
 
 import dev.xuya.core.crud.QuickCrudHandler;
-import dev.xuya.core.methodop.QuickExport;
-import dev.xuya.core.methodop.QuickImport;
-import dev.xuya.core.methodop.QuickRemove;
-import dev.xuya.core.methodop.QuickSave;
-import dev.xuya.core.methodop.QuickUpdate;
+import dev.xuya.core.methodop.*;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.parameters.Parameter;
@@ -17,7 +13,6 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.lang.reflect.Method;
@@ -57,7 +52,9 @@ public class QuickDevSpringdocConfiguration {
                     + "（默认 EQ）；分页参数 current/size；排序 orderBy（实体属性名）+ order（asc/desc）。"
                     + "写入类请求体为实体 JSON。权限码见框架文档。";
 
-    /** 查询类端点的通用参数说明 */
+    /**
+     * 查询类端点的通用参数说明
+     */
     private static List<Parameter> queryParameters() {
         return List.of(
                 new Parameter().in("query").name("current").description("页码，默认 1").schema(numSchema()),
@@ -70,7 +67,24 @@ public class QuickDevSpringdocConfiguration {
         return new io.swagger.v3.oas.models.media.NumberSchema();
     }
 
-    /** 把动态 CRUD 端点注入 OpenAPI paths */
+    private static String resolvePath(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
+        if (info.getPathPatternsCondition() != null) {
+            return info.getPathPatternsCondition().getPatternValues().stream().findFirst().orElse(null);
+        }
+        if (info.getPatternsCondition() != null) {
+            return info.getPatternsCondition().getPatterns().stream().findFirst().orElse(null);
+        }
+        return null;
+    }
+
+    private static RequestMethod firstMethod(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
+        Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
+        return methods.isEmpty() ? RequestMethod.GET : methods.iterator().next();
+    }
+
+    /**
+     * 把动态 CRUD 端点注入 OpenAPI paths
+     */
     @Bean
     public OpenApiCustomizer quickCrudOpenApiCustomizer(RequestMappingHandlerMapping handlerMapping) {
         return openApi -> {
@@ -110,28 +124,15 @@ public class QuickDevSpringdocConfiguration {
         };
     }
 
-    /** 给方法级注解端点（普通 Controller）补充摘要 */
+    /**
+     * 给方法级注解端点（普通 Controller）补充摘要
+     */
     @Bean
     public OperationCustomizer quickDevMethodOpOperationCustomizer() {
         return (operation, handlerMethod) -> {
             decorateMethodOp(operation, handlerMethod.getMethod());
             return operation;
         };
-    }
-
-    private static String resolvePath(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
-        if (info.getPathPatternsCondition() != null) {
-            return info.getPathPatternsCondition().getPatternValues().stream().findFirst().orElse(null);
-        }
-        if (info.getPatternsCondition() != null) {
-            return info.getPatternsCondition().getPatterns().stream().findFirst().orElse(null);
-        }
-        return null;
-    }
-
-    private static RequestMethod firstMethod(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
-        Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
-        return methods.isEmpty() ? RequestMethod.GET : methods.iterator().next();
     }
 
     private void decorateMethodOp(Operation operation, Method method) {

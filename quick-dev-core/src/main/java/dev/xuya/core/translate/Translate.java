@@ -2,13 +2,8 @@ package dev.xuya.core.translate;
 
 import com.fasterxml.jackson.annotation.JacksonAnnotationsInside;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import dev.xuya.core.context.SpringContextHolder;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 字段翻译：标注在实体/VO 字段上，JSON 序列化时把字段值翻译为可读文本。
@@ -38,15 +33,23 @@ import java.lang.annotation.Target;
 @JsonSerialize(using = TranslateSerializer.class)
 public @interface Translate {
 
-    /** 字典模式：字典类型编码，由 DictResolver 解析 */
+    /**
+     * 字典模式：字典类型编码，由 DictResolver 解析
+     */
     String dict() default "";
 
-    /** 枚举模式：实现 {@link DictEnum} 的枚举类（优先于 dict） */
+    /**
+     * 枚举模式：实现 {@link DictEnum} 的枚举类（优先于 dict）
+     */
     Class<?> enumClass() default Void.class;
 
-    /** 关联模式：目标实体类（字段值作为其主键查询） */
+    /**
+     * 关联模式：目标实体类（字段值作为其主键查询）
+     */
     Class<?> entity() default Void.class;
 
-    /** 关联模式：取目标实体的哪个属性作为翻译结果 */
+    /**
+     * 关联模式：取目标实体的哪个属性作为翻译结果
+     */
     String field() default "";
 }

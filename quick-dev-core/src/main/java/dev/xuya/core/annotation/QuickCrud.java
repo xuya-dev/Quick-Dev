@@ -1,14 +1,8 @@
 package dev.xuya.core.annotation;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.springframework.stereotype.Component;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 核心：标注在 Controller 类上，启动时为该实体自动注册一组 CRUD 接口。
@@ -36,25 +30,39 @@ import java.lang.annotation.Target;
 @Component
 public @interface QuickCrud {
 
-    /** 实体类（必填） */
+    /**
+     * 实体类（必填）
+     */
     Class<?> entity();
 
-    /** 对应的 BaseMapper，默认自动按泛型查找；找不到时必须显式指定 */
+    /**
+     * 对应的 BaseMapper，默认自动按泛型查找；找不到时必须显式指定
+     */
     Class<?> mapper() default Void.class;
 
-    /** 接口基础路径，默认：类上 @RequestMapping 值 > 实体名推导 */
+    /**
+     * 接口基础路径，默认：类上 @RequestMapping 值 > 实体名推导
+     */
     String path() default "";
 
-    /** 权限码前缀，空串表示不鉴权；接口级权限码 = 前缀 + ":" + 操作后缀 */
+    /**
+     * 权限码前缀，空串表示不鉴权；接口级权限码 = 前缀 + ":" + 操作后缀
+     */
     String permission() default "";
 
-    /** 是否要求登录（未设置 permission 时若为 true 仍要求登录） */
+    /**
+     * 是否要求登录（未设置 permission 时若为 true 仍要求登录）
+     */
     boolean loginRequired() default false;
 
-    /** 只注册这些操作，默认全部 */
+    /**
+     * 只注册这些操作，默认全部
+     */
     CrudOp[] includes() default {CrudOp.PAGE, CrudOp.LIST, CrudOp.COUNT, CrudOp.DETAIL,
             CrudOp.SAVE, CrudOp.SAVE_BATCH, CrudOp.SAVE_OR_UPDATE, CrudOp.UPDATE, CrudOp.REMOVE};
 
-    /** 排除这些操作（在 includes 基础上做减法） */
+    /**
+     * 排除这些操作（在 includes 基础上做减法）
+     */
     CrudOp[] excludes() default {};
 }

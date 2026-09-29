@@ -4,7 +4,8 @@ Thanks for your interest in Quick Dev! Contributions via Issues and Pull Request
 
 简体中文 | [English](CONTRIBUTING.md)
 
-*(The authoritative version of this guide is [CONTRIBUTING.md](CONTRIBUTING.md) (Chinese); this file is a reference translation.)*
+*(The authoritative version of this guide is [CONTRIBUTING.md](CONTRIBUTING.md) (Chinese); this file is a reference
+translation.)*
 
 ## Requirements
 

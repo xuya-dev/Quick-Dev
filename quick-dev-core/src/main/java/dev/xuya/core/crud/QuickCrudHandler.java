@@ -60,25 +60,6 @@ public class QuickCrudHandler {
         this.transactionOperations = transactionOperations;
     }
 
-    /** 注册端点时记录：该方法需要哪个权限码（null 表示无权限要求） */
-    void bindPermission(CrudOp op, String permission) {
-        try {
-            Method method = methodOf(op);
-            requiredPermissions.put(method, permission);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /** 拦截器回调：当前请求的 CRUD 方法所需权限码 */
-    public String getRequiredPermission(Method method) {
-        return requiredPermissions.get(method);
-    }
-
-    public boolean isLoginRequired() {
-        return loginRequired;
-    }
-
     static Method methodOf(CrudOp op) throws NoSuchMethodException {
         return switch (op) {
             case PAGE -> QuickCrudHandler.class.getMethod("page", Map.class);
@@ -95,6 +76,40 @@ public class QuickCrudHandler {
             case EXPORT -> QuickCrudHandler.class.getMethod("export", HttpServletResponse.class);
             case IMPORT_TEMPLATE -> QuickCrudHandler.class.getMethod("importTemplate", HttpServletResponse.class);
         };
+    }
+
+    private static long parseLong(String value, long defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            return Long.parseLong(value.trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * 注册端点时记录：该方法需要哪个权限码（null 表示无权限要求）
+     */
+    void bindPermission(CrudOp op, String permission) {
+        try {
+            Method method = methodOf(op);
+            requiredPermissions.put(method, permission);
+        } catch (NoSuchMethodException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * 拦截器回调：当前请求的 CRUD 方法所需权限码
+     */
+    public String getRequiredPermission(Method method) {
+        return requiredPermissions.get(method);
+    }
+
+    public boolean isLoginRequired() {
+        return loginRequired;
     }
 
     // ---------------------------------------------------------------------
@@ -248,13 +263,13 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
+
+    // ---------------------------------------------------------------------
     // Excel 导入模板：GET {base}/import-template（仅表头，供导入方填写）
     // ---------------------------------------------------------------------
     public void importTemplate(HttpServletResponse response) throws IOException {
         ExcelSupport.writeTemplate(response, meta.getEntityClass());
     }
-
-    // ---------------------------------------------------------------------
 
     private Object parseAndValidate(String body, boolean validate) {
         Object entity;
@@ -295,17 +310,6 @@ public class QuickCrudHandler {
             return meta.getIdField().get(entity);
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);
-        }
-    }
-
-    private static long parseLong(String value, long defaultValue) {
-        if (value == null || value.isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            return defaultValue;
         }
     }
 }

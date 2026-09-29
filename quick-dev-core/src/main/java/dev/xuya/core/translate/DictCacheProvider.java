@@ -14,13 +14,17 @@ public class DictCacheProvider implements DictResolver, DictReverseResolver {
         this.cacheService = cacheService;
     }
 
-    /** 值 -> 标签（读内存缓存） */
+    /**
+     * 值 -> 标签（读内存缓存）
+     */
     @Override
     public String resolve(String dictType, Object dictValue) {
         return cacheService.getLabel(dictType, String.valueOf(dictValue));
     }
 
-    /** 标签 -> 值（读内存缓存） */
+    /**
+     * 标签 -> 值（读内存缓存）
+     */
     @Override
     public Object reverse(String dictType, String label) {
         return cacheService.getValue(dictType, label);

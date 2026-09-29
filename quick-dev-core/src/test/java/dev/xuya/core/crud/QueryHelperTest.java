@@ -12,28 +12,16 @@ import dev.xuya.core.common.QuickDevLimits;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.format.support.DefaultFormattingConversionService;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.format.support.DefaultFormattingConversionService;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class QueryHelperTest {
-
-    public static class SampleEntity {
-        @TableId(type = IdType.AUTO)
-        private Long id;
-        private String username;
-        @QueryField(QueryType.LIKE)
-        private String nickName;
-        @QueryField(QueryType.IN)
-        private Integer type;
-        private Integer status;
-        private LocalDateTime createTime;
-    }
 
     private static EntityMeta meta;
 
@@ -105,5 +93,17 @@ class QueryHelperTest {
         } finally {
             QuickDevLimits.setInMaxSize(1000);
         }
+    }
+
+    public static class SampleEntity {
+        @TableId(type = IdType.AUTO)
+        private Long id;
+        private String username;
+        @QueryField(QueryType.LIKE)
+        private String nickName;
+        @QueryField(QueryType.IN)
+        private Integer type;
+        private Integer status;
+        private LocalDateTime createTime;
     }
 }

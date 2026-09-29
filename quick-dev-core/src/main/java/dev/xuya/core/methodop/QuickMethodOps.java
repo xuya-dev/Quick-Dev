@@ -10,7 +10,9 @@ public final class QuickMethodOps {
     private QuickMethodOps() {
     }
 
-    /** @return 该方法上 Quick* 方法级注解要求的权限码；未标注或未配置权限返回 null */
+    /**
+     * @return 该方法上 Quick* 方法级注解要求的权限码；未标注或未配置权限返回 null
+     */
     public static String permissionOf(Method method) {
         QuickSave save = method.getAnnotation(QuickSave.class);
         if (save != null) {

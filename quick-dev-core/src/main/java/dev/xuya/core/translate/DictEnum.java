@@ -22,9 +22,13 @@ package dev.xuya.core.translate;
  */
 public interface DictEnum {
 
-    /** 字典值（与被翻译字段匹配，按字符串比较） */
+    /**
+     * 字典值（与被翻译字段匹配，按字符串比较）
+     */
     Object getValue();
 
-    /** 字典标签（翻译输出） */
+    /**
+     * 字典标签（翻译输出）
+     */
     String getLabel();
 }

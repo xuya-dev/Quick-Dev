@@ -6,11 +6,11 @@ import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.EntityMeta;
 import dev.xuya.core.crud.MapperResolver;
-import java.io.Serializable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.support.DefaultConversionService;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +30,9 @@ public class TranslateExecutor {
     private static volatile TranslateExecutor instance;
 
     private final boolean enabled;
-    /** 缓存毫秒数，<=0 表示禁用 */
+    /**
+     * 缓存毫秒数，<=0 表示禁用
+     */
     private final long cacheMillis;
     private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
 
@@ -43,17 +45,23 @@ public class TranslateExecutor {
         return instance;
     }
 
-    /** 供自动配置在 Bean 创建时登记单例 */
+    /**
+     * 供自动配置在 Bean 创建时登记单例
+     */
     public static void register(TranslateExecutor executor) {
         instance = executor;
     }
 
-    /** 清空翻译结果缓存（字典刷新等场景调用，保证新数据立即生效） */
+    /**
+     * 清空翻译结果缓存（字典刷新等场景调用，保证新数据立即生效）
+     */
     public void clearCache() {
         cache.clear();
     }
 
-    /** @return 翻译结果；null 表示不翻译（保留原值输出） */
+    /**
+     * @return 翻译结果；null 表示不翻译（保留原值输出）
+     */
     public String translate(Translate annotation, Object value) {
         if (!enabled || annotation == null || value == null) {
             return null;
@@ -209,7 +217,9 @@ public class TranslateExecutor {
         return field;
     }
 
-    /** 枚举字典翻译：值与 DictEnum.getValue() 按字符串比较 */
+    /**
+     * 枚举字典翻译：值与 DictEnum.getValue() 按字符串比较
+     */
     private String translateByEnum(Class<?> enumClass, Object value) {
         if (!enumClass.isEnum() || !DictEnum.class.isAssignableFrom(enumClass)) {
             throw new QuickDevException(enumClass.getSimpleName()
@@ -225,7 +235,9 @@ public class TranslateExecutor {
         return null;
     }
 
-    /** 字段值 -> 目标实体主键类型（如 "1" -> 1L），失败用原值 */
+    /**
+     * 字段值 -> 目标实体主键类型（如 "1" -> 1L），失败用原值
+     */
     private Object convertId(Object value, EntityMeta meta) {
         try {
             return new DefaultConversionService().convert(value, meta.getIdType());

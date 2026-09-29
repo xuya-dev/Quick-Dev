@@ -20,13 +20,13 @@ mvn clean verify      # 构建并运行全部测试（core 14 + autoconfigure 4 
 
 ## 项目结构
 
-| 模块 | 职责 |
-|---|---|
-| `quick-dev-core` | 核心库：注解 / CRUD 引擎 / 权限 / 翻译 / Excel（依赖全部 optional） |
-| `quick-dev-spring-boot-autoconfigure` | Spring Boot 自动配置 |
-| `quick-dev-spring-boot-starter` | 主 Starter（使用方唯一需要引入的依赖） |
-| `quick-dev-redis-spring-boot-starter` | 可选 Redis 支持 |
-| `quick-dev-demo` | 演示应用（H2 内存库，含全部集成测试） |
+| 模块                                  | 职责                                                                |
+|---------------------------------------|---------------------------------------------------------------------|
+| `quick-dev-core`                      | 核心库：注解 / CRUD 引擎 / 权限 / 翻译 / Excel（依赖全部 optional） |
+| `quick-dev-spring-boot-autoconfigure` | Spring Boot 自动配置                                                |
+| `quick-dev-spring-boot-starter`       | 主 Starter（使用方唯一需要引入的依赖）                              |
+| `quick-dev-redis-spring-boot-starter` | 可选 Redis 支持                                                     |
+| `quick-dev-demo`                      | 演示应用（H2 内存库，含全部集成测试）                               |
 
 ## 提交 Issue
 

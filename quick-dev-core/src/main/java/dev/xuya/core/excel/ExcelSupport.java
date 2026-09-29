@@ -4,15 +4,15 @@ import cn.idev.excel.FastExcel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.QuickDevLimits;
 import jakarta.servlet.http.HttpServletResponse;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +26,9 @@ public final class ExcelSupport {
     private ExcelSupport() {
     }
 
-    /** 读取 Excel 原始行（含表头行，headRowNumber=0）：每行为 列索引 -> 单元格文本 */
+    /**
+     * 读取 Excel 原始行（含表头行，headRowNumber=0）：每行为 列索引 -> 单元格文本
+     */
     @SuppressWarnings("unchecked")
     public static List<Map<Integer, String>> readRawRows(MultipartFile file) throws IOException {
         return (List<Map<Integer, String>>) (List<?>) FastExcel.read(file.getInputStream())
@@ -35,7 +37,9 @@ public final class ExcelSupport {
                 .doReadSync();
     }
 
-    /** 导出 Excel 到 HTTP 响应（附件下载；超出 export-max-rows 截断并告警） */
+    /**
+     * 导出 Excel 到 HTTP 响应（附件下载；超出 export-max-rows 截断并告警）
+     */
     public static void write(HttpServletResponse response, Class<?> headClass, List<?> data) throws IOException {
         data = truncateForExport(data);
         prepareDownloadHeaders(response, headClass, "");
@@ -71,7 +75,9 @@ public final class ExcelSupport {
                 .sheet(headClass.getSimpleName()).doWrite(rows);
     }
 
-    /** 超出 export-max-rows 时截断（防御超大导出拖垮内存），并告警 */
+    /**
+     * 超出 export-max-rows 时截断（防御超大导出拖垮内存），并告警
+     */
     private static List<?> truncateForExport(List<?> data) {
         int max = QuickDevLimits.getExportMaxRows();
         if (data != null && data.size() > max) {
@@ -83,7 +89,9 @@ public final class ExcelSupport {
         return data;
     }
 
-    /** 生成导入模板：只有表头、没有数据的 Excel */
+    /**
+     * 生成导入模板：只有表头、没有数据的 Excel
+     */
     public static void writeTemplate(HttpServletResponse response, Class<?> headClass) throws IOException {
         prepareDownloadHeaders(response, headClass, "-template");
         FastExcel.write(response.getOutputStream(), headClass)

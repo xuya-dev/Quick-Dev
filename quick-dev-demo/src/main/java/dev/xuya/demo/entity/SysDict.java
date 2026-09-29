@@ -13,13 +13,19 @@ public class SysDict {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 字典类型编码，如 user_status */
+    /**
+     * 字典类型编码，如 user_status
+     */
     private String dictType;
 
-    /** 字典值，如 1 */
+    /**
+     * 字典值，如 1
+     */
     private String dictValue;
 
-    /** 字典标签，如 启用 */
+    /**
+     * 字典标签，如 启用
+     */
     private String dictLabel;
 
     public Long getId() {

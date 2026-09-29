@@ -8,7 +8,8 @@
 
 **简体中文** | [English](README.en.md)
 
-基于 **Spring Boot 3 + MyBatis-Plus** 的快速开发框架（标准 Spring Boot Starter 结构）：引入一个 `quick-dev-spring-boot-starter` 依赖，在 Controller 上贴一个 `@QuickCrud` 注解，即可自动获得一组带权限控制的 CRUD 接口。
+基于 **Spring Boot 3 + MyBatis-Plus** 的快速开发框架（标准 Spring Boot Starter 结构）：引入一个
+`quick-dev-spring-boot-starter` 依赖，在 Controller 上贴一个 `@QuickCrud` 注解，即可自动获得一组带权限控制的 CRUD 接口。
 
 ## 导航
 
@@ -24,6 +25,7 @@
 - 详细文档：[使用手册](docs/user-guide.md) · [AI 助手说明](docs/AGENT.md)
 
 ```java
+
 @QuickCrud(entity = SysUser.class, permission = "sys:user")
 public class SysUserController {
     // 空的，不需要写任何方法
@@ -32,33 +34,45 @@ public class SysUserController {
 
 启动后自动注册 9 个接口：
 
-| 方法 | 路径 | 权限码 | 说明 |
-|---|---|---|---|
-| GET | `/sys-user/page` | `sys:user:list` | 分页查询（current/size + 动态条件 + 排序） |
-| GET | `/sys-user/list` | `sys:user:list` | 列表查询（不分页） |
-| GET | `/sys-user/count` | `sys:user:list` | 按条件统计数量 |
-| GET | `/sys-user/{id}` | `sys:user:detail` | 详情 |
-| POST | `/sys-user` | `sys:user:add` | 新增（支持 Bean Validation 校验） |
-| POST | `/sys-user/batch` | `sys:user:add` | 批量新增（JSON 数组，逐条校验 + Db.saveBatch） |
-| POST | `/sys-user/save-or-update` | `sys:user:add` | 有 ID 更新、无 ID 新增（更新分支不做整实体校验） |
-| PUT | `/sys-user` | `sys:user:edit` | 修改（按 ID，null 字段不更新） |
-| DELETE | `/sys-user/{ids}` | `sys:user:remove` | 删除，`ids` 逗号分隔支持批量 |
+| 方法   | 路径                       | 权限码            | 说明                                             |
+|--------|----------------------------|-------------------|--------------------------------------------------|
+| GET    | `/sys-user/page`           | `sys:user:list`   | 分页查询（current/size + 动态条件 + 排序）       |
+| GET    | `/sys-user/list`           | `sys:user:list`   | 列表查询（不分页）                               |
+| GET    | `/sys-user/count`          | `sys:user:list`   | 按条件统计数量                                   |
+| GET    | `/sys-user/{id}`           | `sys:user:detail` | 详情                                             |
+| POST   | `/sys-user`                | `sys:user:add`    | 新增（支持 Bean Validation 校验）                |
+| POST   | `/sys-user/batch`          | `sys:user:add`    | 批量新增（JSON 数组，逐条校验 + Db.saveBatch）   |
+| POST   | `/sys-user/save-or-update` | `sys:user:add`    | 有 ID 更新、无 ID 新增（更新分支不做整实体校验） |
+| PUT    | `/sys-user`                | `sys:user:edit`   | 修改（按 ID，null 字段不更新）                   |
+| DELETE | `/sys-user/{ids}`          | `sys:user:remove` | 删除，`ids` 逗号分隔支持批量                     |
 
-可选开启（加入 `includes`）：`POST {base}/import` Excel 导入（`:import`）、`GET {base}/export` Excel 导出（`:export`）、`GET {base}/import-template` 下载导入模板（`:import`）、`GET {base}/tree` 树形查询（`:list`，实体需声明 `parentId` 与 `children` 字段，children 标注 `@TableField(exist = false)`，parentId 为 null 或 0 视为根）。
+可选开启（加入 `includes`）：`POST {base}/import` Excel 导入（`:import`）、`GET {base}/export` Excel 导出（`:export`）、
+`GET {base}/import-template` 下载导入模板（`:import`）、`GET {base}/tree` 树形查询（`:list`，实体需声明 `parentId` 与
+`children` 字段，children 标注 `@TableField(exist = false)`，parentId 为 null 或 0 视为根）。
 
 ## 特性
 
-- **一个注解完成 CRUD**：`@QuickCrud` 标注在 Controller 上，启动时通过 `RequestMappingHandlerMapping` 运行期注册端点（Spring 官方支持的方式），与手写接口完全共存
-- **方法级注解**：`@QuickSave` / `@QuickUpdate` / `@QuickRemove` / `@QuickExport` / `@QuickImport` 直接标在方法上，方法体留空由框架 AOP 接管——不必把整个类交给 `@QuickCrud`
-- **内置 Sa-Token**：classpath 自动桥接登录态与权限校验（`StpUtil.login` 登录、实现 `StpInterface` 供权限数据），零配置打通 `@RequiresPerm` / `@QuickCrud` 权限码
+- **一个注解完成 CRUD**：`@QuickCrud` 标注在 Controller 上，启动时通过 `RequestMappingHandlerMapping` 运行期注册端点（Spring
+  官方支持的方式），与手写接口完全共存
+- **方法级注解**：`@QuickSave` / `@QuickUpdate` / `@QuickRemove` / `@QuickExport` / `@QuickImport` 直接标在方法上，方法体留空由框架
+  AOP 接管——不必把整个类交给 `@QuickCrud`
+- **内置 Sa-Token**：classpath 自动桥接登录态与权限校验（`StpUtil.login` 登录、实现 `StpInterface` 供权限数据），零配置打通
+  `@RequiresPerm` / `@QuickCrud` 权限码
 - **Excel 导入导出**：FastExcel 封装，导出复用查询条件、导入自动校验 + 事务批量入库
-- **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作` 约定自动鉴权；方法级注解按 `permission` 完整权限码鉴权
-- **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
+- **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作`
+  约定自动鉴权；方法级注解按 `permission` 完整权限码鉴权
+- **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI
+  对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
-- **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
-- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存；**Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方提供（`DictLoader` SPI 或导入端点上传），**框架不查任何数据库**
-- **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver` 返回的可见范围过滤（"只看本部门"）
-- **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
+- **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加
+  `@TableField(fill = ...)` 即可，见下文）
+- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带
+  TTL 缓存； **Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方提供（`DictLoader` SPI 或导入端点上传），
+  **框架不查任何数据库**
+- **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver`
+  返回的可见范围过滤（"只看本部门"）
+- **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为
+  Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
 - **操作日志**：`@QuickLog` 记录操作人/入参/结果/耗时，`OperationLogSink` SPI 异步落库即可
@@ -89,7 +103,9 @@ quick-dev
 </dependency>
 ```
 
-starter 会传递引入：`quick-dev-core` + 自动配置、`spring-boot-starter-web`、`spring-boot-starter-validation`、`spring-boot-starter-aop`、`sa-token-spring-boot3-starter`、`fastexcel`、`mybatis-plus-spring-boot3-starter`、`mybatis-plus-jsqlparser`（分页插件）。只需再自备一个数据库驱动（如 `mysql-connector-j`、`h2`）。
+starter 会传递引入：`quick-dev-core` + 自动配置、`spring-boot-starter-web`、`spring-boot-starter-validation`、
+`spring-boot-starter-aop`、`sa-token-spring-boot3-starter`、`fastexcel`、`mybatis-plus-spring-boot3-starter`、
+`mybatis-plus-jsqlparser`（分页插件）。只需再自备一个数据库驱动（如 `mysql-connector-j`、`h2`）。
 
 ### 2. 定义实体与 Mapper
 
@@ -169,7 +185,7 @@ public class ProductController {
 }
 ```
 
-- 权限：注解的 `permission` 为**完整权限码**（空 = 不鉴权），由统一拦截器校验
+- 权限：注解的 `permission` 为 **完整权限码**（空 = 不鉴权），由统一拦截器校验
 - Excel 列名：实体字段加 FastExcel 的 `@ExcelProperty("中文名")`，未加按字段名
 - 导入策略：任一行 Bean Validation 校验失败则整体不入库（返回 400 + 行级错误明细），插入阶段同一事务
 
@@ -236,15 +252,15 @@ quick-dev:
 
 ## 查询参数约定（page / list 接口）
 
-| 参数 | 说明 |
-|---|---|
-| `current` / `size` | 分页参数，默认 1 / 10，size 上限 1000 |
-| 与实体属性同名 | 生成查询条件，方式由 `@QueryField` 决定（默认 EQ），值自动转换类型 |
-| `orderBy` / `order` | 排序字段（必须是实体属性名，防注入）+ `asc`/`desc` |
+| 参数                | 说明                                                               |
+|---------------------|--------------------------------------------------------------------|
+| `current` / `size`  | 分页参数，默认 1 / 10，size 上限 1000                              |
+| 与实体属性同名      | 生成查询条件，方式由 `@QueryField` 决定（默认 EQ），值自动转换类型 |
+| `orderBy` / `order` | 排序字段（必须是实体属性名，防注入）+ `asc`/`desc`                 |
 
 示例：`GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=create_time&order=desc`
 
-> 注意：`orderBy` 传的是**实体属性名**（createTime），框架内部映射为列名。
+> 注意：`orderBy` 传的是 **实体属性名**（createTime），框架内部映射为列名。
 
 ## 在普通接口上使用权限注解
 
@@ -275,14 +291,15 @@ public class ReportController {
 ### 防重复提交 / 操作日志
 
 ```java
+
 @NoRepeatSubmit(interval = 2000)                 // 同一用户 2 秒内重复请求 -> 400
 @PostMapping("/order")
-public R<Object> create(@RequestBody Order order) { ... }
+public R<Object> create(@RequestBody Order order) { ...}
 
 @QuickLog(module = "订单管理", description = "创建订单")   // 审计日志
 @NoRepeatSubmit(interval = 2000)
 @PostMapping("/order")
-public R<Object> create(@RequestBody Order order) { ... }
+public R<Object> create(@RequestBody Order order) { ...}
 ```
 
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
@@ -305,7 +322,7 @@ Controller 的 permission 为建议前缀（如 `t:order`）按业务调整。�
 
 ### OpenAPI 文档（可选，springdoc）
 
-引入 springdoc 依赖后，框架自动把**动态 CRUD 端点注入 Swagger 文档**（springdoc 原生不识别运行期注册的端点）：
+引入 springdoc 依赖后，框架自动把 **动态 CRUD 端点注入 Swagger 文档**（springdoc 原生不识别运行期注册的端点）：
 
 ```xml
 <dependency>
@@ -338,7 +355,8 @@ spring:
 引入即生效，无需代码：
 
 - **Sa-Token 数据落 Redis**（jackson 序列化）：登录态、权限缓存多实例共享，应用重启不丢登录
-- **防重复提交切 Redis**：`setIfAbsent + 过期` 原子占位，集群部署下多实例同样生效（自动替换内存实现，也可实现 `RepeatSubmitStore` Bean 自定义）
+- **防重复提交切 Redis**：`setIfAbsent + 过期` 原子占位，集群部署下多实例同样生效（自动替换内存实现，也可实现
+  `RepeatSubmitStore` Bean 自定义）
 
 ### 字段翻译（@Translate）
 
@@ -361,9 +379,10 @@ public class OrderVO {
 }
 ```
 
-- 翻译发生在序列化期：**零侵入**，分页/详情/导出等一切返回 JSON 的接口自动生效
-- 翻译失败（无字典、无记录、未实现 SPI）**保留原值**输出，不影响接口
-- 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
+- 翻译发生在序列化期： **零侵入**，分页/详情/导出等一切返回 JSON 的接口自动生效
+- 翻译失败（无字典、无记录、未实现 SPI） **保留原值**输出，不影响接口
+- 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、
+  `quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
 
 ### 字典数据来源：DictLoader SPI 或导入端点（框架不查库）
@@ -373,6 +392,7 @@ public class OrderVO {
 **路径一：实现 DictLoader（远程字典服务/配置中心/自有表任选）**
 
 ```java
+
 @Component
 public class RemoteDictLoader implements DictLoader {
     @Override
@@ -395,7 +415,7 @@ POST /quick-dev/dict/import        # 需 dict:import 权限
  {"type":"user_status","value":"0","label":"停用"}]
 ```
 
-- 全量**替换**缓存（非增量合并），导入后**立即生效**（翻译结果缓存同步清空）
+- 全量 **替换**缓存（非增量合并），导入后 **立即生效**（翻译结果缓存同步清空）
 - 返回 `{size}` 为有效条数；type/value/label 任一为空的条目自动跳过
 
 两条路径下 `@Translate(dict = "user_status")` 的正/反向翻译、Excel 导入反解全部自动工作；
@@ -407,13 +427,13 @@ curl -X POST http://localhost:8080/quick-dev/dict/import -H "Authorization: {tok
 
 ### 导入反向转换（上传转换）
 
-Excel 导入时用户填的往往是中文标签（"启用"/"线上"/"管理员"），框架会**先反解为库值再做类型转换与校验**：
+Excel 导入时用户填的往往是中文标签（"启用"/"线上"/"管理员"），框架会 **先反解为库值再做类型转换与校验**：
 
-| @Translate 模式 | 反解方式 |
-|---|---|
-| `enumClass = ...` 枚举 | 自动：按 `DictEnum.getLabel()` 匹配返回值 |
-| `dict = ...` 字典 | **用户自主实现** `DictReverseResolver` SPI（标签 -> 值） |
-| `entity = ...` 关联 | 自动：按目标属性值反查主键（多条取第一条） |
+| @Translate 模式        | 反解方式                                                 |
+|------------------------|----------------------------------------------------------|
+| `enumClass = ...` 枚举 | 自动：按 `DictEnum.getLabel()` 匹配返回值                |
+| `dict = ...` 字典      | **用户自主实现** `DictReverseResolver` SPI（标签 -> 值） |
+| `entity = ...` 关联    | 自动：按目标属性值反查主键（多条取第一条）               |
 
 另外 `@QuickExport(translate = true)` 可让导出的 Excel 同样输出翻译后的标签
 （经 Jackson 序列化管线，`@JsonIgnore` 一并生效），与导入反解配合实现"导出 → 修改 → 导回"闭环。
@@ -437,9 +457,11 @@ public class MyDictReverseResolver implements DictReverseResolver {
 标注在实体类上，实现一个 `DataScopeResolver` 即可让所有查询类接口自动过滤行级数据：
 
 ```java
+
 @DataScope(column = "dept_id")     // 该列按可见范围过滤
 @TableName("sys_user")
-public class SysUser { ... }
+public class SysUser { ...
+}
 
 @Component
 public class MyDataScopeResolver implements DataScopeResolver {
@@ -454,7 +476,7 @@ public class MyDataScopeResolver implements DataScopeResolver {
 ```
 
 - 生效范围：page / list / count / tree / export（一切走查询条件的接口，方法级 `@QuickExport` 同样生效）
-- resolver 返回**空集合** = 查不到任何数据（安全默认）；未注册 resolver = 不过滤
+- resolver 返回 **空集合** = 查不到任何数据（安全默认）；未注册 resolver = 不过滤
 - 按主键的详情/删除不经过查询条件，不做行级过滤（如需严格隔离请在业务层校验）
 
 ## 运行演示应用
@@ -466,10 +488,10 @@ mvn spring-boot:run
 
 内置账号（H2 内存库，种子数据见 `data.sql`）：
 
-| 账号 | 密码 | 权限 | 角色 |
-|---|---|---|---|
-| admin | admin123 | `*`（全部） | admin |
-| viewer | viewer123 | 仅 `sys:user:list` / `sys:user:detail` | 无 |
+| 账号   | 密码      | 权限                                   | 角色  |
+|--------|-----------|----------------------------------------|-------|
+| admin  | admin123  | `*`（全部）                            | admin |
+| viewer | viewer123 | 仅 `sys:user:list` / `sys:user:detail` | 无    |
 
 ```bash
 # 登录拿 token
@@ -502,14 +524,14 @@ curl http://localhost:8080/product/page
 { "code": 200, "msg": "success", "data": { ... }, "success": true }
 ```
 
-| 场景 | HTTP 状态 | code |
-|---|---|---|
-| 成功 | 200 | 200 |
-| 参数/校验错误 | 200 | 400 |
-| 未登录或 token 失效 | 401 | 401 |
-| 权限不足 | 403 | 403 |
-| 记录不存在（详情） | 200 | 404 |
-| 其他业务/系统异常 | 200 | 500 |
+| 场景                | HTTP 状态 | code |
+|---------------------|-----------|------|
+| 成功                | 200       | 200  |
+| 参数/校验错误       | 200       | 400  |
+| 未登录或 token 失效 | 401       | 401  |
+| 权限不足            | 403       | 403  |
+| 记录不存在（详情）  | 200       | 404  |
+| 其他业务/系统异常   | 200       | 500  |
 
 ## 实现原理
 
@@ -526,40 +548,41 @@ curl http://localhost:8080/product/page
        └─ GlobalExceptionHandler（异常 -> R）
 ```
 
-关键点：动态注册的 handler 刻意使用 `String/Map` 等具体类型做参数绑定，实体类型由处理器内部通过 Jackson / ConversionService 处理，从而绕开泛型擦除导致的类型解析问题；路径冲突遵循 Spring 规则（字面量优先于 `{id}` 模板）。
+关键点：动态注册的 handler 刻意使用 `String/Map` 等具体类型做参数绑定，实体类型由处理器内部通过 Jackson /
+ConversionService 处理，从而绕开泛型擦除导致的类型解析问题；路径冲突遵循 Spring 规则（字面量优先于 `{id}` 模板）。
 
 ## 已知边界与约定
 
 - 更新接口为部分更新：不做整实体 Bean Validation 校验（新增才校验），`null` 字段不更新
 - 被排除的操作若与保留操作的路径模板重叠（如排除 LIST 后访问 `/list`），会被 `/{id}` 详情路由接住，返回"记录不存在"
-- 鉴权失败是**失败关闭**：接口声明了权限要求但没有 `UserResolver`/`PermissionChecker` 实现时，直接报配置错误而非放行
+- 鉴权失败是 **失败关闭**：接口声明了权限要求但没有 `UserResolver`/`PermissionChecker` 实现时，直接报配置错误而非放行
 - 框架自动配置的分页插件仅在用户未自定义 `MybatisPlusInterceptor` 时生效
 
 ## 附录：配置项总表（前缀 quick-dev）
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-| `enabled` | `true` | @QuickCrud 动态端点注册总开关 |
-| `error-detail` | `true` | 未预期异常是否向客户端透出详情（false 返回"系统繁忙"） |
-| `db-type` | - | 分页插件方言（mysql/h2/postgresql…；用户自定义 MybatisPlusInterceptor 时不生效） |
-| `auth.enabled` | `true` | 鉴权总开关（false 时所有鉴权注解放行） |
-| `auth.token-header` | `Authorization` | token 请求头（兼容 Bearer 前缀） |
-| `auth.token-param` | `token` | 兜底 token 请求参数名 |
-| `method-op.enabled` | `true` | 方法级注解（@QuickSave 等）AOP 开关 |
-| `auto-fill.enabled` | `true` | 时间/操作人自动填充开关 |
-| `repeat-submit.enabled` | `true` | @NoRepeatSubmit 防重复提交开关 |
-| `log.enabled` | `true` | @QuickLog 操作日志开关 |
-| `translate.enabled` | `true` | @Translate 字段翻译开关 |
-| `translate.cache-seconds` | `60` | 翻译结果本地缓存秒数（0 禁用） |
-| `dict.enabled` | `true` | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效） |
-| `dict.refresh-endpoint-enabled` | `true` | 字典缓存刷新端点开关 |
-| `dict.import-endpoint-enabled` | `true` | 字典导入端点开关（dict:import 权限） |
-| `dict.import-path` | `/quick-dev/dict/import` | 导入端点路径（POST 全量数据） |
-| `dict.refresh-interval-seconds` | `0` | 字典定时自动刷新间隔秒数（0 禁用） |
-| `dict.refresh-path` | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限） |
-| `limits.export-max-rows` | `100000` | 单次导出行数上限（超出截断并告警） |
-| `limits.import-max-rows` | `10000` | 单次导入行数上限（超出拒绝） |
-| `limits.in-max-size` | `1000` | 单字段 IN 条件值数量上限（超出报 400） |
+| 配置项                          | 默认值                    | 说明                                                                             |
+|---------------------------------|---------------------------|----------------------------------------------------------------------------------|
+| `enabled`                       | `true`                    | @QuickCrud 动态端点注册总开关                                                    |
+| `error-detail`                  | `true`                    | 未预期异常是否向客户端透出详情（false 返回"系统繁忙"）                           |
+| `db-type`                       | -                         | 分页插件方言（mysql/h2/postgresql…；用户自定义 MybatisPlusInterceptor 时不生效） |
+| `auth.enabled`                  | `true`                    | 鉴权总开关（false 时所有鉴权注解放行）                                           |
+| `auth.token-header`             | `Authorization`           | token 请求头（兼容 Bearer 前缀）                                                 |
+| `auth.token-param`              | `token`                   | 兜底 token 请求参数名                                                            |
+| `method-op.enabled`             | `true`                    | 方法级注解（@QuickSave 等）AOP 开关                                              |
+| `auto-fill.enabled`             | `true`                    | 时间/操作人自动填充开关                                                          |
+| `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit 防重复提交开关                                                   |
+| `log.enabled`                   | `true`                    | @QuickLog 操作日志开关                                                           |
+| `translate.enabled`             | `true`                    | @Translate 字段翻译开关                                                          |
+| `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 禁用）                                                   |
+| `dict.enabled`                  | `true`                    | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效）                           |
+| `dict.refresh-endpoint-enabled` | `true`                    | 字典缓存刷新端点开关                                                             |
+| `dict.import-endpoint-enabled`  | `true`                    | 字典导入端点开关（dict:import 权限）                                             |
+| `dict.import-path`              | `/quick-dev/dict/import`  | 导入端点路径（POST 全量数据）                                                    |
+| `dict.refresh-interval-seconds` | `0`                       | 字典定时自动刷新间隔秒数（0 禁用）                                               |
+| `dict.refresh-path`             | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限）                                             |
+| `limits.export-max-rows`        | `100000`                  | 单次导出行数上限（超出截断并告警）                                               |
+| `limits.import-max-rows`        | `10000`                   | 单次导入行数上限（超出拒绝）                                                     |
+| `limits.in-max-size`            | `1000`                    | 单字段 IN 条件值数量上限（超出报 400）                                           |
 
 Sa-Token 自身配置见其官方文档（`sa-token.*`，如 token-name、timeout）；Redis 连接见 `spring.data.redis.*`。
 

@@ -17,13 +17,17 @@ public final class AuthContext {
         TOKEN.set(token);
     }
 
-    /** @return 当前登录用户（未登录为 null） */
+    /**
+     * @return 当前登录用户（未登录为 null）
+     */
     @SuppressWarnings("unchecked")
     public static <T> T getUser() {
         return (T) USER.get();
     }
 
-    /** @return 当前请求的令牌（未登录为 null） */
+    /**
+     * @return 当前请求的令牌（未登录为 null）
+     */
     public static String getToken() {
         return TOKEN.get();
     }

@@ -1,10 +1,6 @@
 package dev.xuya.core.auth;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 防重复提交：同一用户对同一接口在 interval 毫秒内只允许提交一次，
@@ -21,6 +17,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface NoRepeatSubmit {
 
-    /** 间隔毫秒数，默认 1000 */
+    /**
+     * 间隔毫秒数，默认 1000
+     */
     long interval() default 1000;
 }

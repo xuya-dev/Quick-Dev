@@ -60,7 +60,9 @@ public class DbAuthService implements StpInterface {
         return loginId == null ? null : userMapper.selectById(Long.valueOf(loginId.toString()));
     }
 
-    /** Sa-Token 权限数据源：查询用户的权限码列表（* 表示超级权限） */
+    /**
+     * Sa-Token 权限数据源：查询用户的权限码列表（* 表示超级权限）
+     */
     @Override
     public List<String> getPermissionList(Object loginId, String loginType) {
         return permMapper.selectList(new QueryWrapper<SysUserPerm>()

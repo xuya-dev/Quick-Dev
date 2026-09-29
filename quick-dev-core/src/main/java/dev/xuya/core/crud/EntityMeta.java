@@ -77,14 +77,19 @@ public class EntityMeta {
         return new EntityMeta(entityClass, idField, idColumn, fields, columns);
     }
 
-    /** @TableField(exist = false) 标注的非表字段 */
+    /**
+     * @TableField(exist = false) 标注的非表字段
+     */
     private static boolean isNonColumnField(Field field) {
         TableField tableField = field.getAnnotation(TableField.class);
         return tableField != null && !tableField.exist();
     }
 
-    /** 驼峰转下划线 */
-    public static String camelToSnake(String name) {        StringBuilder sb = new StringBuilder(name.length() + 4);
+    /**
+     * 驼峰转下划线
+     */
+    public static String camelToSnake(String name) {
+        StringBuilder sb = new StringBuilder(name.length() + 4);
         for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);
             if (Character.isUpperCase(c)) {

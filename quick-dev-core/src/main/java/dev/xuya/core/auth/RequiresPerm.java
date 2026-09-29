@@ -1,10 +1,6 @@
 package dev.xuya.core.auth;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 声明接口所需权限码（可用于任意 Controller 的方法或类上，方法优先于类）。
@@ -19,6 +15,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequiresPerm {
 
-    /** 权限码，AND 关系 */
+    /**
+     * 权限码，AND 关系
+     */
     String[] value();
 }

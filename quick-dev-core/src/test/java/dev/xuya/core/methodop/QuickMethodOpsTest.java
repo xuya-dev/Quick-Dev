@@ -8,16 +8,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class QuickMethodOpsTest {
 
-    static class FakeController {
-        @QuickSave(entity = String.class, permission = "order:add")
-        void withPermission() { }
-
-        @QuickExport(entity = String.class)
-        void withoutPermission() { }
-
-        void plain() { }
-    }
-
     private static Method method(String name) throws NoSuchMethodException {
         return FakeController.class.getDeclaredMethod(name);
     }
@@ -29,5 +19,18 @@ class QuickMethodOpsTest {
         assertThat(QuickMethodOps.permissionOf(method("withoutPermission"))).isNull();
         // 无注解方法 -> null
         assertThat(QuickMethodOps.permissionOf(method("plain"))).isNull();
+    }
+
+    static class FakeController {
+        @QuickSave(entity = String.class, permission = "order:add")
+        void withPermission() {
+        }
+
+        @QuickExport(entity = String.class)
+        void withoutPermission() {
+        }
+
+        void plain() {
+        }
     }
 }

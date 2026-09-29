@@ -1,11 +1,6 @@
 package dev.xuya.springboot.autoconfigure;
 
-import dev.xuya.core.translate.DictCacheService;
-import dev.xuya.core.translate.DictLoader;
-import dev.xuya.core.translate.DictResolver;
-import dev.xuya.core.translate.DictReverseResolver;
-import dev.xuya.core.translate.DictCacheProvider;
-import dev.xuya.core.translate.TranslateExecutor;
+import dev.xuya.core.translate.*;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

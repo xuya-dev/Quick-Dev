@@ -21,16 +21,16 @@ public class SysUserController {
 
 Eight endpoints are registered at startup:
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| GET | `/sys-user/page` | `sys:user:list` | Pagination (current/size + dynamic conditions + sorting) |
-| GET | `/sys-user/list` | `sys:user:list` | List query (no pagination) |
-| GET | `/sys-user/count` | `sys:user:list` | Count by conditions |
-| GET | `/sys-user/{id}` | `sys:user:detail` | Detail |
-| POST | `/sys-user` | `sys:user:add` | Create (with Bean Validation) |
-| POST | `/sys-user/batch` | `sys:user:add` | Batch create (JSON array, validated + Db.saveBatch) |
-| PUT | `/sys-user` | `sys:user:edit` | Update (by ID, null fields skipped) |
-| DELETE | `/sys-user/{ids}` | `sys:user:remove` | Delete, comma-separated `ids` for batch |
+| Method | Path              | Permission        | Description                                              |
+|--------|-------------------|-------------------|----------------------------------------------------------|
+| GET    | `/sys-user/page`  | `sys:user:list`   | Pagination (current/size + dynamic conditions + sorting) |
+| GET    | `/sys-user/list`  | `sys:user:list`   | List query (no pagination)                               |
+| GET    | `/sys-user/count` | `sys:user:list`   | Count by conditions                                      |
+| GET    | `/sys-user/{id}`  | `sys:user:detail` | Detail                                                   |
+| POST   | `/sys-user`       | `sys:user:add`    | Create (with Bean Validation)                            |
+| POST   | `/sys-user/batch` | `sys:user:add`    | Batch create (JSON array, validated + Db.saveBatch)      |
+| PUT    | `/sys-user`       | `sys:user:edit`   | Update (by ID, null fields skipped)                      |
+| DELETE | `/sys-user/{ids}` | `sys:user:remove` | Delete, comma-separated `ids` for batch                  |
 
 Optional operations (add to `includes`): `POST {base}/import` Excel import (`:import`),
 `GET {base}/export` Excel export (`:export`), `GET {base}/import-template` template download (`:import`),
@@ -43,8 +43,8 @@ Optional operations (add to `includes`): `POST {base}/import` Excel import (`:im
   `RequestMappingHandlerMapping` (the officially supported way) and coexists with hand-written endpoints
 - **Method-level annotations**: `@QuickSave` / `@QuickUpdate` / `@QuickRemove` / `@QuickExport` / `@QuickImport`
   annotated directly on methods — leave the body empty, AOP takes over; no need to hand the whole class to `@QuickCrud`
-- **Built-in Sa-Token**: auto-bridges login state and permission checks when on the classpath
-  (login via `StpUtil.login`, supply data via `StpInterface`)
+- **Built-in Sa-Token**: auto-bridges login state and permission checks when on the classpath (login via
+  `StpUtil.login`, supply data via `StpInterface`)
 - **Excel import/export**: FastExcel-based; export reuses query conditions, import validates + inserts transactionally
 - **Annotation-driven access control**: `@RequiresPerm` / `@RequiresLogin` on any controller;
   `@QuickCrud` endpoints enforce `prefix:action` permission codes; method annotations enforce full codes
@@ -118,8 +118,10 @@ public interface SysUserMapper extends BaseMapper<SysUser> { }
 ```
 
 > Auto-fill is a built-in `MetaObjectHandler` (convention: `createTime`/`updateTime`/`createBy`/`updateBy`,
-> existing values are never overwritten; `createBy`/`updateBy` take the current login id as String, skipped when anonymous).
-> Fields MUST carry `@TableField(fill = ...)` — otherwise MyBatis-Plus omits null columns when generating SQL and fill won't apply.
+> existing values are never overwritten; `createBy`/`updateBy` take the current login id as String, skipped when
+> anonymous).
+> Fields MUST carry `@TableField(fill = ...)` — otherwise MyBatis-Plus omits null columns when generating SQL and fill
+> won't apply.
 > Disable via `quick-dev.auto-fill.enabled=false`, or register your own `MetaObjectHandler` bean to override.
 
 ### 3. One Annotation, Full API
@@ -135,8 +137,8 @@ public interface SysUserMapper extends BaseMapper<SysUser> { }
 public class SysUserController { }
 ```
 
-Enabling `CrudOp.IMPORT` / `CrudOp.EXPORT` / `CrudOp.IMPORT_TEMPLATE` adds three endpoints
-(permission suffixes `:import` / `:export` / `:import`):
+Enabling `CrudOp.IMPORT` / `CrudOp.EXPORT` / `CrudOp.IMPORT_TEMPLATE` adds three endpoints (permission suffixes
+`:import` / `:export` / `:import`):
 `POST {base}/import` (multipart field `file`, row-validated + transactional insert),
 `GET {base}/export` (Excel attachment reusing page query conditions),
 `GET {base}/import-template` (header-only template download).
@@ -146,35 +148,47 @@ Enabling `CrudOp.IMPORT` / `CrudOp.EXPORT` / `CrudOp.IMPORT_TEMPLATE` adds three
 Leave the method body empty (`return null`); AOP takes over. Mix freely with `@QuickCrud` and hand-written methods:
 
 ```java
+
 @RestController
 @RequestMapping("/product")
 public class ProductController {
 
     @QuickSave(entity = Product.class)                          // create (entity or List<entity> for batch)
     @PostMapping
-    public R<Object> save(@RequestBody Product product) { return null; }
+    public R<Object> save(@RequestBody Product product) {
+        return null;
+    }
 
     @QuickUpdate(entity = Product.class)                        // update (by ID, null fields skipped)
     @PutMapping
-    public R<Object> update(@RequestBody Product product) { return null; }
+    public R<Object> update(@RequestBody Product product) {
+        return null;
+    }
 
     @QuickRemove(entity = Product.class)                        // delete (single/List/comma-separated ids)
     @DeleteMapping("/{ids}")
-    public R<Object> remove(@PathVariable("ids") String ids) { return null; }
+    public R<Object> remove(@PathVariable("ids") String ids) {
+        return null;
+    }
 
     @QuickExport(entity = Product.class)                        // export: reuses page conditions, Excel download
     @GetMapping("/export")
-    public void export(HttpServletResponse response) { }
+    public void export(HttpServletResponse response) {
+    }
 
     @QuickImport(entity = Product.class, permission = "product:import")  // import: validate + transactional insert
     @PostMapping("/import")
-    public R<Object> importExcel(MultipartFile file) { return null; }
+    public R<Object> importExcel(MultipartFile file) {
+        return null;
+    }
 }
 ```
 
-- Permission: the annotation's `permission` is a **full permission code** (empty = no check), enforced by the unified interceptor
+- Permission: the annotation's `permission` is a **full permission code** (empty = no check), enforced by the unified
+  interceptor
 - Excel headers: add FastExcel's `@ExcelProperty("Name")` on entity fields, otherwise the field name is used
-- Import strategy: if any row fails Bean Validation nothing is inserted (400 + per-row error details); inserts share one transaction
+- Import strategy: if any row fails Bean Validation nothing is inserted (400 + per-row error details); inserts share one
+  transaction
 
 ### 5. Login & Permissions: Built-in Sa-Token (or Custom SPIs)
 
@@ -239,11 +253,11 @@ quick-dev:
 
 ## Query Parameter Conventions (page / list)
 
-| Parameter | Description |
-|---|---|
-| `current` / `size` | Pagination, defaults 1 / 10, size capped at 1000 |
+| Parameter                    | Description                                                                               |
+|------------------------------|-------------------------------------------------------------------------------------------|
+| `current` / `size`           | Pagination, defaults 1 / 10, size capped at 1000                                          |
 | Same name as entity property | Becomes a condition per `@QueryField` (EQ by default), value type-converted automatically |
-| `orderBy` / `order` | Sort field (must be an entity property name, injection-safe) + `asc`/`desc` |
+| `orderBy` / `order`          | Sort field (must be an entity property name, injection-safe) + `asc`/`desc`               |
 
 Example: `GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=create_time&order=desc`
 
@@ -279,19 +293,20 @@ public class ReportController {
 ### Repeat-Submit Protection / Operation Log
 
 ```java
+
 @NoRepeatSubmit(interval = 2000)                 // same user hitting twice within 2s -> 400
 @PostMapping("/order")
-public R<Object> create(@RequestBody Order order) { ... }
+public R<Object> create(@RequestBody Order order) { ...}
 
 @QuickLog(module = "Orders", description = "Create order")   // audit log
 @NoRepeatSubmit(interval = 2000)
 @PostMapping("/order")
-public R<Object> create(@RequestBody Order order) { ... }
+public R<Object> create(@RequestBody Order order) { ...}
 ```
 
 `@QuickLog` records: module/description, operator (loginId), URI, HTTP method, IP, params JSON (truncated),
-result code, success flag, error message, and duration. Persistence is up to the `OperationLogSink` SPI
-(register a bean to take over; default logs to Slf4j logger `quick-dev.operation-log`; async persistence recommended in production).
+result code, success flag, error message, and duration. Persistence is up to the `OperationLogSink` SPI (register a bean
+to take over; default logs to Slf4j logger `quick-dev.operation-log`; async persistence recommended in production).
 
 ### OpenAPI Docs (Optional, springdoc)
 
@@ -329,9 +344,10 @@ spring:
 
 Works immediately with zero code:
 
-- **Sa-Token state in Redis** (jackson serialization): login state and permission cache shared across instances, survives restarts
-- **Repeat-submit on Redis**: atomic `setIfAbsent + TTL` placeholder, effective across a cluster
-  (replaces the in-memory store automatically; implement `RepeatSubmitStore` to customize)
+- **Sa-Token state in Redis** (jackson serialization): login state and permission cache shared across instances,
+  survives restarts
+- **Repeat-submit on Redis**: atomic `setIfAbsent + TTL` placeholder, effective across a cluster (replaces the in-memory
+  store automatically; implement `RepeatSubmitStore` to customize)
 
 ### Field Translation (@Translate)
 
@@ -368,6 +384,7 @@ Dictionary data is entirely supplied by the user — choose either path (they ca
 **Path 1: implement DictLoader (remote dict service / config center / your own tables)**
 
 ```java
+
 @Component
 public class RemoteDictLoader implements DictLoader {
     @Override
@@ -399,17 +416,17 @@ still take precedence.
 
 ### Import Reverse Translation (Upload Conversion)
 
-Users often type readable labels in uploaded Excel files ("Enabled"/"Online"); the framework
-**resolves them back to stored values before type conversion and validation**:
+Users often type readable labels in uploaded Excel files ("Enabled"/"Online"); the framework **resolves them back to
+stored values before type conversion and validation**:
 
-| @Translate mode | Reverse resolution |
-|---|---|
-| `enumClass = ...` enum | Automatic: match `DictEnum.getLabel()`, return the value |
-| `dict = ...` dictionary | **User-provided** `DictReverseResolver` SPI (label -> value) |
+| @Translate mode          | Reverse resolution                                                                  |
+|--------------------------|-------------------------------------------------------------------------------------|
+| `enumClass = ...` enum   | Automatic: match `DictEnum.getLabel()`, return the value                            |
+| `dict = ...` dictionary  | **User-provided** `DictReverseResolver` SPI (label -> value)                        |
 | `entity = ...` reference | Automatic: look up the primary key by the target property (first match if multiple) |
 
-Additionally `@QuickExport(translate = true)` makes exported Excel files contain translated labels
-(going through the Jackson pipeline so `@JsonIgnore` applies too), closing the loop:
+Additionally `@QuickExport(translate = true)` makes exported Excel files contain translated labels (going through the
+Jackson pipeline so `@JsonIgnore` applies too), closing the loop:
 **export -> edit -> import back**.
 
 ```java
@@ -432,9 +449,11 @@ public class MyDictReverseResolver implements DictReverseResolver {
 Annotate the entity, implement one `DataScopeResolver`, and every query endpoint filters rows automatically:
 
 ```java
+
 @DataScope(column = "dept_id")     // this column is filtered by visible scope
 @TableName("sys_user")
-public class SysUser { ... }
+public class SysUser { ...
+}
 
 @Component
 public class MyDataScopeResolver implements DataScopeResolver {
@@ -451,8 +470,8 @@ public class MyDataScopeResolver implements DataScopeResolver {
 - Scope: page / list / count / tree / export (anything built through the query condition layer,
   including method-level `@QuickExport`)
 - An **empty collection** from the resolver means nothing is visible (safe default); no resolver = no filtering
-- Detail/delete by primary key bypass the condition layer and are not row-filtered
-  (enforce strict isolation in your business layer if needed)
+- Detail/delete by primary key bypass the condition layer and are not row-filtered (enforce strict isolation in your
+  business layer if needed)
 
 ## Running the Demo
 
@@ -463,10 +482,10 @@ mvn spring-boot:run
 
 Built-in accounts (H2 in-memory DB, see `data.sql` for seeds):
 
-| Account | Password | Permissions | Role |
-|---|---|---|---|
-| admin | admin123 | `*` (all) | admin |
-| viewer | viewer123 | only `sys:user:list` / `sys:user:detail` | none |
+| Account | Password  | Permissions                              | Role  |
+|---------|-----------|------------------------------------------|-------|
+| admin   | admin123  | `*` (all)                                | admin |
+| viewer  | viewer123 | only `sys:user:list` / `sys:user:detail` | none  |
 
 ```bash
 # Login for a token
@@ -499,14 +518,14 @@ curl http://localhost:8080/product/page
 { "code": 200, "msg": "success", "data": { ... }, "success": true }
 ```
 
-| Scenario | HTTP status | code |
-|---|---|---|
-| Success | 200 | 200 |
-| Param/validation error | 200 | 400 |
-| Not logged in / token expired | 401 | 401 |
-| Insufficient permission | 403 | 403 |
-| Record not found (detail) | 200 | 404 |
-| Other business/system error | 200 | 500 |
+| Scenario                      | HTTP status | code |
+|-------------------------------|-------------|------|
+| Success                       | 200         | 200  |
+| Param/validation error        | 200         | 400  |
+| Not logged in / token expired | 401         | 401  |
+| Insufficient permission       | 403         | 403  |
+| Record not found (detail)     | 200         | 404  |
+| Other business/system error   | 200         | 500  |
 
 ## How It Works
 
@@ -523,10 +542,10 @@ Application startup
        └─ GlobalExceptionHandler (exceptions -> R)
 ```
 
-Key point: dynamically registered handlers deliberately bind parameters as concrete types
-(`String`/`Map`) and resolve entity types internally via Jackson / ConversionService,
-avoiding the generic-erasure type resolution problem. Path conflicts follow Spring rules
-(literals win over `{id}` templates).
+Key point: dynamically registered handlers deliberately bind parameters as concrete types (`String`/`Map`) and resolve
+entity types internally via Jackson / ConversionService,
+avoiding the generic-erasure type resolution problem. Path conflicts follow Spring rules (literals win over `{id}`
+templates).
 
 ## Known Boundaries & Conventions
 
@@ -539,41 +558,43 @@ avoiding the generic-erasure type resolution problem. Path conflicts follow Spri
 
 ## Appendix: Configuration Reference (prefix quick-dev)
 
-| Property | Default | Description |
-|---|---|---|
-| `enabled` | `true` | Master switch for @QuickCrud endpoint registration |
-| `error-detail` | `true` | Expose unexpected exception details to clients (false returns a generic message) |
-| `db-type` | - | Pagination dialect (mysql/h2/postgresql…; ignored with a custom MybatisPlusInterceptor) |
-| `auth.enabled` | `true` | Auth master switch (false makes all auth annotations pass) |
-| `auth.token-header` | `Authorization` | Token header (Bearer prefix tolerated) |
-| `auth.token-param` | `token` | Fallback token request parameter |
-| `method-op.enabled` | `true` | Method-level annotation (@QuickSave etc.) AOP switch |
-| `auto-fill.enabled` | `true` | Time/operator auto-fill switch |
-| `repeat-submit.enabled` | `true` | @NoRepeatSubmit switch |
-| `log.enabled` | `true` | @QuickLog operation log switch |
-| `translate.enabled` | `true` | @Translate field translation switch |
-| `translate.cache-seconds` | `60` | Translation cache TTL seconds (0 disables) |
-| `dict.enabled` | `true` | Built-in DB dictionary switch (effective with JdbcTemplate on classpath) |
-| `dict.table` | `sys_dict` | Dictionary table name |
-| `dict.type-column` | `dict_type` | Type column |
-| `dict.value-column` | `dict_value` | Value column |
-| `dict.label-column` | `dict_label` | Label column |
-| `dict.refresh-endpoint-enabled` | `true` | Dict cache refresh endpoint switch |
-| `dict.refresh-path` | `/quick-dev/dict/refresh` | Refresh endpoint path (dict:refresh permission) |
-| `dict.admin-endpoint-enabled` | `true` | Dict admin endpoints switch |
-| `dict.admin-path` | `/quick-dev/dict` | Admin endpoint prefix (dict:manage permission) |
-| `limits.export-max-rows` | `100000` | Max rows per export (truncated with a warning beyond) |
-| `limits.import-max-rows` | `10000` | Max rows per import (rejected beyond) |
-| `limits.in-max-size` | `1000` | Max values per IN condition (400 beyond) |
+| Property                        | Default                   | Description                                                                             |
+|---------------------------------|---------------------------|-----------------------------------------------------------------------------------------|
+| `enabled`                       | `true`                    | Master switch for @QuickCrud endpoint registration                                      |
+| `error-detail`                  | `true`                    | Expose unexpected exception details to clients (false returns a generic message)        |
+| `db-type`                       | -                         | Pagination dialect (mysql/h2/postgresql…; ignored with a custom MybatisPlusInterceptor) |
+| `auth.enabled`                  | `true`                    | Auth master switch (false makes all auth annotations pass)                              |
+| `auth.token-header`             | `Authorization`           | Token header (Bearer prefix tolerated)                                                  |
+| `auth.token-param`              | `token`                   | Fallback token request parameter                                                        |
+| `method-op.enabled`             | `true`                    | Method-level annotation (@QuickSave etc.) AOP switch                                    |
+| `auto-fill.enabled`             | `true`                    | Time/operator auto-fill switch                                                          |
+| `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit switch                                                                  |
+| `log.enabled`                   | `true`                    | @QuickLog operation log switch                                                          |
+| `translate.enabled`             | `true`                    | @Translate field translation switch                                                     |
+| `translate.cache-seconds`       | `60`                      | Translation cache TTL seconds (0 disables)                                              |
+| `dict.enabled`                  | `true`                    | Built-in DB dictionary switch (effective with JdbcTemplate on classpath)                |
+| `dict.table`                    | `sys_dict`                | Dictionary table name                                                                   |
+| `dict.type-column`              | `dict_type`               | Type column                                                                             |
+| `dict.value-column`             | `dict_value`              | Value column                                                                            |
+| `dict.label-column`             | `dict_label`              | Label column                                                                            |
+| `dict.refresh-endpoint-enabled` | `true`                    | Dict cache refresh endpoint switch                                                      |
+| `dict.refresh-path`             | `/quick-dev/dict/refresh` | Refresh endpoint path (dict:refresh permission)                                         |
+| `dict.admin-endpoint-enabled`   | `true`                    | Dict admin endpoints switch                                                             |
+| `dict.admin-path`               | `/quick-dev/dict`         | Admin endpoint prefix (dict:manage permission)                                          |
+| `limits.export-max-rows`        | `100000`                  | Max rows per export (truncated with a warning beyond)                                   |
+| `limits.import-max-rows`        | `10000`                   | Max rows per import (rejected beyond)                                                   |
+| `limits.in-max-size`            | `1000`                    | Max values per IN condition (400 beyond)                                                |
 
 See the Sa-Token docs for `sa-token.*` (token-name, timeout, …) and Spring Boot docs for `spring.data.redis.*`.
 
 ## License & Contributing
 
 - Licensed under [Apache License 2.0](LICENSE); third-party dependencies are listed in [NOTICE](NOTICE)
-- Contributions are welcome — see the [Contributing Guide](CONTRIBUTING.md) (commit format, tests, module responsibilities)
+- Contributions are welcome — see the [Contributing Guide](CONTRIBUTING.md) (commit format, tests, module
+  responsibilities)
 - Community standards: [Code of Conduct](CODE_OF_CONDUCT.md)
-- Bugs and ideas: [open an issue](https://github.com/xuya-dev/Quick-Dev/issues) (bug report / feature request templates provided)
+- Bugs and ideas: [open an issue](https://github.com/xuya-dev/Quick-Dev/issues) (bug report / feature request templates
+  provided)
 - Detailed docs (Chinese): [User Guide](docs/user-guide.md) · [AI assistant guide](docs/AGENT.md)
 
 ## Requirements

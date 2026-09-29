@@ -46,9 +46,11 @@ class AsyncOperationLogSinkTest {
 
     @Test
     void wrapShouldSkipWhenAsyncDisabledOrAlreadyWrapped() {
-        OperationLogSink plain = record -> { };
+        OperationLogSink plain = record -> {
+        };
         assertThat(AsyncOperationLogSink.wrap(plain, false)).isSameAs(plain);
-        AsyncOperationLogSink wrapped = new AsyncOperationLogSink(record -> { });
+        AsyncOperationLogSink wrapped = new AsyncOperationLogSink(record -> {
+        });
         assertThat(AsyncOperationLogSink.wrap(wrapped, true)).isSameAs(wrapped);
         assertThat(AsyncOperationLogSink.wrap(plain, true)).isInstanceOf(AsyncOperationLogSink.class);
     }

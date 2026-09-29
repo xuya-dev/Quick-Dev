@@ -13,11 +13,6 @@ public class SpringContextHolder implements ApplicationContextAware {
 
     private static volatile ApplicationContext context;
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        context = applicationContext;
-    }
-
     public static ApplicationContext getContext() {
         return context;
     }
@@ -33,5 +28,10 @@ public class SpringContextHolder implements ApplicationContextAware {
     public static <T> T getBeanIfAvailable(Class<T> type) {
         ApplicationContext ctx = context;
         return ctx == null ? null : ctx.getBeanProvider(type).getIfAvailable();
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        context = applicationContext;
     }
 }

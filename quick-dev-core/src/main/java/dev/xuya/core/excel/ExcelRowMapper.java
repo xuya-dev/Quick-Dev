@@ -31,7 +31,9 @@ public class ExcelRowMapper {
     private ExcelRowMapper() {
     }
 
-    /** 按表头行构建列映射：单元格文本 == @ExcelProperty 值或字段名（去首尾空格） */
+    /**
+     * 按表头行构建列映射：单元格文本 == @ExcelProperty 值或字段名（去首尾空格）
+     */
     public static ExcelRowMapper of(Class<?> entityClass, Map<Integer, String> headRow) {
         ExcelRowMapper mapper = new ExcelRowMapper();
         for (Field field : excelFields(entityClass)) {
@@ -49,7 +51,45 @@ public class ExcelRowMapper {
         return mapper;
     }
 
-    /** 一行原始数据 -> 实体（rowNumber 从 1 开始计数据行，用于报错定位） */
+    /**
+     * 参与导入导出的实体字段（排除静态/瞬态/@ExcelIgnore/@TableField(exist=false)）
+     */
+    static List<Field> excelFields(Class<?> entityClass) {
+        List<Field> result = new ArrayList<>();
+        for (Class<?> c = entityClass; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Field field : c.getDeclaredFields()) {
+                int modifiers = field.getModifiers();
+                if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)
+                        || field.isAnnotationPresent(ExcelIgnore.class)) {
+                    continue;
+                }
+                TableField tableField = field.getAnnotation(TableField.class);
+                if (tableField != null && !tableField.exist()) {
+                    continue;
+                }
+                field.setAccessible(true);
+                result.add(field);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Excel 列头名：@ExcelProperty 值，未标注用字段名（导出/导入两侧保持一致）
+     */
+    static String headNameOf(Field field) {
+        ExcelProperty property = field.getAnnotation(ExcelProperty.class);
+        return property != null && property.value().length > 0 && !property.value()[0].isEmpty()
+                ? property.value()[0] : field.getName();
+    }
+
+    private static String headName(Field field) {
+        return headNameOf(field);
+    }
+
+    /**
+     * 一行原始数据 -> 实体（rowNumber 从 1 开始计数据行，用于报错定位）
+     */
     public Object map(Map<Integer, String> row, int rowNumber) {
         Object entity;
         try {
@@ -94,37 +134,5 @@ public class ExcelRowMapper {
             }
         }
         return entity;
-    }
-
-    /** 参与导入导出的实体字段（排除静态/瞬态/@ExcelIgnore/@TableField(exist=false)） */
-    static List<Field> excelFields(Class<?> entityClass) {
-        List<Field> result = new ArrayList<>();
-        for (Class<?> c = entityClass; c != null && c != Object.class; c = c.getSuperclass()) {
-            for (Field field : c.getDeclaredFields()) {
-                int modifiers = field.getModifiers();
-                if (Modifier.isStatic(modifiers) || Modifier.isTransient(modifiers)
-                        || field.isAnnotationPresent(ExcelIgnore.class)) {
-                    continue;
-                }
-                TableField tableField = field.getAnnotation(TableField.class);
-                if (tableField != null && !tableField.exist()) {
-                    continue;
-                }
-                field.setAccessible(true);
-                result.add(field);
-            }
-        }
-        return result;
-    }
-
-    /** Excel 列头名：@ExcelProperty 值，未标注用字段名（导出/导入两侧保持一致） */
-    static String headNameOf(Field field) {
-        ExcelProperty property = field.getAnnotation(ExcelProperty.class);
-        return property != null && property.value().length > 0 && !property.value()[0].isEmpty()
-                ? property.value()[0] : field.getName();
-    }
-
-    private static String headName(Field field) {
-        return headNameOf(field);
     }
 }

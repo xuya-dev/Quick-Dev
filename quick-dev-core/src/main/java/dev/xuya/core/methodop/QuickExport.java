@@ -1,10 +1,6 @@
 package dev.xuya.core.methodop;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 方法级导出：标注在 Controller 方法上，方法体无需实现，框架按当前请求参数
@@ -24,12 +20,18 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface QuickExport {
 
-    /** 目标实体类 */
+    /**
+     * 目标实体类
+     */
     Class<?> entity();
 
-    /** 完整权限码，空串表示不鉴权 */
+    /**
+     * 完整权限码，空串表示不鉴权
+     */
     String permission() default "";
 
-    /** 是否把 @Translate 字段导出为翻译后的标签（默认 false 导出原始值） */
+    /**
+     * 是否把 @Translate 字段导出为翻译后的标签（默认 false 导出原始值）
+     */
     boolean translate() default false;
 }

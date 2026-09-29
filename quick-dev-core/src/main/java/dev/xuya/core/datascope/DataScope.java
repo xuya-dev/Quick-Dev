@@ -1,10 +1,6 @@
 package dev.xuya.core.datascope;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 行级数据权限：标注在实体类上，分页/列表/统计/树/导出等所有走查询条件的接口
@@ -25,6 +21,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DataScope {
 
-    /** 行级过滤的数据库列名，如 dept_id */
+    /**
+     * 行级过滤的数据库列名，如 dept_id
+     */
     String column();
 }
