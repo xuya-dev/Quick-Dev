@@ -46,8 +46,11 @@ public class AuthInterceptor implements HandlerInterceptor {
         RequiresPerm requiresPerm = findAnnotation(handlerMethod, RequiresPerm.class);
         RequiresRole requiresRole = findAnnotation(handlerMethod, RequiresRole.class);
         boolean crudProtected = false;
+        boolean crudLoginRequired = false;
         if (requiresPerm == null && handlerMethod.getBean() instanceof QuickCrudHandler crudHandler) {
             crudProtected = crudHandler.getRequiredPermission(handlerMethod.getMethod()) != null;
+            // @QuickCrud(loginRequired = true) 且该端点无权限码时，仍要求登录
+            crudLoginRequired = !crudProtected && crudHandler.isLoginRequired();
         }
         // 方法级注解（@QuickSave/@QuickUpdate/@QuickRemove/@QuickExport/@QuickImport）声明的权限码
         String methodOpPermission = requiresPerm == null && !crudProtected
@@ -55,6 +58,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         boolean needLogin = requiresPerm != null
                 || requiresRole != null
                 || crudProtected
+                || crudLoginRequired
                 || methodOpPermission != null
                 || findAnnotation(handlerMethod, RequiresLogin.class) != null;
         if (!needLogin) {

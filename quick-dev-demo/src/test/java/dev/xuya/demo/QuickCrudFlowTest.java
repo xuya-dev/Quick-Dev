@@ -326,7 +326,11 @@ class QuickCrudFlowTest {
 
     @Test
     void treeShouldBuildHierarchyFromParentId() {
-        ResponseEntity<Map> resp = call(HttpMethod.GET, "/sys-dept/tree", null, null);
+        // loginRequired = true（无权限码）：匿名访问 401
+        assertThat(call(HttpMethod.GET, "/sys-dept/tree", null, null).getStatusCode().value()).isEqualTo(401);
+
+        String token = login("viewer", "viewer123");
+        ResponseEntity<Map> resp = call(HttpMethod.GET, "/sys-dept/tree", token, null);
         assertThat(code(resp)).isEqualTo(200);
         List<Map<String, Object>> roots = (List<Map<String, Object>>) resp.getBody().get("data");
         assertThat(roots).hasSize(1);
