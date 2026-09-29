@@ -8,12 +8,13 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import dev.xuya.core.translate.Translate;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
 
 /**
- * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验、时间自动填充）
+ * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验、时间/操作人自动填充、字段翻译）
  */
 @TableName("sys_user")
 public class SysUser {
@@ -35,6 +36,8 @@ public class SysUser {
     @NotBlank(message = "邮箱不能为空")
     private String email;
 
+    /** 字典翻译：1 -> 启用，0 -> 停用 */
+    @Translate(dict = "user_status")
     private Integer status;
 
     @TableField(fill = FieldFill.INSERT)
@@ -43,9 +46,12 @@ public class SysUser {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    /** 关联翻译：loginId -> 用户昵称（"1" -> "管理员"） */
+    @Translate(entity = SysUser.class, field = "nickname")
     @TableField(fill = FieldFill.INSERT)
     private String createBy;
 
+    @Translate(entity = SysUser.class, field = "nickname")
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private String updateBy;
 

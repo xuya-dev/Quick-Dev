@@ -34,6 +34,7 @@ public class SysUserController {
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
+- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典翻译、关联表翻译），带 TTL 缓存
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
@@ -199,6 +200,9 @@ quick-dev:
     enabled: true          # @NoRepeatSubmit 防重复提交开关
   log:
     enabled: true          # @QuickLog 操作日志开关
+  translate:
+    enabled: true          # @Translate 字段翻译开关
+    cache-seconds: 60      # 翻译结果本地缓存秒数（0 禁用）
   auth:
     enabled: true          # 鉴权总开关
     token-header: Authorization
@@ -282,6 +286,28 @@ spring:
 
 - **Sa-Token 数据落 Redis**（jackson 序列化）：登录态、权限缓存多实例共享，应用重启不丢登录
 - **防重复提交切 Redis**：`setIfAbsent + 过期` 原子占位，集群部署下多实例同样生效（自动替换内存实现，也可实现 `RepeatSubmitStore` Bean 自定义）
+
+### 字段翻译（@Translate）
+
+标注在实体/VO 字段上，JSON 序列化时把值翻译为可读文本，适合列表页展示：
+
+```java
+public class OrderVO {
+
+    /** 字典翻译：值 -> 标签（DictResolver SPI 查字典表/枚举） */
+    @Translate(dict = "order_status")
+    private Integer status;                  // 1 序列化为 "已支付"
+
+    /** 关联翻译：字段值作为目标实体主键，取其某属性 */
+    @Translate(entity = SysUser.class, field = "nickname")
+    private String createBy;                 // "1" 序列化为 "管理员"
+}
+```
+
+- 翻译发生在序列化期：**零侵入**，分页/详情/导出等一切返回 JSON 的接口自动生效
+- 翻译失败（无字典、无记录、未实现 SPI）**保留原值**输出，不影响接口
+- 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
+- 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）
 
 ## 运行演示应用
 

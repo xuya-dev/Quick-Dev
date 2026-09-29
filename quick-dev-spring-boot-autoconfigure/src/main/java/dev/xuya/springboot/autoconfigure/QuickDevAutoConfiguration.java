@@ -6,12 +6,14 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.auth.AuthInterceptor;
 import dev.xuya.core.auth.AuthSettings;
+import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
 import dev.xuya.core.log.OperationLogSink;
 import dev.xuya.core.log.QuickLogAspect;
 import dev.xuya.core.log.Slf4jOperationLogSink;
 import dev.xuya.core.methodop.QuickOpAspect;
+import dev.xuya.core.translate.TranslateExecutor;
 import dev.xuya.core.web.GlobalExceptionHandler;
 import dev.xuya.core.web.MemoryRepeatSubmitStore;
 import dev.xuya.core.web.RepeatSubmitInterceptor;
@@ -82,6 +84,22 @@ public class QuickDevAutoConfiguration {
         ObjectMapper objectMapper = applicationContext.getBeanProvider(ObjectMapper.class)
                 .getIfAvailable(ObjectMapper::new);
         return new QuickLogAspect(sink, objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public SpringContextHolder quickDevSpringContextHolder() {
+        return new SpringContextHolder();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public TranslateExecutor translateExecutor(QuickDevProperties properties) {
+        QuickDevProperties.Translate translate = properties.getTranslate();
+        TranslateExecutor executor = new TranslateExecutor(
+                translate.isEnabled(), translate.getCacheSeconds() * 1000);
+        TranslateExecutor.register(executor);
+        return executor;
     }
 
     @Bean

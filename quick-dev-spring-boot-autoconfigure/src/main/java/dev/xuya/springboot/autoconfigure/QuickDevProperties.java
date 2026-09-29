@@ -33,6 +33,32 @@ public class QuickDevProperties {
     private final MethodOp methodOp = new MethodOp();
     private final RepeatSubmit repeatSubmit = new RepeatSubmit();
     private final OperationLog log = new OperationLog();
+    private final Translate translate = new Translate();
+
+    public static class Translate {
+
+        /** 是否启用 @Translate 字段翻译 */
+        private boolean enabled = true;
+
+        /** 翻译结果本地缓存秒数（0 禁用） */
+        private long cacheSeconds = 60;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public long getCacheSeconds() {
+            return cacheSeconds;
+        }
+
+        public void setCacheSeconds(long cacheSeconds) {
+            this.cacheSeconds = cacheSeconds;
+        }
+    }
 
     public static class OperationLog {
 
@@ -160,5 +186,9 @@ public class QuickDevProperties {
 
     public OperationLog getLog() {
         return log;
+    }
+
+    public Translate getTranslate() {
+        return translate;
     }
 }

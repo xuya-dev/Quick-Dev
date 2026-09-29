@@ -21,6 +21,11 @@ values (1, '总公司', 0, current_timestamp),
        (4, '后端组', 2, current_timestamp),
        (5, '财务部', 1, current_timestamp);
 
+-- 数据字典
+insert into sys_dict (dict_type, dict_value, dict_label)
+values ('user_status', '1', '启用'),
+       ('user_status', '0', '停用');
+
 insert into product (id, name, price, stock, create_time)
 values ('p0000000000000000000000000001', '机械键盘', 399.00, 120, current_timestamp),
        ('p0000000000000000000000000002', '无线鼠标', 129.50, 300, current_timestamp);

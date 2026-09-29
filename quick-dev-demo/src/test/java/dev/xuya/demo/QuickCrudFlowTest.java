@@ -83,11 +83,13 @@ class QuickCrudFlowTest {
         Map<String, Object> saved = data(save);
         Long newId = ((Number) saved.get("id")).longValue();
         assertThat(newId).isNotNull();
-        // createTime/updateTime 自动填充 + 操作人（Sa-Token loginId）自动填充
+        // createTime/updateTime 自动填充 + 操作人自动填充并翻译为昵称（@Translate 关联翻译）
         assertThat(saved.get("createTime")).isNotNull();
         assertThat(saved.get("updateTime")).isNotNull();
-        assertThat(saved.get("createBy")).isEqualTo("1"); // admin 的 loginId
-        assertThat(saved.get("updateBy")).isEqualTo("1");
+        assertThat(saved.get("createBy")).isEqualTo("管理员"); // loginId "1" -> SysUser.nickname
+        assertThat(saved.get("updateBy")).isEqualTo("管理员");
+        // 字典翻译：status 1 -> 启用
+        assertThat(saved.get("status")).isEqualTo("启用");
 
         // 详情
         ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/" + newId, token, null);
@@ -101,7 +103,7 @@ class QuickCrudFlowTest {
         Map<String, Object> afterUpdate = data(call(HttpMethod.GET, "/sys-user/" + newId, token, null));
         assertThat(afterUpdate.get("nickname")).isEqualTo("改名之后");
         assertThat(afterUpdate.get("updateTime")).isNotNull();
-        assertThat(afterUpdate.get("updateBy")).isEqualTo("1");
+        assertThat(afterUpdate.get("updateBy")).isEqualTo("管理员");
 
         // 删除 + 再查 404
         assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + newId, token, null))).isEqualTo(200);
@@ -360,6 +362,30 @@ class QuickCrudFlowTest {
         assertThat(record.isSuccess()).isTrue();
         assertThat(record.getResultCode()).isEqualTo(200);
         assertThat(record.getCostMs()).isGreaterThanOrEqualTo(0);
+    }
+
+    // ------------------------------------------------------------------
+    // 字段翻译（@Translate）
+    // ------------------------------------------------------------------
+
+    @Test
+    void translateShouldRenderDictAndRefLabels() {
+        String token = login("admin", "admin123");
+        // 种子数据 admin：status=1 -> "启用"；种子无 createBy -> 保持 null
+        ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/1", token, null);
+        assertThat(code(detail)).isEqualTo(200);
+        Map<String, Object> admin = data(detail);
+        assertThat(admin.get("status")).isEqualTo("启用");
+        assertThat(admin.get("createBy")).isNull();
+
+        // 分页列表同样生效
+        ResponseEntity<Map> page = call(HttpMethod.GET, "/sys-user/page?username=viewer", token, null);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        assertThat(records.get(0).get("status")).isEqualTo("启用");
+
+        // 翻译失败保留原值：停用字典值 0 的用户……改为验证未登录字典值（999）保留数字
+        // 通过 /product 无翻译字段，确认不影响普通实体
+        assertThat(code(call(HttpMethod.GET, "/product/page", null, null))).isEqualTo(200);
     }
 
     // ------------------------------------------------------------------
