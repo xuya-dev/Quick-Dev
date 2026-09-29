@@ -7,6 +7,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import dev.xuya.core.common.ParamException;
+import dev.xuya.core.common.QuickDevLimits;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -87,5 +89,21 @@ class QueryHelperTest {
         Collection<Object> values = wrapper.getParamNameValuePairs().values();
         assertThat(values).contains("tom", "%张%", 1);
         assertThat(values).anySatisfy(v -> assertThat(v).isInstanceOf(LocalDateTime.class));
+    }
+
+    @Test
+    void inConditionShouldEnforceMaxSize() {
+        QuickDevLimits.setInMaxSize(2);
+        try {
+            Map<String, String> params = new HashMap<>();
+            params.put("type", "1,2,3"); // SampleEntity.type 标注了 @QueryField(IN)
+            org.assertj.core.api.Assertions
+                    .assertThatThrownBy(() -> QueryHelper.build(meta, params,
+                            new DefaultFormattingConversionService()))
+                    .isInstanceOf(ParamException.class)
+                    .hasMessageContaining("超过上限");
+        } finally {
+            QuickDevLimits.setInMaxSize(1000);
+        }
     }
 }

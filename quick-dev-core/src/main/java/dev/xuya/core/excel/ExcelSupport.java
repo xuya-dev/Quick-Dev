@@ -2,6 +2,7 @@ package dev.xuya.core.excel;
 
 import cn.idev.excel.FastExcel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.xuya.core.common.QuickDevLimits;
 import jakarta.servlet.http.HttpServletResponse;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -34,8 +35,9 @@ public final class ExcelSupport {
                 .doReadSync();
     }
 
-    /** 导出 Excel 到 HTTP 响应（附件下载） */
+    /** 导出 Excel 到 HTTP 响应（附件下载；超出 export-max-rows 截断并告警） */
     public static void write(HttpServletResponse response, Class<?> headClass, List<?> data) throws IOException {
+        data = truncateForExport(data);
         prepareDownloadHeaders(response, headClass, "");
         FastExcel.write(response.getOutputStream(), headClass).sheet(headClass.getSimpleName()).doWrite(data);
     }
@@ -46,6 +48,7 @@ public final class ExcelSupport {
      */
     public static void writeTranslated(HttpServletResponse response, Class<?> headClass, List<?> data,
                                        ObjectMapper objectMapper) throws IOException {
+        data = truncateForExport(data);
         List<Field> fields = ExcelRowMapper.excelFields(headClass);
         List<List<String>> head = new ArrayList<>(fields.size());
         for (Field field : fields) {
@@ -66,6 +69,18 @@ public final class ExcelSupport {
         prepareDownloadHeaders(response, headClass, "");
         FastExcel.write(response.getOutputStream()).head(head)
                 .sheet(headClass.getSimpleName()).doWrite(rows);
+    }
+
+    /** 超出 export-max-rows 时截断（防御超大导出拖垮内存），并告警 */
+    private static List<?> truncateForExport(List<?> data) {
+        int max = QuickDevLimits.getExportMaxRows();
+        if (data != null && data.size() > max) {
+            org.slf4j.LoggerFactory.getLogger(ExcelSupport.class)
+                    .warn("导出行数 {} 超过上限 {}，已截断。可通过 quick-dev.limits.export-max-rows 调整",
+                            data.size(), max);
+            return data.subList(0, max);
+        }
+        return data;
     }
 
     /** 生成导入模板：只有表头、没有数据的 Excel */

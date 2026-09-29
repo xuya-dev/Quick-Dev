@@ -5,6 +5,7 @@ import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
 import dev.xuya.core.auth.AuthContext;
 import dev.xuya.core.common.ParamException;
+import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.datascope.DataScope;
 import dev.xuya.core.datascope.DataScopeResolver;
@@ -73,6 +74,11 @@ public final class QueryHelper {
                         if (!trimmed.isEmpty()) {
                             values.add(convert(meta, field, trimmed, conversionService, name));
                         }
+                    }
+                    if (values.size() > QuickDevLimits.getInMaxSize()) {
+                        throw new ParamException("参数 " + name + " 的 IN 值数量 " + values.size()
+                                + " 超过上限 " + QuickDevLimits.getInMaxSize()
+                                + "（可通过 quick-dev.limits.in-max-size 调整）");
                     }
                     if (!values.isEmpty()) {
                         wrapper.in(column, values);

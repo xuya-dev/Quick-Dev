@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.auth.AuthInterceptor;
 import dev.xuya.core.auth.AuthSettings;
+import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
@@ -153,7 +154,17 @@ public class QuickDevAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnClass(name = "org.springframework.web.bind.annotation.RestControllerAdvice")
-    public GlobalExceptionHandler quickDevGlobalExceptionHandler() {
-        return new GlobalExceptionHandler();
+    public GlobalExceptionHandler quickDevGlobalExceptionHandler(QuickDevProperties properties) {
+        return new GlobalExceptionHandler(properties.isErrorDetail());
+    }
+
+    /** 把 quick-dev.limits.* 写入 core 静态上限（core 静态工具无法走 Bean 注入） */
+    @Bean
+    public String quickDevLimitsConfigurer(QuickDevProperties properties) {
+        QuickDevProperties.Limits limits = properties.getLimits();
+        QuickDevLimits.setExportMaxRows(limits.getExportMaxRows());
+        QuickDevLimits.setImportMaxRows(limits.getImportMaxRows());
+        QuickDevLimits.setInMaxSize(limits.getInMaxSize());
+        return "quickDevLimitsConfigured";
     }
 }

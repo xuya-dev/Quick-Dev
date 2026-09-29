@@ -2,6 +2,7 @@ package dev.xuya.core.excel;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import dev.xuya.core.common.ParamException;
+import dev.xuya.core.common.QuickDevLimits;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.transaction.support.TransactionOperations;
@@ -43,6 +44,11 @@ public final class ExcelImportExecutor {
         List<Object> rows = new ArrayList<>();
         for (int i = 0; i < rawRows.size(); i++) {
             rows.add(rowMapper.map(rawRows.get(i), i + 1)); // 先反解字典标签，再类型转换
+        }
+        int maxRows = QuickDevLimits.getImportMaxRows();
+        if (rows.size() > maxRows) {
+            throw new ParamException("导入行数 " + rows.size() + " 超过上限 " + maxRows
+                    + "，请分批导入（可通过 quick-dev.limits.import-max-rows 调整）");
         }
 
         if (validator != null) {

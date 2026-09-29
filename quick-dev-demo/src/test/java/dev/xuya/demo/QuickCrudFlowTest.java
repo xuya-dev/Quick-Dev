@@ -517,6 +517,38 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 防御性上限（demo 配置 export-max-rows=1 / import-max-rows=3）
+    // ------------------------------------------------------------------
+
+    @Test
+    void limitsShouldRejectOversizedImport() {
+        // 4 行超过 import-max-rows=3 -> 整体拒绝
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        FastExcel.write(out)
+                .head(List.of(List.of("商品名称"), List.of("价格"), List.of("库存")))
+                .sheet("商品")
+                .doWrite(List.of(
+                        Arrays.asList("超限1", 1.0, 1),
+                        Arrays.asList("超限2", 2.0, 2),
+                        Arrays.asList("超限3", 3.0, 3),
+                        Arrays.asList("超限4", 4.0, 4)));
+        String adminToken = login("admin", "admin123");
+        ResponseEntity<Map> resp = upload("/product/import", out.toByteArray(), adminToken);
+        assertThat(code(resp)).isEqualTo(400);
+        assertThat((String) resp.getBody().get("msg")).contains("超过上限");
+    }
+
+    @Test
+    void limitsShouldTruncateExport() {
+        // 不带条件导出（2 行种子）被截断为 export-max-rows=1：表头 + 1 行数据
+        ResponseEntity<byte[]> resp = rest.getForEntity("/product/export", byte[].class);
+        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        List<Map<Integer, String>> rows = FastExcel.read(new ByteArrayInputStream(resp.getBody()))
+                .sheet().headRowNumber(0).doReadSync();
+        assertThat(rows).hasSize(2); // 表头 1 + 数据 1
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

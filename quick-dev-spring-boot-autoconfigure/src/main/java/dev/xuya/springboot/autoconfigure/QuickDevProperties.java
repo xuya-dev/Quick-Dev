@@ -25,6 +25,9 @@ public class QuickDevProperties {
     /** 是否启用 @QuickCrud 动态端点注册 */
     private boolean enabled = true;
 
+    /** 未预期异常是否向客户端透出详细信息（false 返回"系统繁忙"） */
+    private boolean errorDetail = true;
+
     /** 分页插件方言（MyBatis-Plus DbType 名称，如 mysql / h2 / postgresql），留空自动 */
     private DbType dbType;
 
@@ -35,6 +38,43 @@ public class QuickDevProperties {
     private final OperationLog log = new OperationLog();
     private final Translate translate = new Translate();
     private final Dict dict = new Dict();
+    private final Limits limits = new Limits();
+
+    public static class Limits {
+
+        /** 单次 Excel 导出行数上限（超出截断并告警） */
+        private int exportMaxRows = 100_000;
+
+        /** 单次 Excel 导入行数上限（超出拒绝） */
+        private int importMaxRows = 10_000;
+
+        /** 单字段 IN 条件值数量上限（超出报 400） */
+        private int inMaxSize = 1_000;
+
+        public int getExportMaxRows() {
+            return exportMaxRows;
+        }
+
+        public void setExportMaxRows(int exportMaxRows) {
+            this.exportMaxRows = exportMaxRows;
+        }
+
+        public int getImportMaxRows() {
+            return importMaxRows;
+        }
+
+        public void setImportMaxRows(int importMaxRows) {
+            this.importMaxRows = importMaxRows;
+        }
+
+        public int getInMaxSize() {
+            return inMaxSize;
+        }
+
+        public void setInMaxSize(int inMaxSize) {
+            this.inMaxSize = inMaxSize;
+        }
+    }
 
     public static class Dict {
 
@@ -297,5 +337,17 @@ public class QuickDevProperties {
 
     public Dict getDict() {
         return dict;
+    }
+
+    public Limits getLimits() {
+        return limits;
+    }
+
+    public boolean isErrorDetail() {
+        return errorDetail;
+    }
+
+    public void setErrorDetail(boolean errorDetail) {
+        this.errorDetail = errorDetail;
     }
 }
