@@ -33,7 +33,8 @@ public class SysUserController {
 - **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作` 约定自动鉴权；方法级注解按 `permission` 完整权限码鉴权
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
-- **时间字段自动填充**：`createTime`/`updateTime` 新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
+- **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
+- **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
 - **操作日志**：`@QuickLog` 记录操作人/入参/结果/耗时，`OperationLogSink` SPI 异步落库即可
@@ -45,8 +46,9 @@ public class SysUserController {
 ```
 quick-dev
 ├── quick-dev-core                      核心库：注解 / CRUD 引擎 / 权限 / R / 异常（依赖全部 optional）
-├── quick-dev-spring-boot-autoconfigure 自动配置模块（Properties + AutoConfiguration）
+├── quick-dev-spring-boot-autoconfigure 自动配置模块（Properties + AutoConfiguration + Redis 条件装配）
 ├── quick-dev-spring-boot-starter       ★ 使用方唯一需要引入的依赖（聚合 core + web + validation + MyBatis-Plus + 分页插件）
+├── quick-dev-redis-spring-boot-starter 可选 Redis 支持（Sa-Token 缓存 + 防重复提交 Redis 原子实现）
 └── quick-dev-demo                      演示应用（H2 内存库 + 内置账号，可直接跑）
 ```
 
@@ -87,7 +89,8 @@ public class SysUser {
 public interface SysUserMapper extends BaseMapper<SysUser> { }
 ```
 
-> 自动填充是框架内置的 `MetaObjectHandler`（按属性名 `createTime`/`updateTime` 约定，已有值不覆盖），
+> 自动填充是框架内置的 `MetaObjectHandler`（按属性名 `createTime`/`updateTime`/`createBy`/`updateBy` 约定，
+> 已有值不覆盖；`createBy`/`updateBy` 取当前登录人 loginId，须为 String 类型，未登录不填），
 > 字段必须加 `@TableField(fill = ...)`，否则 MyBatis-Plus 生成 SQL 时会跳过 null 列导致填充不生效。
 > 不想用可设置 `quick-dev.auto-fill.enabled=false`，或注册自己的 `MetaObjectHandler` Bean 覆盖。
 
@@ -256,6 +259,29 @@ public R<Object> create(@RequestBody Order order) { ... }
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
 结果码、是否成功、异常信息、耗时。落地由 `OperationLogSink` SPI 决定（实现 Bean 即接管，
 默认输出到 Slf4g logger `quick-dev.operation-log`；生产建议异步写库）。
+
+### Redis 支持（可选）
+
+```xml
+<dependency>
+    <groupId>dev.xuya</groupId>
+    <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
+    <version>0.1.0</version>
+</dependency>
+```
+
+```yaml
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+```
+
+引入即生效，无需代码：
+
+- **Sa-Token 数据落 Redis**（jackson 序列化）：登录态、权限缓存多实例共享，应用重启不丢登录
+- **防重复提交切 Redis**：`setIfAbsent + 过期` 原子占位，集群部署下多实例同样生效（自动替换内存实现，也可实现 `RepeatSubmitStore` Bean 自定义）
 
 ## 运行演示应用
 

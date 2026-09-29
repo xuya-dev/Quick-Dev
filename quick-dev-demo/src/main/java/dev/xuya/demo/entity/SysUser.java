@@ -43,6 +43,12 @@ public class SysUser {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 
+    @TableField(fill = FieldFill.INSERT)
+    private String createBy;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private String updateBy;
+
     public Long getId() {
         return id;
     }
@@ -105,5 +111,21 @@ public class SysUser {
 
     public void setUpdateTime(LocalDateTime updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public String getCreateBy() {
+        return createBy;
+    }
+
+    public void setCreateBy(String createBy) {
+        this.createBy = createBy;
+    }
+
+    public String getUpdateBy() {
+        return updateBy;
+    }
+
+    public void setUpdateBy(String updateBy) {
+        this.updateBy = updateBy;
     }
 }

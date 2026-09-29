@@ -83,9 +83,11 @@ class QuickCrudFlowTest {
         Map<String, Object> saved = data(save);
         Long newId = ((Number) saved.get("id")).longValue();
         assertThat(newId).isNotNull();
-        // createTime/updateTime 自动填充
+        // createTime/updateTime 自动填充 + 操作人（Sa-Token loginId）自动填充
         assertThat(saved.get("createTime")).isNotNull();
         assertThat(saved.get("updateTime")).isNotNull();
+        assertThat(saved.get("createBy")).isEqualTo("1"); // admin 的 loginId
+        assertThat(saved.get("updateBy")).isEqualTo("1");
 
         // 详情
         ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/" + newId, token, null);
@@ -99,6 +101,7 @@ class QuickCrudFlowTest {
         Map<String, Object> afterUpdate = data(call(HttpMethod.GET, "/sys-user/" + newId, token, null));
         assertThat(afterUpdate.get("nickname")).isEqualTo("改名之后");
         assertThat(afterUpdate.get("updateTime")).isNotNull();
+        assertThat(afterUpdate.get("updateBy")).isEqualTo("1");
 
         // 删除 + 再查 404
         assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + newId, token, null))).isEqualTo(200);

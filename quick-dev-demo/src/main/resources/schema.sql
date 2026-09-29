@@ -13,7 +13,9 @@ create table sys_user (
     email       varchar(100),
     status      int          default 1,
     create_time timestamp,
-    update_time timestamp
+    update_time timestamp,
+    create_by   varchar(64),
+    update_by   varchar(64)
 );
 
 create table sys_user_perm (

@@ -14,6 +14,8 @@ class AutoFillMetaObjectHandlerTest {
         private Long id;
         private LocalDateTime createTime;
         private LocalDateTime updateTime;
+        private String createBy;
+        private String updateBy;
         private String name;
 
         public Long getId() { return id; }
@@ -22,6 +24,10 @@ class AutoFillMetaObjectHandlerTest {
         public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
         public LocalDateTime getUpdateTime() { return updateTime; }
         public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+        public String getCreateBy() { return createBy; }
+        public void setCreateBy(String createBy) { this.createBy = createBy; }
+        public String getUpdateBy() { return updateBy; }
+        public void setUpdateBy(String updateBy) { this.updateBy = updateBy; }
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
     }
@@ -60,5 +66,32 @@ class AutoFillMetaObjectHandlerTest {
         MetaObject metaObject = SystemMetaObject.forObject("plain-string");
         handler.insertFill(metaObject); // 不抛异常即可
         handler.updateFill(metaObject);
+    }
+
+    @Test
+    void operatorShouldBeFilledWhenLoggedIn() {
+        dev.xuya.core.auth.AuthContext.set(1L, "test-token");
+        try {
+            SampleEntity entity = new SampleEntity();
+            handler.insertFill(SystemMetaObject.forObject(entity));
+            assertThat(entity.getCreateBy()).isEqualTo("1");
+            assertThat(entity.getUpdateBy()).isEqualTo("1");
+
+            entity.setUpdateBy(null);
+            handler.updateFill(SystemMetaObject.forObject(entity));
+            assertThat(entity.getUpdateBy()).isEqualTo("1");
+        } finally {
+            dev.xuya.core.auth.AuthContext.clear();
+        }
+    }
+
+    @Test
+    void operatorShouldBeSkippedWhenAnonymous() {
+        SampleEntity entity = new SampleEntity();
+        handler.insertFill(SystemMetaObject.forObject(entity));
+        assertThat(entity.getCreateBy()).isNull();
+        assertThat(entity.getUpdateBy()).isNull();
+        // 时间字段不受登录态影响
+        assertThat(entity.getCreateTime()).isNotNull();
     }
 }
