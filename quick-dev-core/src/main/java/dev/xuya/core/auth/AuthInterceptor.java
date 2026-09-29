@@ -26,6 +26,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     private final ApplicationContext applicationContext;
     private volatile UserResolver userResolver;
     private volatile PermissionChecker permissionChecker;
+    private volatile RoleChecker roleChecker;
     private volatile boolean resolved = false;
     private volatile boolean warned = false;
 
@@ -41,6 +42,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         RequiresPerm requiresPerm = findAnnotation(handlerMethod, RequiresPerm.class);
+        RequiresRole requiresRole = findAnnotation(handlerMethod, RequiresRole.class);
         boolean crudProtected = false;
         if (requiresPerm == null && handlerMethod.getBean() instanceof QuickCrudHandler crudHandler) {
             crudProtected = crudHandler.getRequiredPermission(handlerMethod.getMethod()) != null;
@@ -49,6 +51,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         String methodOpPermission = requiresPerm == null && !crudProtected
                 ? QuickMethodOps.permissionOf(handlerMethod.getMethod()) : null;
         boolean needLogin = requiresPerm != null
+                || requiresRole != null
                 || crudProtected
                 || methodOpPermission != null
                 || findAnnotation(handlerMethod, RequiresLogin.class) != null;
@@ -66,22 +69,34 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         AuthContext.set(user, resolveToken(request));
 
-        PermissionChecker checker = getPermissionChecker();
         if (requiresPerm != null) {
+            PermissionChecker checker = getPermissionChecker();
             for (String code : requiresPerm.value()) {
                 if (!checker.hasPermission(user, code)) {
                     throw new ForbiddenException("无操作权限: " + code);
                 }
             }
         } else if (crudProtected) {
+            PermissionChecker checker = getPermissionChecker();
             String code = ((QuickCrudHandler) handlerMethod.getBean())
                     .getRequiredPermission(handlerMethod.getMethod());
             if (!checker.hasPermission(user, code)) {
                 throw new ForbiddenException("无操作权限: " + code);
             }
         } else if (methodOpPermission != null) {
+            PermissionChecker checker = getPermissionChecker();
             if (!checker.hasPermission(user, methodOpPermission)) {
                 throw new ForbiddenException("无操作权限: " + methodOpPermission);
+            }
+        }
+
+        if (requiresRole != null) {
+            RoleChecker roleChecker = getRoleChecker();
+            boolean pass = Logical.OR == requiresRole.logical()
+                    ? java.util.Arrays.stream(requiresRole.value()).anyMatch(r -> roleChecker.hasRole(user, r))
+                    : java.util.Arrays.stream(requiresRole.value()).allMatch(r -> roleChecker.hasRole(user, r));
+            if (!pass) {
+                throw new ForbiddenException("缺少所需角色: " + String.join(", ", requiresRole.value()));
             }
         }
         return true;
@@ -133,12 +148,21 @@ public class AuthInterceptor implements HandlerInterceptor {
         return permissionChecker;
     }
 
+    private RoleChecker getRoleChecker() {
+        ensureResolved();
+        if (roleChecker == null) {
+            throw new QuickDevException("接口需要角色校验，但容器中未找到 RoleChecker 实现，请实现并注册该 Bean");
+        }
+        return roleChecker;
+    }
+
     private void ensureResolved() {
         if (!resolved) {
             synchronized (this) {
                 if (!resolved) {
                     userResolver = applicationContext.getBeanProvider(UserResolver.class).getIfAvailable();
                     permissionChecker = applicationContext.getBeanProvider(PermissionChecker.class).getIfAvailable();
+                    roleChecker = applicationContext.getBeanProvider(RoleChecker.class).getIfAvailable();
                     if (userResolver == null && !warned) {
                         warned = true;
                         org.slf4j.LoggerFactory.getLogger(AuthInterceptor.class)

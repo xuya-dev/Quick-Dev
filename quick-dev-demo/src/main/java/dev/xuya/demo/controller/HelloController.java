@@ -1,6 +1,7 @@
 package dev.xuya.demo.controller;
 
 import dev.xuya.core.auth.RequiresPerm;
+import dev.xuya.core.auth.RequiresRole;
 import dev.xuya.core.common.R;
 import dev.xuya.demo.auth.DbAuthService;
 import dev.xuya.demo.entity.SysUser;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 /**
- * 演示 @RequiresPerm 在普通 Controller 上的用法（与 @QuickCrud 生成的接口共用同一套权限体系）。
+ * 演示 @RequiresPerm / @RequiresRole 在普通 Controller 上的用法（与 @QuickCrud 共用同一套体系）。
  */
 @RestController
 public class HelloController {
@@ -28,6 +29,17 @@ public class HelloController {
         return R.ok(Map.of(
                 "message", "hello " + user.getNickname(),
                 "user", user.getUsername()
+        ));
+    }
+
+    /** 角色注解：仅 admin 角色可访问（viewer 无角色 -> 403） */
+    @RequiresRole("admin")
+    @GetMapping("/admin/summary")
+    public R<Object> adminSummary() {
+        SysUser user = authService.currentUser();
+        return R.ok(Map.of(
+                "message", "welcome back, " + user.getNickname(),
+                "endpoint", "admin only"
         ));
     }
 }

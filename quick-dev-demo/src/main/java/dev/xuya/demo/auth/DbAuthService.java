@@ -6,29 +6,32 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import dev.xuya.core.common.QuickDevException;
 import dev.xuya.demo.entity.SysUser;
 import dev.xuya.demo.entity.SysUserPerm;
+import dev.xuya.demo.entity.SysUserRole;
 import dev.xuya.demo.mapper.SysUserMapper;
 import dev.xuya.demo.mapper.SysUserPermMapper;
+import dev.xuya.demo.mapper.SysUserRoleMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Sa-Token 集成示例：登录直接用 StpUtil.login，权限数据通过 StpInterface 提供。
- * <p>框架内置的 UserResolver/PermissionChecker 桥接会自动接管 token 校验与 hasPermission，
- * @RequiresPerm / @QuickCrud 的权限码校验无需任何额外代码。</p>
+ * Sa-Token 集成示例：登录直接用 StpUtil.login，权限/角色数据通过 StpInterface 提供。
+ * <p>框架内置的 UserResolver/PermissionChecker/RoleChecker 桥接会自动接管 token 校验、
+ * hasPermission 与 hasRole，@RequiresPerm / @RequiresRole / @QuickCrud 校验无需额外代码。</p>
  */
 @Service
 public class DbAuthService implements StpInterface {
 
     private final SysUserMapper userMapper;
     private final SysUserPermMapper permMapper;
+    private final SysUserRoleMapper roleMapper;
 
-    public DbAuthService(SysUserMapper userMapper, SysUserPermMapper permMapper) {
+    public DbAuthService(SysUserMapper userMapper, SysUserPermMapper permMapper, SysUserRoleMapper roleMapper) {
         this.userMapper = userMapper;
         this.permMapper = permMapper;
+        this.roleMapper = roleMapper;
     }
 
     public Map<String, Object> login(String username, String password) {
@@ -67,6 +70,8 @@ public class DbAuthService implements StpInterface {
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        return Collections.emptyList();
+        return roleMapper.selectList(new QueryWrapper<SysUserRole>()
+                        .eq("user_id", Long.valueOf(loginId.toString())))
+                .stream().map(SysUserRole::getRoleCode).toList();
     }
 }

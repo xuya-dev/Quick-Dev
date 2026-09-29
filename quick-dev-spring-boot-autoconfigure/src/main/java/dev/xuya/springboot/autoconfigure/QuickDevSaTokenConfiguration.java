@@ -2,6 +2,7 @@ package dev.xuya.springboot.autoconfigure;
 
 import cn.dev33.satoken.stp.StpUtil;
 import dev.xuya.core.auth.PermissionChecker;
+import dev.xuya.core.auth.RoleChecker;
 import dev.xuya.core.auth.UserResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -14,9 +15,10 @@ import org.springframework.context.annotation.Bean;
  * <ul>
  *   <li>登录态：token -> StpUtil.getLoginIdByToken(token)（未登录返回 null，AuthContext.getUser() 即 loginId）</li>
  *   <li>权限码：StpUtil.hasPermission(loginId, code)，权限数据来自用户实现的 Sa-Token StpInterface</li>
+ *   <li>角色：StpUtil.hasRole(loginId, role)，角色数据来自 StpInterface.getRoleList</li>
  * </ul>
- * <p>即：登录用 StpUtil.login(userId)，权限查询实现 StpInterface，框架的 @RequiresPerm /
- * @QuickCrud 权限码校验自动打通。</p>
+ * <p>即：登录用 StpUtil.login(userId)，权限/角色查询实现 StpInterface，框架的 @RequiresPerm /
+ * @RequiresRole / @QuickCrud 权限码校验自动打通。</p>
  */
 @AutoConfiguration
 @ConditionalOnClass(StpUtil.class)
@@ -32,5 +34,11 @@ public class QuickDevSaTokenConfiguration {
     @ConditionalOnMissingBean(PermissionChecker.class)
     public PermissionChecker saTokenPermissionChecker() {
         return StpUtil::hasPermission;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(RoleChecker.class)
+    public RoleChecker saTokenRoleChecker() {
+        return StpUtil::hasRole;
     }
 }

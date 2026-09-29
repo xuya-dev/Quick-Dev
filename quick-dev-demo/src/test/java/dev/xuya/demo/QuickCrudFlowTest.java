@@ -127,6 +127,25 @@ class QuickCrudFlowTest {
         // 无 demo:hello 权限 -> 403
         ResponseEntity<Map> hello = call(HttpMethod.GET, "/hello", token, null);
         assertThat(hello.getStatusCode().value()).isEqualTo(403);
+
+        // 无 admin 角色 -> 403
+        ResponseEntity<Map> summary = call(HttpMethod.GET, "/admin/summary", token, null);
+        assertThat(summary.getStatusCode().value()).isEqualTo(403);
+    }
+
+    // ------------------------------------------------------------------
+    // 角色注解
+    // ------------------------------------------------------------------
+
+    @Test
+    void adminRoleShouldPassRoleCheck() {
+        String token = login("admin", "admin123");
+        ResponseEntity<Map> resp = call(HttpMethod.GET, "/admin/summary", token, null);
+        assertThat(code(resp)).isEqualTo(200);
+        assertThat((String) data(resp).get("message")).contains("管理员");
+
+        // 未登录 -> 401
+        assertThat(call(HttpMethod.GET, "/admin/summary", null, null).getStatusCode().value()).isEqualTo(401);
     }
 
     // ------------------------------------------------------------------
