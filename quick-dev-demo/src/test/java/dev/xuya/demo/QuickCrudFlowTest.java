@@ -293,6 +293,33 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
+    // ------------------------------------------------------------------
+
+    @Test
+    void saveBatchShouldInsertAndCleanUp() {
+        String token = login("admin", "admin123");
+        String body = "[" +
+                "{\"username\":\"batch01\",\"nickname\":\"批量一\",\"email\":\"batch01@quickdev.cn\",\"status\":1}," +
+                "{\"username\":\"batch02\",\"nickname\":\"批量二\",\"email\":\"batch02@quickdev.cn\",\"status\":1}]";
+        ResponseEntity<Map> resp = call(HttpMethod.POST, "/sys-user/batch", token, body);
+        assertThat(code(resp)).isEqualTo(200);
+        assertThat(((Number) resp.getBody().get("data")).intValue()).isEqualTo(2);
+
+        // 逐条校验：第二条缺 username/email -> 400 且不入库
+        String bad = "[{\"username\":\"batch03\",\"email\":\"batch03@quickdev.cn\"},{\"nickname\":\"缺字段\"}]";
+        assertThat(code(call(HttpMethod.POST, "/sys-user/batch", token, bad))).isEqualTo(400);
+
+        // 清理 batch01/batch02
+        ResponseEntity<Map> page = call(HttpMethod.GET, "/sys-user/page?username=batch&current=1&size=10", token, null);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        String ids = records.stream().map(r -> String.valueOf(r.get("id")))
+                .reduce((a, b) -> a + "," + b).orElse("");
+        assertThat(ids).isNotEmpty();
+        assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + ids, token, null))).isEqualTo(200);
+    }
+
+    // ------------------------------------------------------------------
     // 工具方法
     // ------------------------------------------------------------------
 

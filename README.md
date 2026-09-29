@@ -9,7 +9,7 @@ public class SysUserController {
 }
 ```
 
-启动后自动注册 7 个接口：
+启动后自动注册 8 个接口：
 
 | 方法 | 路径 | 权限码 | 说明 |
 |---|---|---|---|
@@ -18,8 +18,11 @@ public class SysUserController {
 | GET | `/sys-user/count` | `sys:user:list` | 按条件统计数量 |
 | GET | `/sys-user/{id}` | `sys:user:detail` | 详情 |
 | POST | `/sys-user` | `sys:user:add` | 新增（支持 Bean Validation 校验） |
+| POST | `/sys-user/batch` | `sys:user:add` | 批量新增（JSON 数组，逐条校验 + Db.saveBatch） |
 | PUT | `/sys-user` | `sys:user:edit` | 修改（按 ID，null 字段不更新） |
 | DELETE | `/sys-user/{ids}` | `sys:user:remove` | 删除，`ids` 逗号分隔支持批量 |
+
+可选开启（加入 `includes`）：`POST {base}/import` Excel 导入（`:import`）、`GET {base}/export` Excel 导出（`:export`）、`GET {base}/import-template` 下载导入模板（`:import`）。
 
 ## 特性
 
@@ -90,17 +93,19 @@ public interface SysUserMapper extends BaseMapper<SysUser> { }
 ```java
 // path 不写：优先取类上 @RequestMapping，否则实体名推导（SysUser -> /sys-user）
 // permission 不写：接口开放（可用 loginRequired = true 仅要求登录）
-// includes/excludes：只注册/排除部分操作；IMPORT/EXPORT 默认不注册，可加入 includes 开启
+// includes/excludes：只注册/排除部分操作；IMPORT/EXPORT/IMPORT_TEMPLATE 默认不注册，可加入 includes 开启
 @QuickCrud(entity = SysUser.class, permission = "sys:user",
         excludes = CrudOp.LIST,
-        includes = {CrudOp.PAGE, CrudOp.COUNT, CrudOp.DETAIL, CrudOp.SAVE, CrudOp.UPDATE,
-                CrudOp.REMOVE, CrudOp.IMPORT, CrudOp.EXPORT})
+        includes = {CrudOp.PAGE, CrudOp.COUNT, CrudOp.DETAIL, CrudOp.SAVE, CrudOp.SAVE_BATCH,
+                CrudOp.UPDATE, CrudOp.REMOVE, CrudOp.IMPORT, CrudOp.EXPORT, CrudOp.IMPORT_TEMPLATE})
 public class SysUserController { }
 ```
 
-开启 `CrudOp.IMPORT` / `CrudOp.EXPORT` 后额外获得两个接口（权限码后缀 `:import` / `:export`）：
-`POST {base}/import`（multipart 字段 `file`，逐行校验 + 事务批量插入）与
-`GET {base}/export`（复用 page 的查询条件导出 Excel 附件）。
+开启 `CrudOp.IMPORT` / `CrudOp.EXPORT` / `CrudOp.IMPORT_TEMPLATE` 后额外获得三个接口
+（权限码后缀 `:import` / `:export` / `:import`）：
+`POST {base}/import`（multipart 字段 `file`，逐行校验 + 事务批量插入）、
+`GET {base}/export`（复用 page 的查询条件导出 Excel 附件）、
+`GET {base}/import-template`（下载仅含表头的导入模板）。
 
 ### 4. 方法级注解：不想整类接管时，直接标注在方法上
 
@@ -211,15 +216,22 @@ public class ReportController {
     @RequiresPerm("report:export")            // 多个权限码为 AND 关系
     @GetMapping("/report/export")
     public R<Object> export() {
-        SysUser current = AuthContext.getUser(); // 当前登录用户
+        SysUser current = AuthContext.getUser(); // 当前登录用户（Sa-Token 模式下为 loginId）
         ...
     }
+
+    @RequiresRole("admin")                    // 角色校验，支持 logical = Logical.OR
+    @RequiresRole(value = {"admin", "auditor"}, logical = Logical.OR)
+    @GetMapping("/report/audit")
+    public R<Object> audit() { ... }
 
     @RequiresLogin                            // 仅要求登录
     @GetMapping("/report/mine")
     public R<Object> mine() { ... }
 }
 ```
+
+> 角色数据来源与权限一致：Sa-Token 模式下实现 `StpInterface.getRoleList`；自定义模式下实现 `RoleChecker` Bean。
 
 ## 运行演示应用
 
@@ -230,10 +242,10 @@ mvn spring-boot:run
 
 内置账号（H2 内存库，种子数据见 `data.sql`）：
 
-| 账号 | 密码 | 权限 |
-|---|---|---|
-| admin | admin123 | `*`（全部） |
-| viewer | viewer123 | 仅 `sys:user:list` / `sys:user:detail` |
+| 账号 | 密码 | 权限 | 角色 |
+|---|---|---|---|
+| admin | admin123 | `*`（全部） | admin |
+| viewer | viewer123 | 仅 `sys:user:list` / `sys:user:detail` | 无 |
 
 ```bash
 # 登录拿 token

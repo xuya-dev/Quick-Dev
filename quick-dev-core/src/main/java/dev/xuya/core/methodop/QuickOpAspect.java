@@ -1,6 +1,7 @@
 package dev.xuya.core.methodop;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.R;
 import dev.xuya.core.crud.EntityMeta;
@@ -98,8 +99,8 @@ public class QuickOpAspect {
         BaseMapper<Object> mapper = mapper(entityClass);
         List<Object> batch = findListArg(args, entityClass);
         if (batch != null) {
-            batch.forEach(entity -> validate(entity));
-            batch.forEach(mapper::insert);
+            batch.forEach(this::validate);
+            Db.saveBatch(batch);
             return R.ok("批量新增成功", batch.size());
         }
         Object entity = findEntityArg(args, entityClass);

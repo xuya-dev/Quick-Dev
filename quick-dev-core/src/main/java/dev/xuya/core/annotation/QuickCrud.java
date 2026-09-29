@@ -53,7 +53,7 @@ public @interface QuickCrud {
 
     /** 只注册这些操作，默认全部 */
     CrudOp[] includes() default {CrudOp.PAGE, CrudOp.LIST, CrudOp.COUNT, CrudOp.DETAIL,
-            CrudOp.SAVE, CrudOp.UPDATE, CrudOp.REMOVE};
+            CrudOp.SAVE, CrudOp.SAVE_BATCH, CrudOp.UPDATE, CrudOp.REMOVE};
 
     /** 排除这些操作（在 includes 基础上做减法） */
     CrudOp[] excludes() default {};

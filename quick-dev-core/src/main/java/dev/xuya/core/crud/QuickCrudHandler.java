@@ -2,6 +2,7 @@ package dev.xuya.core.crud;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.annotation.CrudOp;
 import dev.xuya.core.common.ParamException;
@@ -88,6 +89,7 @@ public class QuickCrudHandler {
             case COUNT -> QuickCrudHandler.class.getMethod("count", Map.class);
             case DETAIL -> QuickCrudHandler.class.getMethod("detail", String.class);
             case SAVE -> QuickCrudHandler.class.getMethod("save", String.class);
+            case SAVE_BATCH -> QuickCrudHandler.class.getMethod("saveBatch", String.class);
             case UPDATE -> QuickCrudHandler.class.getMethod("update", String.class);
             case REMOVE -> QuickCrudHandler.class.getMethod("remove", String.class);
             case IMPORT -> QuickCrudHandler.class.getMethod("importExcel", MultipartFile.class);
@@ -138,6 +140,35 @@ public class QuickCrudHandler {
         Object entity = parseAndValidate(body, true);
         mapper.insert(entity);
         return R.ok("新增成功", entity);
+    }
+
+    // ---------------------------------------------------------------------
+    // 批量新增：POST {base}/batch（JSON 数组，逐条校验后批量插入）
+    // ---------------------------------------------------------------------
+    public R<Object> saveBatch(@RequestBody String body) {
+        List<Object> list;
+        try {
+            list = objectMapper.readValue(body, objectMapper.getTypeFactory()
+                    .constructCollectionType(List.class, meta.getEntityClass()));
+        } catch (Exception e) {
+            throw new ParamException("请求体解析失败（需要 JSON 数组）: " + e.getLocalizedMessage(), e);
+        }
+        if (list.isEmpty()) {
+            throw new ParamException("批量新增列表不能为空");
+        }
+        if (validator != null) {
+            for (int i = 0; i < list.size(); i++) {
+                Set<ConstraintViolation<Object>> violations = validator.validate(list.get(i));
+                if (!violations.isEmpty()) {
+                    String message = violations.stream()
+                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                            .collect(Collectors.joining("; "));
+                    throw new ParamException("第 " + (i + 1) + " 条校验失败: " + message);
+                }
+            }
+        }
+        Db.saveBatch(list);
+        return R.ok("批量新增成功", list.size());
     }
 
     // ---------------------------------------------------------------------

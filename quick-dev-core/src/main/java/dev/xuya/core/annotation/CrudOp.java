@@ -17,6 +17,8 @@ public enum CrudOp {
     DETAIL("detail", "/{id}", RequestMethod.GET, "detail"),
     /** POST {base} 新增 */
     SAVE("save", "", RequestMethod.POST, "add"),
+    /** POST {base}/batch 批量新增（JSON 数组，逐条校验后批量插入） */
+    SAVE_BATCH("saveBatch", "/batch", RequestMethod.POST, "add"),
     /** PUT {base} 修改（按 ID 全量/非空更新） */
     UPDATE("update", "", RequestMethod.PUT, "edit"),
     /** DELETE {base}/{ids} 删除，ids 逗号分隔支持批量 */
