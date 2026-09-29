@@ -208,12 +208,23 @@ public class QuickDevProperties {
         /** 是否启用 @QuickLog 操作日志切面 */
         private boolean enabled = true;
 
+        /** 是否异步落地（后台单线程执行 sink，队列满丢弃并告警，不影响业务） */
+        private boolean async = false;
+
         public boolean isEnabled() {
             return enabled;
         }
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public boolean isAsync() {
+            return async;
+        }
+
+        public void setAsync(boolean async) {
+            this.async = async;
         }
     }
 

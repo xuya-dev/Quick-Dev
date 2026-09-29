@@ -10,6 +10,7 @@ import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
+import dev.xuya.core.log.AsyncOperationLogSink;
 import dev.xuya.core.log.OperationLogSink;
 import dev.xuya.core.log.QuickLogAspect;
 import dev.xuya.core.log.Slf4jOperationLogSink;
@@ -81,10 +82,12 @@ public class QuickDevAutoConfiguration {
     @ConditionalOnClass(name = "org.aspectj.lang.annotation.Aspect")
     @ConditionalOnProperty(prefix = "quick-dev.log", name = "enabled",
             havingValue = "true", matchIfMissing = true)
-    public QuickLogAspect quickLogAspect(OperationLogSink sink, ApplicationContext applicationContext) {
+    public QuickLogAspect quickLogAspect(OperationLogSink sink, QuickDevProperties properties,
+                                         ApplicationContext applicationContext) {
         ObjectMapper objectMapper = applicationContext.getBeanProvider(ObjectMapper.class)
                 .getIfAvailable(ObjectMapper::new);
-        return new QuickLogAspect(sink, objectMapper);
+        OperationLogSink effective = AsyncOperationLogSink.wrap(sink, properties.getLog().isAsync());
+        return new QuickLogAspect(effective, objectMapper);
     }
 
     @Bean
