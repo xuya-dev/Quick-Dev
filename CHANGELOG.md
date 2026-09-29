@@ -4,6 +4,8 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 新增内置字典管理接口写后自动刷新缓存
+- ✨ Features|新功能 导出支持translate翻译为中文标签与导入反解闭环
 - ✨ Features|新功能 字典改为全量内存缓存并提供带权限的刷新接口
 - ✨ Features|新功能 新增内置数据库字典JdbcDictProvider零代码双向翻译
 - ✨ Features|新功能 Excel导入支持字典标签反向转换由DictReverseResolver自主实现

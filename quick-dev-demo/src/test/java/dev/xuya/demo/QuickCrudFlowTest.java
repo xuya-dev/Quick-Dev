@@ -460,6 +460,53 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 字典管理接口（内置 CRUD + 写后自动刷新缓存）
+    // ------------------------------------------------------------------
+
+    @Test
+    void dictAdminShouldSaveAndTakeEffectImmediately() {
+        String adminToken = login("admin", "admin123");
+
+        // 权限：匿名 401
+        assertThat(call(HttpMethod.GET, "/quick-dev/dict/page?type=user_status", null, null)
+                .getStatusCode().value()).isEqualTo(401);
+
+        // 分页查询
+        ResponseEntity<Map> page = call(HttpMethod.GET,
+                "/quick-dev/dict/page?type=user_status&current=1&size=10", adminToken, null);
+        assertThat(code(page)).isEqualTo(200);
+        assertThat(((Number) data(page).get("total")).intValue()).isEqualTo(2);
+
+        // 新增字典（user_status 9 -> 封禁），保存后缓存自动刷新
+        ResponseEntity<Map> saved = call(HttpMethod.POST, "/quick-dev/dict", adminToken,
+                Map.of("type", "user_status", "value", "9", "label", "封禁"));
+        assertThat(code(saved)).isEqualTo(200);
+
+        // 把种子用户 alice 的状态改为 9 -> 翻译立即生效为 "封禁"
+        jdbcTemplate.update("update sys_user set status = 9 where username = 'alice'");
+        try {
+            ResponseEntity<Map> detail = call(HttpMethod.GET,
+                    "/sys-user/page?username=alice", adminToken, null);
+            List<Map<String, Object>> records =
+                    (List<Map<String, Object>>) data(detail).get("records");
+            assertThat(records.get(0).get("status")).isEqualTo("封禁");
+
+            // 删除字典 -> 翻译回落为原始值 9
+            ResponseEntity<Map> deleted = call(HttpMethod.DELETE,
+                    "/quick-dev/dict?type=user_status&value=9", adminToken, null);
+            assertThat(code(deleted)).isEqualTo(200);
+            ResponseEntity<Map> afterDelete = call(HttpMethod.GET,
+                    "/sys-user/page?username=alice", adminToken, null);
+            List<Map<String, Object>> rows =
+                    (List<Map<String, Object>>) data(afterDelete).get("records");
+            assertThat(((Number) rows.get(0).get("status")).intValue()).isEqualTo(9);
+        } finally {
+            // 还原 alice 状态，保证其它测试稳定
+            jdbcTemplate.update("update sys_user set status = 1 where username = 'alice'");
+        }
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

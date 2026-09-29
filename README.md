@@ -332,6 +332,15 @@ quick-dev:
 
 - **全量驻留内存**：字典表一次性加载构建双向索引（值↔标签），翻译/反解**不查库**；首次访问自动懒加载
 - **刷新接口**：字典数据变更后 `POST /quick-dev/dict/refresh` 全量重建（需 `dict:refresh` 权限码，未登录 401 / 无权限 403），同时清空翻译结果缓存，**新字典立即生效**
+- **管理接口（可选）**：`quick-dev.dict.admin-endpoint-enabled=true`（默认开）自动注册字典 CRUD，写操作**自动重建缓存**，管理界面保存即生效：
+
+```bash
+GET    /quick-dev/dict/page?type=user_status&current=1&size=10   # 分页查询
+POST   /quick-dev/dict  -d '{"type":"user_status","value":"9","label":"封禁"}'  # 新增或更新
+DELETE "/quick-dev/dict?type=user_status&value=9"                # 删除
+```
+（需 `dict:manage` 权限码；路径前缀 `quick-dev.dict.admin-path` 可配）
+
 - `@Translate(dict = "user_status")` 正反双向全自动；已自定义 `DictResolver` / `DictReverseResolver` 任一实现时内置方案自动让位
 - 也可注入 `DictCacheService` Bean 自行编排（如字典管理界面保存后自动 `refresh()`）
 
@@ -348,6 +357,9 @@ Excel 导入时用户填的往往是中文标签（"启用"/"线上"/"管理员"
 | `enumClass = ...` 枚举 | 自动：按 `DictEnum.getLabel()` 匹配返回值 |
 | `dict = ...` 字典 | **用户自主实现** `DictReverseResolver` SPI（标签 -> 值） |
 | `entity = ...` 关联 | 自动：按目标属性值反查主键（多条取第一条） |
+
+另外 `@QuickExport(translate = true)` 可让导出的 Excel 同样输出翻译后的标签
+（经 Jackson 序列化管线，`@JsonIgnore` 一并生效），与导入反解配合实现"导出 → 修改 → 导回"闭环。
 
 ```java
 /** 字典反解 SPI（与 DictResolver 对称）：Excel 里的 "线上" -> 1 */

@@ -59,6 +59,12 @@ public class QuickDevProperties {
         /** 刷新端点路径 */
         private String refreshPath = "/quick-dev/dict/refresh";
 
+        /** 是否注册字典管理接口（分页/保存/删除，需 dict:manage 权限） */
+        private boolean adminEndpointEnabled = true;
+
+        /** 管理接口路径前缀 */
+        private String adminPath = "/quick-dev/dict";
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -113,6 +119,22 @@ public class QuickDevProperties {
 
         public void setRefreshPath(String refreshPath) {
             this.refreshPath = refreshPath;
+        }
+
+        public boolean isAdminEndpointEnabled() {
+            return adminEndpointEnabled;
+        }
+
+        public void setAdminEndpointEnabled(boolean adminEndpointEnabled) {
+            this.adminEndpointEnabled = adminEndpointEnabled;
+        }
+
+        public String getAdminPath() {
+            return adminPath;
+        }
+
+        public void setAdminPath(String adminPath) {
+            this.adminPath = adminPath;
         }
     }
 

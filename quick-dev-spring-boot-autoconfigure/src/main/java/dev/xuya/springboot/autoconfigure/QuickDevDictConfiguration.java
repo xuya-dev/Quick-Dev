@@ -55,4 +55,15 @@ public class QuickDevDictConfiguration {
                                                                  TranslateExecutor translateExecutor) {
         return new QuickDictRefreshController(cacheService, translateExecutor);
     }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "quick-dev.dict", name = "admin-endpoint-enabled",
+            havingValue = "true", matchIfMissing = true)
+    public QuickDictAdminController quickDictAdminController(DictCacheService cacheService,
+                                                             TranslateExecutor translateExecutor,
+                                                             JdbcTemplate jdbcTemplate,
+                                                             QuickDevProperties properties) {
+        return new QuickDictAdminController(cacheService, translateExecutor, jdbcTemplate, properties);
+    }
 }
