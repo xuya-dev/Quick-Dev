@@ -1,8 +1,8 @@
 package dev.xuya.demo.auth;
 
+import cn.dev33.satoken.stp.StpInterface;
+import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import dev.xuya.core.auth.PermissionChecker;
-import dev.xuya.core.auth.UserResolver;
 import dev.xuya.core.common.QuickDevException;
 import dev.xuya.demo.entity.SysUser;
 import dev.xuya.demo.entity.SysUserPerm;
@@ -10,24 +10,21 @@ import dev.xuya.demo.mapper.SysUserMapper;
 import dev.xuya.demo.mapper.SysUserPermMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 框架鉴权 SPI 的示例实现：内存 token + 数据库权限表。
- * <p>生产环境替换为 Redis token + 完整 RBAC 即可，框架不感知实现细节。</p>
+ * Sa-Token 集成示例：登录直接用 StpUtil.login，权限数据通过 StpInterface 提供。
+ * <p>框架内置的 UserResolver/PermissionChecker 桥接会自动接管 token 校验与 hasPermission，
+ * @RequiresPerm / @QuickCrud 的权限码校验无需任何额外代码。</p>
  */
 @Service
-public class DbAuthService implements UserResolver, PermissionChecker {
+public class DbAuthService implements StpInterface {
 
     private final SysUserMapper userMapper;
     private final SysUserPermMapper permMapper;
-
-    /** token -> userId（演示用内存存储） */
-    private final Map<String, Long> tokens = new ConcurrentHashMap<>();
 
     public DbAuthService(SysUserMapper userMapper, SysUserPermMapper permMapper) {
         this.userMapper = userMapper;
@@ -42,35 +39,34 @@ public class DbAuthService implements UserResolver, PermissionChecker {
         if (user.getStatus() == null || user.getStatus() != 1) {
             throw new QuickDevException("账号已被停用");
         }
-        String token = UUID.randomUUID().toString().replace("-", "");
-        tokens.put(token, user.getId());
-
+        StpUtil.login(user.getId());
         Map<String, Object> result = new HashMap<>();
-        result.put("token", token);
+        result.put("token", StpUtil.getTokenValue());
         result.put("user", user);
         return result;
     }
 
     public void logout(String token) {
-        if (token != null) {
-            tokens.remove(token);
+        if (token != null && !token.isBlank()) {
+            StpUtil.logoutByTokenValue(token);
         }
     }
 
+    public SysUser currentUser() {
+        Object loginId = StpUtil.getLoginIdDefaultNull();
+        return loginId == null ? null : userMapper.selectById(Long.valueOf(loginId.toString()));
+    }
+
+    /** Sa-Token 权限数据源：查询用户的权限码列表（* 表示超级权限） */
     @Override
-    public Object getUser(String token) {
-        if (token == null || token.isBlank()) {
-            return null;
-        }
-        Long userId = tokens.get(token);
-        return userId == null ? null : userMapper.selectById(userId);
+    public List<String> getPermissionList(Object loginId, String loginType) {
+        return permMapper.selectList(new QueryWrapper<SysUserPerm>()
+                        .eq("user_id", Long.valueOf(loginId.toString())))
+                .stream().map(SysUserPerm::getPermCode).toList();
     }
 
     @Override
-    public boolean hasPermission(Object user, String permission) {
-        SysUser sysUser = (SysUser) user;
-        List<SysUserPerm> perms = permMapper.selectList(
-                new QueryWrapper<SysUserPerm>().eq("user_id", sysUser.getId()));
-        return perms.stream().anyMatch(p -> "*".equals(p.getPermCode()) || p.getPermCode().equals(permission));
+    public List<String> getRoleList(Object loginId, String loginType) {
+        return Collections.emptyList();
     }
 }

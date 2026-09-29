@@ -1,8 +1,8 @@
 package dev.xuya.demo.controller;
 
-import dev.xuya.core.auth.AuthContext;
 import dev.xuya.core.auth.RequiresPerm;
 import dev.xuya.core.common.R;
+import dev.xuya.demo.auth.DbAuthService;
 import dev.xuya.demo.entity.SysUser;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,10 +15,16 @@ import java.util.Map;
 @RestController
 public class HelloController {
 
+    private final DbAuthService authService;
+
+    public HelloController(DbAuthService authService) {
+        this.authService = authService;
+    }
+
     @RequiresPerm("demo:hello")
     @GetMapping("/hello")
     public R<Object> hello() {
-        SysUser user = AuthContext.getUser();
+        SysUser user = authService.currentUser();
         return R.ok(Map.of(
                 "message", "hello " + user.getNickname(),
                 "user", user.getUsername()

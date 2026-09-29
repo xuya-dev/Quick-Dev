@@ -4,8 +4,7 @@ import dev.xuya.core.auth.AuthContext;
 import dev.xuya.core.auth.RequiresLogin;
 import dev.xuya.core.common.R;
 import dev.xuya.core.common.QuickDevException;
-import dev.xuya.demo.auth.DbAuthService;
-import org.springframework.web.bind.annotation.GetMapping;
+import dev.xuya.demo.auth.DbAuthService;import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +36,7 @@ public class AuthController {
     @RequiresLogin
     @GetMapping("/me")
     public R<Object> me() {
-        return R.ok(AuthContext.getUser());
+        return R.ok(authService.currentUser());
     }
 
     @GetMapping("/logout")

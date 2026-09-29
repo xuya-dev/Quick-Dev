@@ -1,1 +1,2 @@
 dev.xuya.springboot.autoconfigure.QuickDevAutoConfiguration
+dev.xuya.springboot.autoconfigure.QuickDevSaTokenConfiguration

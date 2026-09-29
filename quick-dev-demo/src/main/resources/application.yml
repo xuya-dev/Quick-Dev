@@ -15,6 +15,13 @@ mybatis-plus:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
 
+# Sa-Token：token 从 Authorization 请求头读写，与框架拦截器保持一致
+sa-token:
+  token-name: Authorization
+  timeout: 2592000
+  is-concurrent: true
+  is-log: false
+
 quick-dev:
   enabled: true
   db-type: h2
