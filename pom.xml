@@ -41,6 +41,7 @@
         <module>quick-dev-spring-boot-autoconfigure</module>
         <module>quick-dev-spring-boot-starter</module>
         <module>quick-dev-redis-spring-boot-starter</module>
+        <module>quick-dev-codegen</module>
         <module>quick-dev-demo</module>
     </modules>
 

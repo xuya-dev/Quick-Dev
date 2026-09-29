@@ -73,6 +73,7 @@ quick-dev
 ├── quick-dev-spring-boot-autoconfigure Auto-configuration (Properties + AutoConfiguration + Redis conditions)
 ├── quick-dev-spring-boot-starter       ★ The only dependency users need (aggregates core + web + validation + MyBatis-Plus + pagination)
 ├── quick-dev-redis-spring-boot-starter Optional Redis support (Sa-Token storage + atomic repeat-submit)
+├── quick-dev-codegen                   Code generator (table schema -> entity/mapper/controller, zero-dep JDK)
 └── quick-dev-demo                      Demo application (H2 in-memory DB + built-in accounts, ready to run)
 ```
 

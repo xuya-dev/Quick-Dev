@@ -72,6 +72,7 @@ quick-dev
 ├── quick-dev-spring-boot-autoconfigure 自动配置模块（Properties + AutoConfiguration + Redis 条件装配）
 ├── quick-dev-spring-boot-starter       ★ 使用方唯一需要引入的依赖（聚合 core + web + validation + MyBatis-Plus + 分页插件）
 ├── quick-dev-redis-spring-boot-starter 可选 Redis 支持（Sa-Token 缓存 + 防重复提交 Redis 原子实现）
+├── quick-dev-codegen                   代码生成器（表结构 -> 实体/Mapper/Controller，零依赖纯 JDK）
 └── quick-dev-demo                      演示应用（H2 内存库 + 内置账号，可直接跑）
 ```
 
@@ -284,8 +285,23 @@ public R<Object> create(@RequestBody Order order) { ... }
 ```
 
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
-结果码、是否成功、异常信息、耗时。落地由 `OperationLogSink` SPI 决定（实现 Bean 即接管，
-默认输出到 Slf4g logger `quick-dev.operation-log`；生产建议异步写库）。
+结果码、是否成功、异常信息、耗时。落地三选一：
+
+1. **内置落库（零代码）**：`quick-dev.log.jdbc: true` 写入 `log_record` 表（表结构见 JdbcOperationLogSink Javadoc，表名 `quick-dev.log.table` 可配）
+2. 自定义 `OperationLogSink` Bean（写库/ES/MQ，建议配合 `quick-dev.log.async: true` 异步）
+3. 默认输出到 Slf4j logger `quick-dev.operation-log`
+
+### 代码生成器（quick-dev-codegen）
+
+从数据库表结构一键生成 Quick Dev 三件套（实体/Mapper/@QuickCrud Controller），零依赖纯 JDK：
+
+```bash
+java -cp quick-dev-codegen-0.1.0.jar dev.xuya.codegen.CodeGenerator   --url=jdbc:mysql://localhost:3306/demo --user=root --password=root   --table=t_order --package=com.example.order --out=src/main/java
+```
+
+约定：主键数值列生成 `IdType.AUTO`、字符列生成 `ASSIGN_UUID`；审计列
+（create_time/update_time/create_by/update_by）自动叠加 `@TableField(fill=...)`；列注释生成字段 Javadoc；
+Controller 的 permission 为建议前缀（如 `t:order`）按业务调整。也可编程调用 `CodeGenerator.generate(...)`。
 
 ### OpenAPI 文档（可选，springdoc）
 

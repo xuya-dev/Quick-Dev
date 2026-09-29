@@ -25,6 +25,7 @@
 - ✨ Features|新功能 新增count统计接口与BETWEEN范围查询
 - ✨ Features|新功能 新增createTime和updateTime自动填充
 - ✨ Features|新功能 初始化quick-dev快速开发框架starter
+- ✨ Features|新功能 新增quick-dev-codegen代码生成器从表结构生成三件套
 - ✨ Features|新功能 springdoc可选集成动态CRUD端点自动注入Swagger文档
 - ✨ Features|新功能 操作日志支持async异步落地不影响业务请求
 - 📝 Documentation|文档 新增docs目录包含使用手册与Agent使用说明
