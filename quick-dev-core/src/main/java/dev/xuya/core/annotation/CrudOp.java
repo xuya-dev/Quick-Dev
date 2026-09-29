@@ -24,7 +24,9 @@ public enum CrudOp {
     /** POST {base}/import Excel 导入（文件字段 file）；需手动加入 includes */
     IMPORT("importExcel", "/import", RequestMethod.POST, "import"),
     /** GET {base}/export Excel 导出（复用查询条件）；需手动加入 includes */
-    EXPORT("export", "/export", RequestMethod.GET, "export");
+    EXPORT("export", "/export", RequestMethod.GET, "export"),
+    /** GET {base}/import-template 下载导入模板（仅表头）；需手动加入 includes */
+    IMPORT_TEMPLATE("importTemplate", "/import-template", RequestMethod.GET, "import");
 
     /** Handler 方法名 */
     private final String handlerMethod;

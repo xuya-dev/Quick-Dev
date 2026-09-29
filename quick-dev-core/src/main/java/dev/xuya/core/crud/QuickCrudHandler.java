@@ -92,6 +92,7 @@ public class QuickCrudHandler {
             case REMOVE -> QuickCrudHandler.class.getMethod("remove", String.class);
             case IMPORT -> QuickCrudHandler.class.getMethod("importExcel", MultipartFile.class);
             case EXPORT -> QuickCrudHandler.class.getMethod("export", HttpServletResponse.class);
+            case IMPORT_TEMPLATE -> QuickCrudHandler.class.getMethod("importTemplate", HttpServletResponse.class);
         };
     }
 
@@ -193,6 +194,13 @@ public class QuickCrudHandler {
         }
         List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService));
         ExcelSupport.write(response, meta.getEntityClass(), data);
+    }
+
+    // ---------------------------------------------------------------------
+    // Excel 导入模板：GET {base}/import-template（仅表头，供导入方填写）
+    // ---------------------------------------------------------------------
+    public void importTemplate(HttpServletResponse response) throws IOException {
+        ExcelSupport.writeTemplate(response, meta.getEntityClass());
     }
 
     // ---------------------------------------------------------------------

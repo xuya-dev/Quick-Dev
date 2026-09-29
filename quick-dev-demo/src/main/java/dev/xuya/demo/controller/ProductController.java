@@ -22,13 +22,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 商品：类级与方法级混用演示。
- * <p>查询类接口（page/count/detail）仍由 @QuickCrud 自动注册；
- * 写操作与导入导出改用方法级注解 —— 方法体留空，框架 AOP 接管执行。</p>
+ * <p>查询类接口（page/count/detail/导入模板）由 @QuickCrud 自动注册；
+ * 写操作与导入导出用方法级注解 —— 方法体留空，框架 AOP 接管执行。</p>
  */
 @RestController
 @RequestMapping("/product")
 @QuickCrud(entity = Product.class,
-        excludes = {CrudOp.LIST, CrudOp.SAVE, CrudOp.UPDATE, CrudOp.REMOVE})
+        includes = {CrudOp.PAGE, CrudOp.COUNT, CrudOp.DETAIL, CrudOp.IMPORT_TEMPLATE})
 public class ProductController {
 
     /** 新增：POST /product（开放，不鉴权） */

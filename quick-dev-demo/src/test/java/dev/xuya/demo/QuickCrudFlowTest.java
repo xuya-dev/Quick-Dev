@@ -239,6 +239,19 @@ class QuickCrudFlowTest {
     }
 
     @Test
+    void importTemplateShouldDownloadHeaderOnlyExcel() {
+        // 类级 CrudOp.IMPORT_TEMPLATE：下载仅含表头的导入模板
+        ResponseEntity<byte[]> resp = rest.getForEntity("/product/import-template", byte[].class);
+        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        assertThat(resp.getHeaders().getContentType().toString()).contains("spreadsheetml");
+        byte[] body = resp.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.length).isGreaterThan(100);
+        assertThat(body[0]).isEqualTo((byte) 'P');
+        assertThat(body[1]).isEqualTo((byte) 'K');
+    }
+
+    @Test
     void importShouldRespectPermissionAndInsertRows() {
         // 生成两行商品的 Excel
         Product p1 = new Product();

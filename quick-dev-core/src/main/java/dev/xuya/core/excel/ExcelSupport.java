@@ -28,11 +28,24 @@ public final class ExcelSupport {
 
     /** 导出 Excel 到 HTTP 响应（附件下载） */
     public static void write(HttpServletResponse response, Class<?> headClass, List<?> data) throws IOException {
+        prepareDownloadHeaders(response, headClass, "");
+        FastExcel.write(response.getOutputStream(), headClass).sheet(headClass.getSimpleName()).doWrite(data);
+    }
+
+    /** 生成导入模板：只有表头、没有数据的 Excel */
+    public static void writeTemplate(HttpServletResponse response, Class<?> headClass) throws IOException {
+        prepareDownloadHeaders(response, headClass, "-template");
+        FastExcel.write(response.getOutputStream(), headClass)
+                .sheet(headClass.getSimpleName())
+                .doWrite(java.util.List.of());
+    }
+
+    private static void prepareDownloadHeaders(HttpServletResponse response, Class<?> headClass, String suffix) {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
-        String fileName = headClass.getSimpleName() + "-" + LocalDateTime.now().format(FILE_NAME_TIME);
+        String fileName = headClass.getSimpleName().toLowerCase() + suffix + "-"
+                + LocalDateTime.now().format(FILE_NAME_TIME);
         response.setHeader("Content-Disposition",
                 "attachment;filename*=utf-8''" + URLEncoder.encode(fileName, StandardCharsets.UTF_8) + ".xlsx");
-        FastExcel.write(response.getOutputStream(), headClass).sheet(headClass.getSimpleName()).doWrite(data);
     }
 }
