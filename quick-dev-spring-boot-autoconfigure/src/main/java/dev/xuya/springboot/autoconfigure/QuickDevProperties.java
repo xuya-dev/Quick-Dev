@@ -53,6 +53,12 @@ public class QuickDevProperties {
         /** 字典标签列 */
         private String labelColumn = "dict_label";
 
+        /** 是否注册字典缓存刷新端点（POST {refresh-path}，需 dict:refresh 权限） */
+        private boolean refreshEndpointEnabled = true;
+
+        /** 刷新端点路径 */
+        private String refreshPath = "/quick-dev/dict/refresh";
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -91,6 +97,22 @@ public class QuickDevProperties {
 
         public void setLabelColumn(String labelColumn) {
             this.labelColumn = labelColumn;
+        }
+
+        public boolean isRefreshEndpointEnabled() {
+            return refreshEndpointEnabled;
+        }
+
+        public void setRefreshEndpointEnabled(boolean refreshEndpointEnabled) {
+            this.refreshEndpointEnabled = refreshEndpointEnabled;
+        }
+
+        public String getRefreshPath() {
+            return refreshPath;
+        }
+
+        public void setRefreshPath(String refreshPath) {
+            this.refreshPath = refreshPath;
         }
     }
 

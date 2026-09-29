@@ -314,7 +314,7 @@ public class OrderVO {
 - 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
 
-### 字典在数据库表：内置方案（零代码）
+### 字典在数据库表：内置缓存方案（零代码）
 
 字典不存在枚举里、而是维护在数据库表（常见做法）时，无需实现任何 SPI，配置表名即可：
 
@@ -326,11 +326,18 @@ quick-dev:
     type-column: dict_type
     value-column: dict_value
     label-column: dict_label
+    refresh-endpoint-enabled: true              # 注册刷新端点（默认 true）
+    refresh-path: /quick-dev/dict/refresh       # 刷新端点路径
 ```
 
-内置 `JdbcDictProvider` 同时提供正向（值-&gt;标签）与导入反向（标签-&gt;值）解析：
-`@Translate(dict = "user_status")` 正反双向全自动，查询结果由 TTL 缓存兜底。
-已自定义 `DictResolver` / `DictReverseResolver` 任一实现时，内置方案自动让位。
+- **全量驻留内存**：字典表一次性加载构建双向索引（值↔标签），翻译/反解**不查库**；首次访问自动懒加载
+- **刷新接口**：字典数据变更后 `POST /quick-dev/dict/refresh` 全量重建（需 `dict:refresh` 权限码，未登录 401 / 无权限 403），同时清空翻译结果缓存，**新字典立即生效**
+- `@Translate(dict = "user_status")` 正反双向全自动；已自定义 `DictResolver` / `DictReverseResolver` 任一实现时内置方案自动让位
+- 也可注入 `DictCacheService` Bean 自行编排（如字典管理界面保存后自动 `refresh()`）
+
+```bash
+curl -X POST http://localhost:8080/quick-dev/dict/refresh -H "Authorization: {token}"
+```
 
 ### 导入反向转换（上传转换）
 

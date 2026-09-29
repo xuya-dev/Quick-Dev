@@ -46,6 +46,11 @@ public class TranslateExecutor {
         instance = executor;
     }
 
+    /** 清空翻译结果缓存（字典刷新等场景调用，保证新数据立即生效） */
+    public void clearCache() {
+        cache.clear();
+    }
+
     /** @return 翻译结果；null 表示不翻译（保留原值输出） */
     public String translate(Translate annotation, Object value) {
         if (!enabled || annotation == null || value == null) {

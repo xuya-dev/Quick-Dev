@@ -4,6 +4,7 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 字典改为全量内存缓存并提供带权限的刷新接口
 - ✨ Features|新功能 新增内置数据库字典JdbcDictProvider零代码双向翻译
 - ✨ Features|新功能 Excel导入支持字典标签反向转换由DictReverseResolver自主实现
 - ✨ Features|新功能 新增DataScope行级数据权限按可见范围自动过滤

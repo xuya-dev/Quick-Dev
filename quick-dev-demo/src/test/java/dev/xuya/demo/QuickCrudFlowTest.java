@@ -34,6 +34,9 @@ class QuickCrudFlowTest {
     @Autowired
     private dev.xuya.demo.log.MemoryLogSink memoryLogSink;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     // ------------------------------------------------------------------
     // 匿名访问
     // ------------------------------------------------------------------
@@ -419,6 +422,34 @@ class QuickCrudFlowTest {
         ResponseEntity<Map> all = call(HttpMethod.GET, "/sys-user/page", adminToken, null);
         assertThat((List<Map<String, Object>>) data(all).get("records"))
                 .extracting(r -> r.get("username")).containsExactlyInAnyOrder("admin", "viewer", "alice");
+    }
+
+    // ------------------------------------------------------------------
+    // 字典缓存：内置刷新接口
+    // ------------------------------------------------------------------
+
+    @org.junit.jupiter.api.Test
+    void dictRefreshShouldReloadCacheAndApplyChanges() {
+        // 未登录 401；viewer 无 dict:refresh 权限 403
+        assertThat(call(HttpMethod.POST, "/quick-dev/dict/refresh", null, null)
+                .getStatusCode().value()).isEqualTo(401);
+        String viewerToken = login("viewer", "viewer123");
+        assertThat(call(HttpMethod.POST, "/quick-dev/dict/refresh", viewerToken, null)
+                .getStatusCode().value()).isEqualTo(403);
+
+        // 修改字典标签 -> 刷新 -> 新标签立即生效（不再受 TTL 结果缓存影响）
+        String adminToken = login("admin", "admin123");
+        jdbcTemplate.update("update sys_dict set dict_label = '在职' where dict_type = 'user_status' and dict_value = '1'");
+        ResponseEntity<Map> refreshed = call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null);
+        assertThat(code(refreshed)).isEqualTo(200);
+        assertThat(((Number) data(refreshed).get("size")).intValue()).isGreaterThanOrEqualTo(4);
+
+        ResponseEntity<Map> detail = call(HttpMethod.GET, "/sys-user/1", adminToken, null);
+        assertThat(data(detail).get("status")).isEqualTo("在职");
+
+        // 还原字典并刷新，保证其它测试稳定
+        jdbcTemplate.update("update sys_dict set dict_label = '启用' where dict_type = 'user_status' and dict_value = '1'");
+        assertThat(code(call(HttpMethod.POST, "/quick-dev/dict/refresh", adminToken, null))).isEqualTo(200);
     }
 
     // ------------------------------------------------------------------
