@@ -48,6 +48,7 @@ create table sys_dict (
 create table product (
     id          varchar(32) primary key,
     name        varchar(100),
+    type        int,
     price       decimal(10, 2),
     stock       int,
     create_time timestamp,

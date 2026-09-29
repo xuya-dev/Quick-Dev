@@ -41,7 +41,7 @@ public class TranslateSerializer extends StdSerializer<Object> implements Contex
     public JsonSerializer<?> createContextual(SerializerProvider provider, BeanProperty property) {
         if (property != null) {
             Translate anno = property.getAnnotation(Translate.class);
-            if (anno != null && (!anno.dict().isEmpty()
+            if (anno != null && (!anno.dict().isEmpty() || anno.enumClass() != Void.class
                     || (anno.entity() != Void.class && !anno.field().isEmpty()))) {
                 return new TranslateSerializer(anno);
             }

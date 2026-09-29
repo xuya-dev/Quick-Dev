@@ -69,6 +69,9 @@ public class TranslateExecutor {
     }
 
     private String doTranslate(Translate annotation, Object value) {
+        if (annotation.enumClass() != Void.class) {
+            return translateByEnum(annotation.enumClass(), value);
+        }
         if (!annotation.dict().isEmpty()) {
             DictResolver resolver = SpringContextHolder.getBeanIfAvailable(DictResolver.class);
             return resolver == null ? null : resolver.resolve(annotation.dict(), value);
@@ -104,6 +107,22 @@ public class TranslateExecutor {
         return null;
     }
 
+    /** 枚举字典翻译：值与 DictEnum.getValue() 按字符串比较 */
+    private String translateByEnum(Class<?> enumClass, Object value) {
+        if (!enumClass.isEnum() || !DictEnum.class.isAssignableFrom(enumClass)) {
+            throw new QuickDevException(enumClass.getSimpleName()
+                    + " 不是实现 DictEnum 的枚举，无法用于 @Translate(enumClass=...)");
+        }
+        for (Object constant : enumClass.getEnumConstants()) {
+            DictEnum dictEnum = (DictEnum) constant;
+            if (dictEnum.getValue() != null
+                    && String.valueOf(dictEnum.getValue()).equals(String.valueOf(value))) {
+                return dictEnum.getLabel();
+            }
+        }
+        return null;
+    }
+
     /** 字段值 -> 目标实体主键类型（如 "1" -> 1L），失败用原值 */
     private Object convertId(Object value, EntityMeta meta) {
         try {
@@ -125,9 +144,13 @@ public class TranslateExecutor {
     }
 
     private String cacheKey(Translate annotation, Object value) {
-        return annotation.dict().isEmpty()
-                ? "ref:" + annotation.entity().getName() + ':' + annotation.field() + ':' + value
-                : "dict:" + annotation.dict() + ':' + value;
+        if (annotation.enumClass() != Void.class) {
+            return "enum:" + annotation.enumClass().getName() + ':' + value;
+        }
+        if (!annotation.dict().isEmpty()) {
+            return "dict:" + annotation.dict() + ':' + value;
+        }
+        return "ref:" + annotation.entity().getName() + ':' + annotation.field() + ':' + value;
     }
 
     private record CacheEntry(String value, long at) {

@@ -19,6 +19,10 @@ import java.lang.annotation.Target;
  * &#64;Translate(dict = "user_status")
  * private Integer status;              // 1 序列化为 "启用"
  *
+ * // 枚举翻译：枚举类实现 DictEnum，免建字典表
+ * &#64;Translate(enumClass = OrderStatus.class)
+ * private Integer status;              // 1 序列化为 "已支付"
+ *
  * // 关联翻译：字段值作为目标实体主键，取其某属性
  * &#64;Translate(entity = SysUser.class, field = "nickname")
  * private String createBy;             // "1" 序列化为 "管理员"
@@ -36,6 +40,9 @@ public @interface Translate {
 
     /** 字典模式：字典类型编码，由 DictResolver 解析 */
     String dict() default "";
+
+    /** 枚举模式：实现 {@link DictEnum} 的枚举类（优先于 dict） */
+    Class<?> enumClass() default Void.class;
 
     /** 关联模式：目标实体类（字段值作为其主键查询） */
     Class<?> entity() default Void.class;

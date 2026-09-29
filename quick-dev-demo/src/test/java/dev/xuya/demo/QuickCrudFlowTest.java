@@ -383,8 +383,13 @@ class QuickCrudFlowTest {
         List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
         assertThat(records.get(0).get("status")).isEqualTo("启用");
 
-        // 翻译失败保留原值：停用字典值 0 的用户……改为验证未登录字典值（999）保留数字
-        // 通过 /product 无翻译字段，确认不影响普通实体
+        // 枚举字典翻译（免建字典表）：product.type 1 -> 普通商品
+        ResponseEntity<Map> product = call(HttpMethod.GET,
+                "/product/p0000000000000000000000000000001", null, null);
+        assertThat(code(product)).isEqualTo(200);
+        assertThat(data(product).get("type")).isEqualTo("普通商品");
+
+        // 未加翻译字段的实体不受影响
         assertThat(code(call(HttpMethod.GET, "/product/page", null, null))).isEqualTo(200);
     }
 

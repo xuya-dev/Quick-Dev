@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import dev.xuya.core.translate.Translate;
 import jakarta.validation.constraints.NotBlank;
 
 import java.math.BigDecimal;
@@ -27,6 +28,10 @@ public class Product {
     @NotBlank(message = "商品名称不能为空")
     @QueryField(QueryType.LIKE)
     private String name;
+
+    /** 枚举字典翻译：1 -> 普通商品，2 -> 赠品 */
+    @Translate(enumClass = ProductType.class)
+    private Integer type;
 
     @ExcelProperty("价格")
     private BigDecimal price;
@@ -56,6 +61,14 @@ public class Product {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Integer getType() {
+        return type;
+    }
+
+    public void setType(Integer type) {
+        this.type = type;
     }
 
     public BigDecimal getPrice() {
