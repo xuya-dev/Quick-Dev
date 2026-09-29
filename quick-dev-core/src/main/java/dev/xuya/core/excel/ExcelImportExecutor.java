@@ -15,7 +15,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Excel 导入执行器：读取 -> 逐行校验 -> 事务批量插入。
+ * Excel 导入执行器：原始行读取 -> 表头映射 -> 字典标签反解（上传转换）-> 类型转换
+ * -> 逐行校验 -> 事务批量插入。
  * <p>策略：任一行校验失败则整体不入库（返回 400 及前 10 行错误明细），
  * 插入阶段同一事务，失败整体回滚。返回统计 {total, inserted}。</p>
  */
@@ -27,11 +28,21 @@ public final class ExcelImportExecutor {
     public static Map<String, Object> execute(BaseMapper<Object> mapper, Class<?> entityClass,
                                               MultipartFile file, Validator validator,
                                               TransactionOperations transactionOperations) {
-        List<Object> rows = new ArrayList<>();
+        List<Map<Integer, String>> rawRows;
         try {
-            ExcelSupport.read(file, entityClass).forEach(rows::add);
+            rawRows = ExcelSupport.readRawRows(file);
         } catch (Exception e) {
             throw new ParamException("Excel 文件解析失败: " + e.getLocalizedMessage(), e);
+        }
+        if (rawRows == null || rawRows.isEmpty()) {
+            throw new ParamException("Excel 内容为空（缺少表头）");
+        }
+        Map<Integer, String> headRow = rawRows.remove(0);
+        ExcelRowMapper rowMapper = ExcelRowMapper.of(entityClass, headRow);
+
+        List<Object> rows = new ArrayList<>();
+        for (int i = 0; i < rawRows.size(); i++) {
+            rows.add(rowMapper.map(rawRows.get(i), i + 1)); // 先反解字典标签，再类型转换
         }
 
         if (validator != null) {

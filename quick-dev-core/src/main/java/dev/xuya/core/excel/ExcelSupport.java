@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * FastExcel 读写封装（列名映射：实体字段加 @ExcelProperty("中文名")，未加则按字段名导出）。
@@ -21,9 +22,13 @@ public final class ExcelSupport {
     private ExcelSupport() {
     }
 
-    /** 读取 Excel（第一个 sheet，按表头映射到实体） */
-    public static List<?> read(MultipartFile file, Class<?> headClass) throws IOException {
-        return FastExcel.read(file.getInputStream()).head(headClass).sheet().doReadSync();
+    /** 读取 Excel 原始行（含表头行，headRowNumber=0）：每行为 列索引 -> 单元格文本 */
+    @SuppressWarnings("unchecked")
+    public static List<Map<Integer, String>> readRawRows(MultipartFile file) throws IOException {
+        return (List<Map<Integer, String>>) (List<?>) FastExcel.read(file.getInputStream())
+                .sheet()
+                .headRowNumber(0)
+                .doReadSync();
     }
 
     /** 导出 Excel 到 HTTP 响应（附件下载） */

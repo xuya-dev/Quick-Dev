@@ -264,10 +264,14 @@ class QuickCrudFlowTest {
         // 生成两行商品的 Excel
         Product p1 = new Product();
         p1.setName("导入商品A");
+        p1.setType(1);
+        p1.setChannel(1);
         p1.setPrice(new BigDecimal("11.11"));
         p1.setStock(10);
         Product p2 = new Product();
         p2.setName("导入商品B");
+        p2.setType(2);
+        p2.setChannel(2);
         p2.setPrice(new BigDecimal("22.22"));
         p2.setStock(20);
         byte[] excel = writeExcel(List.of(p1, p2));
@@ -442,6 +446,43 @@ class QuickCrudFlowTest {
                 .reduce((a, b) -> a + "," + b).orElse("");
         assertThat(ids).isNotEmpty();
         assertThat(code(call(HttpMethod.DELETE, "/sys-user/" + ids, token, null))).isEqualTo(200);
+    }
+
+    @Test
+    void importShouldReverseTranslateChineseLabels() {
+        // 用户上传的 Excel 填的是中文标签（type/channel 列），导入时自动反解回库值
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        FastExcel.write(out)
+                .head(List.of(List.of("商品名称"), List.of("type"), List.of("channel"),
+                        List.of("价格"), List.of("库存")))
+                .sheet("商品")
+                .doWrite(List.of(
+                        java.util.Arrays.asList("标签导入A", "普通商品", "线上", 11.11, 10),
+                        java.util.Arrays.asList("标签导入B", "赠品", "线下", 22.22, 20)));
+        byte[] excel = out.toByteArray();
+
+        String adminToken = login("admin", "admin123");
+        ResponseEntity<Map> imported = upload("/product/import", excel, adminToken);
+        assertThat(code(imported)).isEqualTo(200);
+        assertThat(((Number) data(imported).get("total")).intValue()).isEqualTo(2);
+
+        // 枚举自动反解："普通商品" -> 1
+        ResponseEntity<Map> byType = call(HttpMethod.GET,
+                "/product/count?name=标签导入&type=1", null, null);
+        assertThat(((Number) byType.getBody().get("data")).intValue()).isEqualTo(1);
+        // 字典 SPI 反解（用户自主实现）："线上" -> 1
+        ResponseEntity<Map> byChannel = call(HttpMethod.GET,
+                "/product/count?name=标签导入&channel=1", null, null);
+        assertThat(((Number) byChannel.getBody().get("data")).intValue()).isEqualTo(1);
+
+        // 清理
+        ResponseEntity<Map> page = call(HttpMethod.GET, "/product/page?name=标签导入", null, null);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        String ids = records.stream().map(r -> String.valueOf(r.get("id")))
+                .reduce((a, b) -> a + "," + b).orElse("");
+        if (!ids.isEmpty()) {
+            assertThat(code(call(HttpMethod.DELETE, "/product/" + ids, null, null))).isEqualTo(200);
+        }
     }
 
     // ------------------------------------------------------------------

@@ -10,11 +10,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.support.DefaultConversionService;
 
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 翻译执行器：按 @Translate 声明分派字典/关联两种模式，结果带 TTL 本地缓存。
+ * 翻译执行器：按 @Translate 声明分派枚举/字典/关联三种模式，结果带 TTL 本地缓存；
+ * 并提供反向解析（{@link #reverse}，标签 -> 值）供 Excel 导入等上传转换场景使用。
  * <p>由自动配置注册为单例 Bean；Jackson 序列化器经 {@link #getInstance()} 静态获取，
  * 非容器环境（单测直接序列化）返回 null 时保留原值。</p>
  */
@@ -89,13 +91,7 @@ public class TranslateExecutor {
             if (target == null) {
                 return null;
             }
-            Field field = meta.getField(annotation.field());
-            if (field == null) {
-                field = findDeclaredField(entityClass, annotation.field());
-            }
-            if (field == null) {
-                throw new QuickDevException(entityClass.getSimpleName() + " 不存在属性 " + annotation.field());
-            }
+            Field field = resolveField(entityClass, annotation.field());
             field.setAccessible(true);
             try {
                 Object translated = field.get(target);
@@ -105,6 +101,89 @@ public class TranslateExecutor {
             }
         }
         return null;
+    }
+
+    /**
+     * 反向解析（上传转换）：标签 -> 值。用于 Excel 导入等场景。
+     * <ul>
+     *   <li>枚举模式：自动按 DictEnum.getLabel() 匹配返回 getValue()</li>
+     *   <li>字典模式：DictReverseResolver SPI（用户自主实现）</li>
+     *   <li>关联模式：按目标属性值反查主键（多条取第一条）</li>
+     * </ul>
+     *
+     * @return 反解出的值；null 表示无法反解（调用方保留原值）
+     */
+    public Object reverse(Translate annotation, String label) {
+        if (!enabled || annotation == null || label == null) {
+            return null;
+        }
+        try {
+            if (annotation.enumClass() != Void.class) {
+                return reverseByEnum(annotation.enumClass(), label);
+            }
+            if (!annotation.dict().isEmpty()) {
+                DictReverseResolver resolver = SpringContextHolder.getBeanIfAvailable(DictReverseResolver.class);
+                return resolver == null ? null : resolver.reverse(annotation.dict(), label);
+            }
+            if (annotation.entity() != Void.class) {
+                return reverseByRef(annotation, label);
+            }
+            return null;
+        } catch (Exception e) {
+            log.debug("字典反解失败, 保留原值[{}]: {}", label, e.getMessage());
+            return null;
+        }
+    }
+
+    private Object reverseByEnum(Class<?> enumClass, String label) {
+        if (!enumClass.isEnum() || !DictEnum.class.isAssignableFrom(enumClass)) {
+            return null;
+        }
+        for (Object constant : enumClass.getEnumConstants()) {
+            DictEnum dictEnum = (DictEnum) constant;
+            if (label.equals(dictEnum.getLabel())) {
+                return dictEnum.getValue();
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object reverseByRef(Translate annotation, String label) {
+        Class<?> entityClass = annotation.entity();
+        EntityMeta meta = EntityMeta.of(entityClass);
+        Field field = resolveField(entityClass, annotation.field());
+        String column = meta.getColumn(annotation.field());
+        if (column == null) {
+            column = EntityMeta.camelToSnake(annotation.field());
+        }
+        BaseMapper<Object> mapper = MapperResolver.resolve(
+                SpringContextHolder.getContext(), entityClass, Void.class);
+        List<Object> matched = mapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<Object>()
+                        .eq(column, label)
+                        .last("limit 1"));
+        if (matched == null || matched.isEmpty()) {
+            return null;
+        }
+        try {
+            field.setAccessible(true);
+            return meta.getIdField().get(matched.get(0));
+        } catch (IllegalAccessException e) {
+            return null;
+        }
+    }
+
+    private Field resolveField(Class<?> entityClass, String name) {
+        EntityMeta meta = EntityMeta.of(entityClass);
+        Field field = meta.getField(name);
+        if (field == null) {
+            field = findDeclaredField(entityClass, name);
+        }
+        if (field == null) {
+            throw new QuickDevException(entityClass.getSimpleName() + " 不存在属性 " + name);
+        }
+        return field;
     }
 
     /** 枚举字典翻译：值与 DictEnum.getValue() 按字符串比较 */

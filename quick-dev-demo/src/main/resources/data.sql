@@ -24,8 +24,10 @@ values (1, '总公司', 0, current_timestamp),
 -- 数据字典
 insert into sys_dict (dict_type, dict_value, dict_label)
 values ('user_status', '1', '启用'),
+       ('product_channel', '1', '线上'),
+       ('product_channel', '2', '线下'),
        ('user_status', '0', '停用');
 
-insert into product (id, name, type, price, stock, create_time)
-values ('p0000000000000000000000000000001', '机械键盘', 1, 399.00, 120, current_timestamp),
-       ('p0000000000000000000000000000002', '无线鼠标', 2, 129.50, 300, current_timestamp);
+insert into product (id, name, type, channel, price, stock, create_time)
+values ('p0000000000000000000000000000001', '机械键盘', 1, 1, 399.00, 120, current_timestamp),
+       ('p0000000000000000000000000000002', '无线鼠标', 2, 2, 129.50, 300, current_timestamp);

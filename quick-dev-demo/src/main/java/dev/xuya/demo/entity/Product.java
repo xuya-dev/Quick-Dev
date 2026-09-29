@@ -29,9 +29,13 @@ public class Product {
     @QueryField(QueryType.LIKE)
     private String name;
 
-    /** 枚举字典翻译：1 -> 普通商品，2 -> 赠品 */
+    /** 枚举字典翻译：1 -> 普通商品，2 -> 赠品（导入时反向自动反解） */
     @Translate(enumClass = ProductType.class)
     private Integer type;
+
+    /** 字典翻译：1 -> 线上，2 -> 线下（导入时由 DictReverseResolver 反解） */
+    @Translate(dict = "product_channel")
+    private Integer channel;
 
     @ExcelProperty("价格")
     private BigDecimal price;
@@ -69,6 +73,14 @@ public class Product {
 
     public void setType(Integer type) {
         this.type = type;
+    }
+
+    public Integer getChannel() {
+        return channel;
+    }
+
+    public void setChannel(Integer channel) {
+        this.channel = channel;
     }
 
     public BigDecimal getPrice() {

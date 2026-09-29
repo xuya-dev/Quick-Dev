@@ -84,7 +84,7 @@ public class EntityMeta {
     }
 
     /** 驼峰转下划线 */
-    static String camelToSnake(String name) {        StringBuilder sb = new StringBuilder(name.length() + 4);
+    public static String camelToSnake(String name) {        StringBuilder sb = new StringBuilder(name.length() + 4);
         for (int i = 0; i < name.length(); i++) {
             char c = name.charAt(i);
             if (Character.isUpperCase(c)) {

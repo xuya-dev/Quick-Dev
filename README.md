@@ -34,7 +34,7 @@ public class SysUserController {
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
-- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存
+- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存；**Excel 导入时反向自动转换**（中文标签 -> 库值，字典模式由 `DictReverseResolver` SPI 自主实现）
 - **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver` 返回的可见范围过滤（"只看本部门"）
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
@@ -313,6 +313,30 @@ public class OrderVO {
 - 翻译失败（无字典、无记录、未实现 SPI）**保留原值**输出，不影响接口
 - 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
+
+### 导入反向转换（上传转换）
+
+Excel 导入时用户填的往往是中文标签（"启用"/"线上"/"管理员"），框架会**先反解为库值再做类型转换与校验**：
+
+| @Translate 模式 | 反解方式 |
+|---|---|
+| `enumClass = ...` 枚举 | 自动：按 `DictEnum.getLabel()` 匹配返回值 |
+| `dict = ...` 字典 | **用户自主实现** `DictReverseResolver` SPI（标签 -> 值） |
+| `entity = ...` 关联 | 自动：按目标属性值反查主键（多条取第一条） |
+
+```java
+/** 字典反解 SPI（与 DictResolver 对称）：Excel 里的 "线上" -> 1 */
+@Component
+public class MyDictReverseResolver implements DictReverseResolver {
+    @Override
+    public Object reverse(String dictType, String label) {
+        return dictMapper.selectOne(...).getDictValue();
+    }
+}
+```
+
+- 反解失败（无匹配标签）保留原文本，随后按字段类型转换；类型不符会报"第 N 行 [列名] 的值无法转换"
+- 单元格直接填数字原值同样支持（1 和 "启用" 都能导入）
 
 ### 行级数据权限（@DataScope）
 
