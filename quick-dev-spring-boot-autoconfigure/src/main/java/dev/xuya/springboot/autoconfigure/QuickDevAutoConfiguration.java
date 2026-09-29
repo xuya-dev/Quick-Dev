@@ -9,6 +9,8 @@ import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
 import dev.xuya.core.methodop.QuickOpAspect;
 import dev.xuya.core.web.GlobalExceptionHandler;
+import dev.xuya.core.web.RepeatSubmitInterceptor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -82,11 +84,25 @@ public class QuickDevAutoConfiguration {
     }
 
     @Bean
-    public WebMvcConfigurer quickDevAuthWebMvcConfigurer(AuthInterceptor authInterceptor) {
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "quick-dev.repeat-submit", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public RepeatSubmitInterceptor repeatSubmitInterceptor() {
+        return new RepeatSubmitInterceptor();
+    }
+
+    @Bean
+    public WebMvcConfigurer quickDevAuthWebMvcConfigurer(AuthInterceptor authInterceptor,
+                                                         ObjectProvider<RepeatSubmitInterceptor> repeatSubmitInterceptor) {
         return new WebMvcConfigurer() {
             @Override
             public void addInterceptors(InterceptorRegistry registry) {
-                registry.addInterceptor(authInterceptor).addPathPatterns("/**");
+                registry.addInterceptor(authInterceptor).order(0).addPathPatterns("/**");
+                RepeatSubmitInterceptor repeat = repeatSubmitInterceptor.getIfAvailable();
+                if (repeat != null) {
+                    // 排在鉴权之后：可依据 AuthContext 中的用户身份生成防重指纹
+                    registry.addInterceptor(repeat).order(1).addPathPatterns("/**");
+                }
             }
         };
     }

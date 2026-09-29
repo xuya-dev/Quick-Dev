@@ -320,6 +320,22 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 防重复提交（@NoRepeatSubmit）
+    // ------------------------------------------------------------------
+
+    @Test
+    void repeatSubmitShouldBlockSecondCallInInterval() {
+        // 第一次成功
+        ResponseEntity<Map> first = call(HttpMethod.POST, "/repeat/submit", null, null);
+        assertThat(code(first)).isEqualTo(200);
+        // 3 秒内重复提交 -> 400
+        ResponseEntity<Map> second = call(HttpMethod.POST, "/repeat/submit", null, null);
+        assertThat(second.getStatusCode().value()).isEqualTo(200);
+        assertThat(code(second)).isEqualTo(400);
+        assertThat((String) second.getBody().get("msg")).contains("重复提交");
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

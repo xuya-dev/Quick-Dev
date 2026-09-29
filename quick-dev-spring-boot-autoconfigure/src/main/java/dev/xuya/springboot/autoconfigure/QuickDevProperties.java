@@ -31,6 +31,21 @@ public class QuickDevProperties {
     private final Auth auth = new Auth();
     private final AutoFill autoFill = new AutoFill();
     private final MethodOp methodOp = new MethodOp();
+    private final RepeatSubmit repeatSubmit = new RepeatSubmit();
+
+    public static class RepeatSubmit {
+
+        /** 是否启用 @NoRepeatSubmit 防重复提交 */
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
 
     public static class MethodOp {
 
@@ -122,5 +137,9 @@ public class QuickDevProperties {
 
     public MethodOp getMethodOp() {
         return methodOp;
+    }
+
+    public RepeatSubmit getRepeatSubmit() {
+        return repeatSubmit;
     }
 }
