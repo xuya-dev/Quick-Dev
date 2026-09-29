@@ -292,6 +292,22 @@ public R<Object> create(@RequestBody Order order) { ... }
 result code, success flag, error message, and duration. Persistence is up to the `OperationLogSink` SPI
 (register a bean to take over; default logs to Slf4j logger `quick-dev.operation-log`; async persistence recommended in production).
 
+### OpenAPI Docs (Optional, springdoc)
+
+Add the springdoc dependency and the framework automatically **injects dynamic CRUD endpoints
+into the Swagger docs** (springdoc does not natively recognize runtime-registered endpoints):
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.8.17</version>
+</dependency>
+```
+
+Visit `/swagger-ui.html`: dynamic endpoints carry `[QuickCrud]` summaries with query parameter
+descriptions; method-annotation endpoints carry `[QuickSave]`-style markers.
+
 ### Redis Support (Optional)
 
 ```xml

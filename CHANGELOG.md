@@ -25,6 +25,8 @@
 - ✨ Features|新功能 新增count统计接口与BETWEEN范围查询
 - ✨ Features|新功能 新增createTime和updateTime自动填充
 - ✨ Features|新功能 初始化quick-dev快速开发框架starter
+- ✨ Features|新功能 springdoc可选集成动态CRUD端点自动注入Swagger文档
+- ✨ Features|新功能 操作日志支持async异步落地不影响业务请求
 - 📝 Documentation|文档 新增docs目录包含使用手册与Agent使用说明
 - 📝 Documentation|文档 完善开源内容并生成英文版README
 - 🐛 Bug Fixes|Bug 修复 loginRequired为true且无权限码的Crud端点未要求登录

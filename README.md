@@ -222,6 +222,7 @@ quick-dev:
     enabled: true          # @NoRepeatSubmit 防重复提交开关
   log:
     enabled: true          # @QuickLog 操作日志开关
+    async: false           # 操作日志异步落地（后台单线程，队列满丢弃不阻塞业务）
   translate:
     enabled: true          # @Translate 字段翻译开关
     cache-seconds: 60      # 翻译结果本地缓存秒数（0 禁用）
@@ -285,6 +286,20 @@ public R<Object> create(@RequestBody Order order) { ... }
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
 结果码、是否成功、异常信息、耗时。落地由 `OperationLogSink` SPI 决定（实现 Bean 即接管，
 默认输出到 Slf4g logger `quick-dev.operation-log`；生产建议异步写库）。
+
+### OpenAPI 文档（可选，springdoc）
+
+引入 springdoc 依赖后，框架自动把**动态 CRUD 端点注入 Swagger 文档**（springdoc 原生不识别运行期注册的端点）：
+
+```xml
+<dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.8.17</version>
+</dependency>
+```
+
+访问 `/swagger-ui.html`：动态端点带 `[QuickCrud]` 摘要与查询参数说明，方法级注解端点带 `[QuickSave]` 等标记。
 
 ### Redis 支持（可选）
 

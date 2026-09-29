@@ -549,6 +549,28 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // springdoc 集成：动态端点出现在 OpenAPI 文档且带说明
+    // ------------------------------------------------------------------
+
+    @Test
+    void springdocShouldDocumentDynamicCrudEndpoints() {
+        ResponseEntity<Map> resp = rest.getForEntity("/v3/api-docs", Map.class);
+        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        Map<String, Object> paths = (Map<String, Object>) resp.getBody().get("paths");
+
+        Map<String, Object> page = (Map<String, Object>) paths.get("/sys-user/page");
+        assertThat(page).as("动态 CRUD 端点应出现在 OpenAPI 文档").isNotNull();
+        Map<String, Object> get = (Map<String, Object>) page.get("get");
+        assertThat((String) get.get("summary")).isEqualTo("[QuickCrud] 分页查询（current/size + 动态条件 + 排序）");
+
+        // 方法级注解端点同样被标注
+        Map<String, Object> export = (Map<String, Object>) paths.get("/product/export");
+        assertThat(export).isNotNull();
+        assertThat((String) ((Map<String, Object>) export.get("get")).get("summary"))
+                .contains("[QuickExport]");
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

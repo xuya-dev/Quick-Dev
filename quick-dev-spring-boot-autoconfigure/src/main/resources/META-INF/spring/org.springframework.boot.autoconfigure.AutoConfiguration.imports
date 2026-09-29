@@ -2,3 +2,4 @@ dev.xuya.springboot.redis.QuickDevRedisConfiguration
 dev.xuya.springboot.autoconfigure.QuickDevAutoConfiguration
 dev.xuya.springboot.autoconfigure.QuickDevSaTokenConfiguration
 dev.xuya.springboot.autoconfigure.QuickDevDictConfiguration
+dev.xuya.springboot.autoconfigure.QuickDevSpringdocConfiguration
