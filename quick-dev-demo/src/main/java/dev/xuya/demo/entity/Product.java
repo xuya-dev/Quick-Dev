@@ -1,5 +1,6 @@
 package dev.xuya.demo.entity;
 
+import cn.idev.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -7,12 +8,13 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import jakarta.validation.constraints.NotBlank;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 商品（同时演示：String UUID 主键、BigDecimal、范围查询、时间自动填充）
+ * 商品（同时演示：String UUID 主键、BigDecimal、范围查询、时间自动填充、Excel 导入导出列名）
  */
 @TableName("product")
 public class Product {
@@ -21,11 +23,15 @@ public class Product {
     @TableId(type = IdType.ASSIGN_UUID)
     private String id;
 
+    @ExcelProperty("商品名称")
+    @NotBlank(message = "商品名称不能为空")
     @QueryField(QueryType.LIKE)
     private String name;
 
+    @ExcelProperty("价格")
     private BigDecimal price;
 
+    @ExcelProperty("库存")
     @QueryField(QueryType.GE)
     private Integer stock;
 

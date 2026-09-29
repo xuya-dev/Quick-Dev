@@ -2,6 +2,7 @@ package dev.xuya.core.auth;
 
 import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.crud.QuickCrudHandler;
+import dev.xuya.core.methodop.QuickMethodOps;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.ApplicationContext;
@@ -44,8 +45,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         if (requiresPerm == null && handlerMethod.getBean() instanceof QuickCrudHandler crudHandler) {
             crudProtected = crudHandler.getRequiredPermission(handlerMethod.getMethod()) != null;
         }
+        // 方法级注解（@QuickSave/@QuickUpdate/@QuickRemove/@QuickExport/@QuickImport）声明的权限码
+        String methodOpPermission = requiresPerm == null && !crudProtected
+                ? QuickMethodOps.permissionOf(handlerMethod.getMethod()) : null;
         boolean needLogin = requiresPerm != null
                 || crudProtected
+                || methodOpPermission != null
                 || findAnnotation(handlerMethod, RequiresLogin.class) != null;
         if (!needLogin) {
             return true;
@@ -73,6 +78,10 @@ public class AuthInterceptor implements HandlerInterceptor {
                     .getRequiredPermission(handlerMethod.getMethod());
             if (!checker.hasPermission(user, code)) {
                 throw new ForbiddenException("无操作权限: " + code);
+            }
+        } else if (methodOpPermission != null) {
+            if (!checker.hasPermission(user, methodOpPermission)) {
+                throw new ForbiddenException("无操作权限: " + methodOpPermission);
             }
         }
         return true;

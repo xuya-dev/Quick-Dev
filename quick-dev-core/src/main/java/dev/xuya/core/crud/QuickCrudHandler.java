@@ -6,14 +6,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.annotation.CrudOp;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.R;
+import dev.xuya.core.excel.ExcelImportExecutor;
+import dev.xuya.core.excel.ExcelSupport;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +33,7 @@ import java.util.stream.Collectors;
 
 /**
  * 动态 CRUD 处理器。启动时由 {@link QuickCrudRegistrar} 为每个 @QuickCrud 控制器
- * 创建一个实例，并把这里的六个方法按需注册到 RequestMappingHandlerMapping。
+ * 创建一个实例，并把这里的处理方法按需注册到 RequestMappingHandlerMapping。
  *
  * <p>注意：参数刻意使用 String/Map 等具体类型，避免泛型擦除导致 Spring 参数绑定、
  * Jackson 反序列化拿不到实体类型的问题；实体类型在构造时已知，由内部自行转换。</p>
@@ -38,16 +47,19 @@ public class QuickCrudHandler {
     private final ConversionService conversionService;
     private final Validator validator;
     private final boolean loginRequired;
+    private final TransactionOperations transactionOperations;
     private final Map<Method, String> requiredPermissions = new HashMap<>();
 
     public QuickCrudHandler(EntityMeta meta, BaseMapper<Object> mapper, ObjectMapper objectMapper,
-                            ConversionService conversionService, Validator validator, boolean loginRequired) {
+                            ConversionService conversionService, Validator validator, boolean loginRequired,
+                            TransactionOperations transactionOperations) {
         this.meta = meta;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
         this.conversionService = conversionService;
         this.validator = validator;
         this.loginRequired = loginRequired;
+        this.transactionOperations = transactionOperations;
     }
 
     /** 注册端点时记录：该方法需要哪个权限码（null 表示无权限要求） */
@@ -78,6 +90,8 @@ public class QuickCrudHandler {
             case SAVE -> QuickCrudHandler.class.getMethod("save", String.class);
             case UPDATE -> QuickCrudHandler.class.getMethod("update", String.class);
             case REMOVE -> QuickCrudHandler.class.getMethod("remove", String.class);
+            case IMPORT -> QuickCrudHandler.class.getMethod("importExcel", MultipartFile.class);
+            case EXPORT -> QuickCrudHandler.class.getMethod("export", HttpServletResponse.class);
         };
     }
 
@@ -152,6 +166,33 @@ public class QuickCrudHandler {
             throw new ParamException("请指定要删除的ID");
         }
         return R.ok("删除成功", mapper.deleteBatchIds(idList));
+    }
+
+    // ---------------------------------------------------------------------
+    // Excel 导入：POST {base}/import（multipart 字段名 file）
+    // ---------------------------------------------------------------------
+    public R<Object> importExcel(@RequestParam("file") MultipartFile file) {
+        return R.ok("导入成功", ExcelImportExecutor.execute(
+                mapper, meta.getEntityClass(), file, validator, transactionOperations));
+    }
+
+    // ---------------------------------------------------------------------
+    // Excel 导出：GET {base}/export（复用 page 的查询条件）
+    // ---------------------------------------------------------------------
+    public void export(HttpServletResponse response) throws IOException {
+        Map<String, String> params = new HashMap<>();
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            request.getParameterMap().forEach((k, v) -> {
+                if (v != null && v.length > 0) {
+                    params.put(k, v[0]);
+                }
+            });
+        }
+        List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService));
+        ExcelSupport.write(response, meta.getEntityClass(), data);
     }
 
     // ---------------------------------------------------------------------

@@ -7,6 +7,7 @@ import dev.xuya.core.auth.AuthInterceptor;
 import dev.xuya.core.auth.AuthSettings;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
+import dev.xuya.core.methodop.QuickOpAspect;
 import dev.xuya.core.web.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -47,6 +48,15 @@ public class QuickDevAutoConfiguration {
             havingValue = "true", matchIfMissing = true)
     public AutoFillMetaObjectHandler quickDevAutoFillMetaObjectHandler() {
         return new AutoFillMetaObjectHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(name = {"org.aspectj.lang.annotation.Aspect", "cn.idev.excel.FastExcel"})
+    @ConditionalOnProperty(prefix = "quick-dev.method-op", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public QuickOpAspect quickOpAspect(ApplicationContext applicationContext) {
+        return new QuickOpAspect(applicationContext);
     }
 
     @Bean

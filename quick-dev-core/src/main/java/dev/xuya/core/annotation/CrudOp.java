@@ -20,7 +20,11 @@ public enum CrudOp {
     /** PUT {base} 修改（按 ID 全量/非空更新） */
     UPDATE("update", "", RequestMethod.PUT, "edit"),
     /** DELETE {base}/{ids} 删除，ids 逗号分隔支持批量 */
-    REMOVE("remove", "/{ids}", RequestMethod.DELETE, "remove");
+    REMOVE("remove", "/{ids}", RequestMethod.DELETE, "remove"),
+    /** POST {base}/import Excel 导入（文件字段 file）；需手动加入 includes */
+    IMPORT("importExcel", "/import", RequestMethod.POST, "import"),
+    /** GET {base}/export Excel 导出（复用查询条件）；需手动加入 includes */
+    EXPORT("export", "/export", RequestMethod.GET, "export");
 
     /** Handler 方法名 */
     private final String handlerMethod;

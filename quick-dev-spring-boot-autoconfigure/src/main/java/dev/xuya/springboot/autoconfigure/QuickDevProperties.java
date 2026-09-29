@@ -9,6 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * quick-dev:
  *   enabled: true          # CRUD 引擎总开关
  *   db-type: h2            # 分页插件数据库方言（可选）
+ *   method-op:
+ *     enabled: true        # 方法级注解（@QuickSave 等 AOP 接管）开关
  *   auth:
  *     enabled: true        # 鉴权总开关
  *     token-header: Authorization
@@ -28,6 +30,21 @@ public class QuickDevProperties {
 
     private final Auth auth = new Auth();
     private final AutoFill autoFill = new AutoFill();
+    private final MethodOp methodOp = new MethodOp();
+
+    public static class MethodOp {
+
+        /** 是否启用方法级注解（@QuickSave/@QuickUpdate/@QuickRemove/@QuickExport/@QuickImport） */
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
 
     public static class AutoFill {
 
@@ -101,5 +118,9 @@ public class QuickDevProperties {
 
     public AutoFill getAutoFill() {
         return autoFill;
+    }
+
+    public MethodOp getMethodOp() {
+        return methodOp;
     }
 }

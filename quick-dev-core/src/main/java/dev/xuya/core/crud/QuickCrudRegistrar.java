@@ -12,10 +12,10 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.ClassUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -73,13 +73,14 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
                 throw new QuickDevException("必须在 @QuickCrud 中指定 entity 属性");
             }
 
-            BaseMapper<Object> mapper = resolveMapper(entityClass, quickCrud.mapper());
+            BaseMapper<Object> mapper = MapperResolver.resolve(applicationContext, entityClass, quickCrud.mapper());
             EntityMeta meta = EntityMeta.of(entityClass);
             String basePath = resolveBasePath(beanClass, entityClass, quickCrud);
             Set<CrudOp> ops = resolveOps(quickCrud);
 
             QuickCrudHandler handler = new QuickCrudHandler(
-                    meta, mapper, objectMapper(), conversionService(), validator(), quickCrud.loginRequired());
+                    meta, mapper, objectMapper(), conversionService(), validator(),
+                    quickCrud.loginRequired(), transactionOperations());
 
             for (CrudOp op : ops) {
                 Method method = QuickCrudHandler.methodOf(op);
@@ -107,25 +108,6 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
         } catch (Exception e) {
             throw new QuickDevException("注册 @QuickCrud 端点失败 [" + beanName + "]", e);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private BaseMapper<Object> resolveMapper(Class<?> entityClass, Class<?> explicitMapper) {
-        if (explicitMapper != Void.class) {
-            return (BaseMapper<Object>) applicationContext.getBean(explicitMapper);
-        }
-        ResolvableType wanted = ResolvableType.forClassWithGenerics(BaseMapper.class, entityClass);
-        String[] names = applicationContext.getBeanNamesForType(wanted);
-        if (names.length == 0) {
-            throw new QuickDevException("未找到 " + entityClass.getSimpleName()
-                    + " 对应的 BaseMapper，请定义 XxxMapper extends BaseMapper<"
-                    + entityClass.getSimpleName() + "> 并确保被扫描");
-        }
-        if (names.length > 1) {
-            log.warn("实体 {} 匹配到多个 Mapper {}，使用第一个。可在 @QuickCrud(mapper=...) 显式指定",
-                    entityClass.getSimpleName(), Arrays.toString(names));
-        }
-        return (BaseMapper<Object>) applicationContext.getBean(names[0]);
     }
 
     private String resolveBasePath(Class<?> beanClass, Class<?> entityClass, QuickCrud quickCrud) {
@@ -194,6 +176,14 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
         }
         try {
             return applicationContext.getBeanProvider(Validator.class).getIfAvailable();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private TransactionOperations transactionOperations() {
+        try {
+            return applicationContext.getBeanProvider(TransactionOperations.class).getIfAvailable();
         } catch (Exception e) {
             return null;
         }

@@ -24,8 +24,11 @@ public class SysUserController {
 ## 特性
 
 - **一个注解完成 CRUD**：`@QuickCrud` 标注在 Controller 上，启动时通过 `RequestMappingHandlerMapping` 运行期注册端点（Spring 官方支持的方式），与手写接口完全共存
-- **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作` 约定自动鉴权
-- **零绑定权限实现**：框架只定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）两个 SPI，对接你自己的 RBAC / SSO / 网关鉴权均可
+- **方法级注解**：`@QuickSave` / `@QuickUpdate` / `@QuickRemove` / `@QuickExport` / `@QuickImport` 直接标在方法上，方法体留空由框架 AOP 接管——不必把整个类交给 `@QuickCrud`
+- **内置 Sa-Token**：classpath 自动桥接登录态与权限校验（`StpUtil.login` 登录、实现 `StpInterface` 供权限数据），零配置打通 `@RequiresPerm` / `@QuickCrud` 权限码
+- **Excel 导入导出**：FastExcel 封装，导出复用查询条件、导入自动校验 + 事务批量入库
+- **注解式权限控制**：`@RequiresPerm` / `@RequiresLogin` 可用在任何 Controller 上；`@QuickCrud` 生成的接口按 `权限前缀:操作` 约定自动鉴权；方法级注解按 `permission` 完整权限码鉴权
+- **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间字段自动填充**：`createTime`/`updateTime` 新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
 - **统一响应与异常**：`R<T>` 结构 + 全局异常处理（未登录 401、无权限 403、参数/校验错误 400）
@@ -53,7 +56,7 @@ quick-dev
 </dependency>
 ```
 
-starter 会传递引入：`quick-dev-core` + 自动配置、`spring-boot-starter-web`、`spring-boot-starter-validation`、`mybatis-plus-spring-boot3-starter`、`mybatis-plus-jsqlparser`（分页插件）。只需再自备一个数据库驱动（如 `mysql-connector-j`、`h2`）。
+starter 会传递引入：`quick-dev-core` + 自动配置、`spring-boot-starter-web`、`spring-boot-starter-validation`、`spring-boot-starter-aop`、`sa-token-spring-boot3-starter`、`fastexcel`、`mybatis-plus-spring-boot3-starter`、`mybatis-plus-jsqlparser`（分页插件）。只需再自备一个数据库驱动（如 `mysql-connector-j`、`h2`）。
 
 ### 2. 定义实体与 Mapper
 
@@ -87,12 +90,71 @@ public interface SysUserMapper extends BaseMapper<SysUser> { }
 ```java
 // path 不写：优先取类上 @RequestMapping，否则实体名推导（SysUser -> /sys-user）
 // permission 不写：接口开放（可用 loginRequired = true 仅要求登录）
-// includes/excludes：只注册/排除部分操作
-@QuickCrud(entity = SysUser.class, permission = "sys:user", excludes = CrudOp.LIST)
+// includes/excludes：只注册/排除部分操作；IMPORT/EXPORT 默认不注册，可加入 includes 开启
+@QuickCrud(entity = SysUser.class, permission = "sys:user",
+        excludes = CrudOp.LIST,
+        includes = {CrudOp.PAGE, CrudOp.COUNT, CrudOp.DETAIL, CrudOp.SAVE, CrudOp.UPDATE,
+                CrudOp.REMOVE, CrudOp.IMPORT, CrudOp.EXPORT})
 public class SysUserController { }
 ```
 
-### 4. 实现两个鉴权 SPI（框架不关心你的用户体系）
+开启 `CrudOp.IMPORT` / `CrudOp.EXPORT` 后额外获得两个接口（权限码后缀 `:import` / `:export`）：
+`POST {base}/import`（multipart 字段 `file`，逐行校验 + 事务批量插入）与
+`GET {base}/export`（复用 page 的查询条件导出 Excel 附件）。
+
+### 4. 方法级注解：不想整类接管时，直接标注在方法上
+
+方法体留空（`return null`），框架 AOP 自动接管执行；可与 `@QuickCrud`、手写方法自由混用：
+
+```java
+@RestController
+@RequestMapping("/product")
+public class ProductController {
+
+    @QuickSave(entity = Product.class)                          // 新增（参数为实体或 List<实体> 批量）
+    @PostMapping
+    public R<Object> save(@RequestBody Product product) { return null; }
+
+    @QuickUpdate(entity = Product.class)                        // 修改（按 ID，null 字段不更新）
+    @PutMapping
+    public R<Object> update(@RequestBody Product product) { return null; }
+
+    @QuickRemove(entity = Product.class)                        // 删除（ids 支持单个/List/逗号分隔）
+    @DeleteMapping("/{ids}")
+    public R<Object> remove(@PathVariable("ids") String ids) { return null; }
+
+    @QuickExport(entity = Product.class)                        // 导出：复用 page 查询条件，Excel 附件下载
+    @GetMapping("/export")
+    public void export(HttpServletResponse response) { }
+
+    @QuickImport(entity = Product.class, permission = "product:import")  // 导入：校验 + 事务入库
+    @PostMapping("/import")
+    public R<Object> importExcel(MultipartFile file) { return null; }
+}
+```
+
+- 权限：注解的 `permission` 为**完整权限码**（空 = 不鉴权），由统一拦截器校验
+- Excel 列名：实体字段加 FastExcel 的 `@ExcelProperty("中文名")`，未加按字段名
+- 导入策略：任一行 Bean Validation 校验失败则整体不入库（返回 400 + 行级错误明细），插入阶段同一事务
+
+### 5. 登录与权限：内置 Sa-Token（或自定义 SPI）
+
+引入 starter 后，Sa-Token 在 classpath 上且未自定义 `UserResolver`/`PermissionChecker` 时自动桥接：
+
+```java
+// 登录：直接用 Sa-Token（token 建议 sa-token.token-name 配置为 Authorization，与框架读取一致）
+StpUtil.login(user.getId());
+
+// 权限数据：实现 Sa-Token 的 StpInterface（查询你自己的 RBAC 表）
+@Component
+public class MyStpInterface implements StpInterface {
+    public List<String> getPermissionList(Object loginId, String loginType) { ... }
+    public List<String> getRoleList(Object loginId, String loginType) { ... }
+}
+```
+
+此后 `@RequiresPerm` / `@QuickCrud` 权限码 / 方法级注解 `permission` 全部走 Sa-Token 校验，
+`AuthContext.getUser()` 返回 loginId。也可完全不用 Sa-Token——自定义 SPI 覆盖：
 
 ```java
 @Component
@@ -112,12 +174,14 @@ public class MyAuthService implements UserResolver, PermissionChecker {
 
 请求头默认从 `Authorization`（兼容 `Bearer` 前缀）读取 token，也可用 `?token=xxx` 参数。
 
-### 5. 配置（全部可选）
+### 6. 配置（全部可选）
 
 ```yaml
 quick-dev:
   enabled: true            # 关闭 @QuickCrud 端点注册
   db-type: mysql           # 分页插件方言（不配则通用模式；用户已定义 MybatisPlusInterceptor 时不生效）
+  method-op:
+    enabled: true          # 方法级注解（@QuickSave 等 AOP 接管）开关
   auto-fill:
     enabled: true          # createTime/updateTime 自动填充开关
   auth:

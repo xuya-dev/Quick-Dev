@@ -1,22 +1,29 @@
 package dev.xuya.demo;
 
+import cn.idev.excel.FastExcel;
+import dev.xuya.demo.entity.Product;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
+import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 端到端流程测试：登录 -> 鉴权 -> 动态 CRUD -> 权限拦截。
+ * 端到端流程测试：登录 -> 鉴权 -> 动态 CRUD -> 方法级注解 -> Excel 导入导出。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class QuickCrudFlowTest {
@@ -194,8 +201,90 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 方法级注解：Excel 导出 / 导入
+    // ------------------------------------------------------------------
+
+    @Test
+    void exportShouldDownloadExcel() {
+        HttpHeaders headers = new HttpHeaders();
+        ResponseEntity<byte[]> resp = rest.exchange("/product/export?name=键盘", HttpMethod.GET,
+                new HttpEntity<>(headers), byte[].class);
+        assertThat(resp.getStatusCode().value()).isEqualTo(200);
+        assertThat(resp.getHeaders().getContentType().toString())
+                .contains("spreadsheetml");
+        byte[] body = resp.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.length).isGreaterThan(100);
+        assertThat(body[0]).isEqualTo((byte) 'P'); // xlsx 即 zip，魔数 PK
+        assertThat(body[1]).isEqualTo((byte) 'K');
+    }
+
+    @Test
+    void importShouldRespectPermissionAndInsertRows() {
+        // 生成两行商品的 Excel
+        Product p1 = new Product();
+        p1.setName("导入商品A");
+        p1.setPrice(new BigDecimal("11.11"));
+        p1.setStock(10);
+        Product p2 = new Product();
+        p2.setName("导入商品B");
+        p2.setPrice(new BigDecimal("22.22"));
+        p2.setStock(20);
+        byte[] excel = writeExcel(List.of(p1, p2));
+
+        // 方法级权限码 product:import：匿名 -> 401
+        ResponseEntity<Map> anonymous = upload("/product/import", excel, null);
+        assertThat(anonymous.getStatusCode().value()).isEqualTo(401);
+
+        // admin（* 权限）导入成功
+        String adminToken = login("admin", "admin123");
+        ResponseEntity<Map> imported = upload("/product/import", excel, adminToken);
+        assertThat(code(imported)).isEqualTo(200);
+        Map<String, Object> stat = data(imported);
+        assertThat(((Number) stat.get("total")).intValue()).isEqualTo(2);
+        assertThat(((Number) stat.get("inserted")).intValue()).isEqualTo(2);
+
+        // 校验失败：一行名称为空 -> 全部不入库
+        Product bad = new Product();
+        bad.setPrice(new BigDecimal("1.00"));
+        ResponseEntity<Map> rejected = upload("/product/import", writeExcel(List.of(bad)), adminToken);
+        assertThat(code(rejected)).isEqualTo(400);
+
+        // 清理导入的两行，保证其它测试的种子数据稳定
+        ResponseEntity<Map> page = call(HttpMethod.GET, "/product/page?name=导入商品&current=1&size=10", null, null);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        String ids = records.stream().map(r -> String.valueOf(r.get("id")))
+                .reduce((a, b) -> a + "," + b).orElse("");
+        if (!ids.isEmpty()) {
+            assertThat(code(call(HttpMethod.DELETE, "/product/" + ids, null, null))).isEqualTo(200);
+        }
+    }
+
+    // ------------------------------------------------------------------
     // 工具方法
     // ------------------------------------------------------------------
+
+    private ResponseEntity<Map> upload(String url, byte[] excel, String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        if (token != null) {
+            headers.set("Authorization", token);
+        }
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", new ByteArrayResource(excel) {
+            @Override
+            public String getFilename() {
+                return "products.xlsx";
+            }
+        });
+        return rest.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+    }
+
+    private byte[] writeExcel(List<Product> products) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        FastExcel.write(out, Product.class).sheet("商品").doWrite(products);
+        return out.toByteArray();
+    }
 
     private String login(String username, String password) {
         ResponseEntity<Map> resp = call(HttpMethod.POST, "/auth/login", null,
