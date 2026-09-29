@@ -4,6 +4,8 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 新增DataScope行级数据权限按可见范围自动过滤
+- ✨ Features|新功能 字段翻译新增枚举字典模式免建字典表
 - ✨ Features|新功能 新增Translate字段翻译支持字典与关联表两种模式
 - ✨ Features|新功能 新增createBy和updateBy操作人自动填充
 - ✨ Features|新功能 新增Redis可选starter支持Sa-Token缓存与防重提交原子实现

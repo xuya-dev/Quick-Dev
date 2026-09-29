@@ -394,6 +394,30 @@ class QuickCrudFlowTest {
     }
 
     // ------------------------------------------------------------------
+    // 行级数据权限（@DataScope + DataScopeResolver）
+    // ------------------------------------------------------------------
+
+    @Test
+    void dataScopeShouldFilterRowsByDepartment() {
+        // viewer（dept 2）：只能看到本部门的 admin/viewer，看不到财务部的 alice
+        String viewerToken = login("viewer", "viewer123");
+        ResponseEntity<Map> page = call(HttpMethod.GET, "/sys-user/page", viewerToken, null);
+        assertThat(code(page)).isEqualTo(200);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        assertThat(records).extracting(r -> r.get("username")).containsExactlyInAnyOrder("admin", "viewer");
+
+        // count 与分页一致
+        ResponseEntity<Map> count = call(HttpMethod.GET, "/sys-user/count", viewerToken, null);
+        assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(2);
+
+        // admin：不受数据权限限制，可看到全部
+        String adminToken = login("admin", "admin123");
+        ResponseEntity<Map> all = call(HttpMethod.GET, "/sys-user/page", adminToken, null);
+        assertThat((List<Map<String, Object>>) data(all).get("records"))
+                .extracting(r -> r.get("username")).containsExactlyInAnyOrder("admin", "viewer", "alice");
+    }
+
+    // ------------------------------------------------------------------
     // 批量新增（CrudOp.SAVE_BATCH，Db.saveBatch）
     // ------------------------------------------------------------------
 

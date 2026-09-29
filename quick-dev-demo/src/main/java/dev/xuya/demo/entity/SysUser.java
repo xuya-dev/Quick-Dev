@@ -8,14 +8,17 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import dev.xuya.core.datascope.DataScope;
 import dev.xuya.core.translate.Translate;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
 
 /**
- * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验、时间/操作人自动填充、字段翻译）
+ * 系统用户（同时演示：Long 自增主键、LIKE 模糊查询、参数校验、时间/操作人自动填充、
+ * 字段翻译、行级数据权限——普通用户只能看到本部门数据）
  */
+@DataScope(column = "dept_id")
 @TableName("sys_user")
 public class SysUser {
 
@@ -39,6 +42,9 @@ public class SysUser {
     /** 字典翻译：1 -> 启用，0 -> 停用 */
     @Translate(dict = "user_status")
     private Integer status;
+
+    /** 所属部门（数据权限按此列过滤） */
+    private Long deptId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
@@ -101,6 +107,14 @@ public class SysUser {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public Long getDeptId() {
+        return deptId;
+    }
+
+    public void setDeptId(Long deptId) {
+        this.deptId = deptId;
     }
 
     public LocalDateTime getCreateTime() {

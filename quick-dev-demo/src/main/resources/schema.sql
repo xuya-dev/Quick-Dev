@@ -13,6 +13,7 @@ create table sys_user (
     password    varchar(100),
     email       varchar(100),
     status      int          default 1,
+    dept_id     bigint,
     create_time timestamp,
     update_time timestamp,
     create_by   varchar(64),

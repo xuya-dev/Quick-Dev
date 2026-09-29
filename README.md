@@ -34,7 +34,8 @@ public class SysUserController {
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
-- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典翻译、关联表翻译），带 TTL 缓存
+- **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带 TTL 缓存
+- **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver` 返回的可见范围过滤（"只看本部门"）
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为 Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
@@ -298,6 +299,10 @@ public class OrderVO {
     @Translate(dict = "order_status")
     private Integer status;                  // 1 序列化为 "已支付"
 
+    /** 枚举翻译：枚举实现 DictEnum 接口，免建字典表 */
+    @Translate(enumClass = OrderStatus.class)
+    private Integer type;                    // 1 序列化为 "普通商品"
+
     /** 关联翻译：字段值作为目标实体主键，取其某属性 */
     @Translate(entity = SysUser.class, field = "nickname")
     private String createBy;                 // "1" 序列化为 "管理员"
@@ -307,7 +312,32 @@ public class OrderVO {
 - 翻译发生在序列化期：**零侵入**，分页/详情/导出等一切返回 JSON 的接口自动生效
 - 翻译失败（无字典、无记录、未实现 SPI）**保留原值**输出，不影响接口
 - 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、`quick-dev.translate.enabled=false` 可整体停用
-- 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）
+- 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
+
+### 行级数据权限（@DataScope）
+
+标注在实体类上，实现一个 `DataScopeResolver` 即可让所有查询类接口自动过滤行级数据：
+
+```java
+@DataScope(column = "dept_id")     // 该列按可见范围过滤
+@TableName("sys_user")
+public class SysUser { ... }
+
+@Component
+public class MyDataScopeResolver implements DataScopeResolver {
+    @Override
+    public Collection<?> visibleScope(Class<?> entityClass, String column, Object currentUser) {
+        if (isAdmin(currentUser)) {
+            return null;                       // null = 不限制
+        }
+        return deptService.deptIdsOf(currentUser); // 只看本部门（含子部门由你的查询决定）
+    }
+}
+```
+
+- 生效范围：page / list / count / tree / export（一切走查询条件的接口，方法级 `@QuickExport` 同样生效）
+- resolver 返回**空集合** = 查不到任何数据（安全默认）；未注册 resolver = 不过滤
+- 按主键的详情/删除不经过查询条件，不做行级过滤（如需严格隔离请在业务层校验）
 
 ## 运行演示应用
 

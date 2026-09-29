@@ -3,12 +3,17 @@ package dev.xuya.core.crud;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import dev.xuya.core.annotation.QueryField;
 import dev.xuya.core.annotation.QueryType;
+import dev.xuya.core.auth.AuthContext;
 import dev.xuya.core.common.ParamException;
+import dev.xuya.core.context.SpringContextHolder;
+import dev.xuya.core.datascope.DataScope;
+import dev.xuya.core.datascope.DataScopeResolver;
 import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.core.convert.ConversionService;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +27,9 @@ import java.util.Set;
  *   <li>与实体属性同名的参数生效，其余忽略；</li>
  *   <li>属性标注 {@link QueryField} 按注解类型拼接，未标注默认 EQ；</li>
  *   <li>参数值自动转换为字段类型（String -&gt; Long/Integer/LocalDateTime 等）；</li>
- *   <li>orderBy 必须是实体属性名（防注入），order=desc/asc。</li>
+ *   <li>orderBy 必须是实体属性名（防注入），order=desc/asc；</li>
+ *   <li>实体标注 {@link DataScope} 且注册了 {@link DataScopeResolver} 时，
+ *       追加行级数据权限过滤条件。</li>
  * </ul>
  */
 public final class QueryHelper {
@@ -93,7 +100,26 @@ public final class QueryHelper {
                 wrapper.orderByAsc(meta.getColumn(orderBy));
             }
         }
+
+        applyDataScope(meta, wrapper);
         return wrapper;
+    }
+
+    /** 行级数据权限：实体标注 @DataScope 且注册 DataScopeResolver 时追加可见范围条件 */
+    private static void applyDataScope(EntityMeta meta, QueryWrapper<Object> wrapper) {
+        DataScope dataScope = meta.getEntityClass().getAnnotation(DataScope.class);
+        if (dataScope == null) {
+            return;
+        }
+        DataScopeResolver resolver = SpringContextHolder.getBeanIfAvailable(DataScopeResolver.class);
+        if (resolver == null) {
+            return; // 未实现数据权限 SPI：不过滤
+        }
+        Collection<?> scope = resolver.visibleScope(
+                meta.getEntityClass(), dataScope.column(), AuthContext.getUser());
+        if (scope != null) {
+            wrapper.in(dataScope.column(), scope); // 空集合 -> 恒 false（一行都看不到）
+        }
     }
 
     private static Object convert(EntityMeta meta, Field field, String value,
