@@ -478,6 +478,37 @@ curl http://localhost:8080/product/page
 - 鉴权失败是**失败关闭**：接口声明了权限要求但没有 `UserResolver`/`PermissionChecker` 实现时，直接报配置错误而非放行
 - 框架自动配置的分页插件仅在用户未自定义 `MybatisPlusInterceptor` 时生效
 
+## 附录：配置项总表（前缀 quick-dev）
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `enabled` | `true` | @QuickCrud 动态端点注册总开关 |
+| `error-detail` | `true` | 未预期异常是否向客户端透出详情（false 返回"系统繁忙"） |
+| `db-type` | - | 分页插件方言（mysql/h2/postgresql…；用户自定义 MybatisPlusInterceptor 时不生效） |
+| `auth.enabled` | `true` | 鉴权总开关（false 时所有鉴权注解放行） |
+| `auth.token-header` | `Authorization` | token 请求头（兼容 Bearer 前缀） |
+| `auth.token-param` | `token` | 兜底 token 请求参数名 |
+| `method-op.enabled` | `true` | 方法级注解（@QuickSave 等）AOP 开关 |
+| `auto-fill.enabled` | `true` | 时间/操作人自动填充开关 |
+| `repeat-submit.enabled` | `true` | @NoRepeatSubmit 防重复提交开关 |
+| `log.enabled` | `true` | @QuickLog 操作日志开关 |
+| `translate.enabled` | `true` | @Translate 字段翻译开关 |
+| `translate.cache-seconds` | `60` | 翻译结果本地缓存秒数（0 禁用） |
+| `dict.enabled` | `true` | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效） |
+| `dict.table` | `sys_dict` | 字典表名 |
+| `dict.type-column` | `dict_type` | 字典类型列 |
+| `dict.value-column` | `dict_value` | 字典值列 |
+| `dict.label-column` | `dict_label` | 字典标签列 |
+| `dict.refresh-endpoint-enabled` | `true` | 字典缓存刷新端点开关 |
+| `dict.refresh-path` | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限） |
+| `dict.admin-endpoint-enabled` | `true` | 字典管理接口开关 |
+| `dict.admin-path` | `/quick-dev/dict` | 管理接口前缀（需 dict:manage 权限） |
+| `limits.export-max-rows` | `100000` | 单次导出行数上限（超出截断并告警） |
+| `limits.import-max-rows` | `10000` | 单次导入行数上限（超出拒绝） |
+| `limits.in-max-size` | `1000` | 单字段 IN 条件值数量上限（超出报 400） |
+
+Sa-Token 自身配置见其官方文档（`sa-token.*`，如 token-name、timeout）；Redis 连接见 `spring.data.redis.*`。
+
 ## 环境要求
 
 - JDK 17+，Spring Boot 3.3+，MyBatis-Plus 3.5.9+（分页插件构件 `mybatis-plus-jsqlparser` 已由框架传递引入）

@@ -4,6 +4,7 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 新增导出导入行数与IN条件防御上限及异常详情开关
 - ✨ Features|新功能 新增内置字典管理接口写后自动刷新缓存
 - ✨ Features|新功能 导出支持translate翻译为中文标签与导入反解闭环
 - ✨ Features|新功能 字典改为全量内存缓存并提供带权限的刷新接口
@@ -24,3 +25,6 @@
 - ✨ Features|新功能 新增count统计接口与BETWEEN范围查询
 - ✨ Features|新功能 新增createTime和updateTime自动填充
 - ✨ Features|新功能 初始化quick-dev快速开发框架starter
+- 🐛 Bug Fixes|Bug 修复 loginRequired为true且无权限码的Crud端点未要求登录
+- ✅ Tests|测试 补充TreeBuilder与QuickMethodOps单元测试
+- 🔧 Chores|杂务 新增GitHub Actions CI与release发布profile
