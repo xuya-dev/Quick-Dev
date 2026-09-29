@@ -31,6 +31,9 @@ class QuickCrudFlowTest {
     @Autowired
     private TestRestTemplate rest;
 
+    @Autowired
+    private dev.xuya.demo.log.MemoryLogSink memoryLogSink;
+
     // ------------------------------------------------------------------
     // 匿名访问
     // ------------------------------------------------------------------
@@ -333,6 +336,27 @@ class QuickCrudFlowTest {
         assertThat(second.getStatusCode().value()).isEqualTo(200);
         assertThat(code(second)).isEqualTo(400);
         assertThat((String) second.getBody().get("msg")).contains("重复提交");
+    }
+
+    // ------------------------------------------------------------------
+    // 操作日志（@QuickLog -> OperationLogSink）
+    // ------------------------------------------------------------------
+
+    @Test
+    void quickLogShouldRecordOperation() {
+        String token = login("admin", "admin123");
+        ResponseEntity<Map> resp = call(HttpMethod.GET, "/hello", token, null);
+        assertThat(code(resp)).isEqualTo(200);
+
+        dev.xuya.core.log.LogRecord record = memoryLogSink.lastRecord();
+        assertThat(record).isNotNull();
+        assertThat(record.getModule()).isEqualTo("演示");
+        assertThat(record.getDescription()).isEqualTo("打招呼");
+        assertThat(record.getUri()).isEqualTo("/hello");
+        assertThat(String.valueOf(record.getOperator())).isEqualTo("1"); // Sa-Token loginId
+        assertThat(record.isSuccess()).isTrue();
+        assertThat(record.getResultCode()).isEqualTo(200);
+        assertThat(record.getCostMs()).isGreaterThanOrEqualTo(0);
     }
 
     // ------------------------------------------------------------------

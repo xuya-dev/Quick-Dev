@@ -4,6 +4,7 @@ import dev.xuya.core.auth.NoRepeatSubmit;
 import dev.xuya.core.auth.RequiresPerm;
 import dev.xuya.core.auth.RequiresRole;
 import dev.xuya.core.common.R;
+import dev.xuya.core.log.QuickLog;
 import dev.xuya.demo.auth.DbAuthService;
 import dev.xuya.demo.entity.SysUser;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +25,7 @@ public class HelloController {
         this.authService = authService;
     }
 
+    @QuickLog(module = "演示", description = "打招呼")
     @RequiresPerm("demo:hello")
     @GetMapping("/hello")
     public R<Object> hello() {

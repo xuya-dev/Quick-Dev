@@ -32,6 +32,21 @@ public class QuickDevProperties {
     private final AutoFill autoFill = new AutoFill();
     private final MethodOp methodOp = new MethodOp();
     private final RepeatSubmit repeatSubmit = new RepeatSubmit();
+    private final OperationLog log = new OperationLog();
+
+    public static class OperationLog {
+
+        /** 是否启用 @QuickLog 操作日志切面 */
+        private boolean enabled = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
 
     public static class RepeatSubmit {
 
@@ -141,5 +156,9 @@ public class QuickDevProperties {
 
     public RepeatSubmit getRepeatSubmit() {
         return repeatSubmit;
+    }
+
+    public OperationLog getLog() {
+        return log;
     }
 }

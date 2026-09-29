@@ -22,7 +22,7 @@ public class SysUserController {
 | PUT | `/sys-user` | `sys:user:edit` | 修改（按 ID，null 字段不更新） |
 | DELETE | `/sys-user/{ids}` | `sys:user:remove` | 删除，`ids` 逗号分隔支持批量 |
 
-可选开启（加入 `includes`）：`POST {base}/import` Excel 导入（`:import`）、`GET {base}/export` Excel 导出（`:export`）、`GET {base}/import-template` 下载导入模板（`:import`）。
+可选开启（加入 `includes`）：`POST {base}/import` Excel 导入（`:import`）、`GET {base}/export` Excel 导出（`:export`）、`GET {base}/import-template` 下载导入模板（`:import`）、`GET {base}/tree` 树形查询（`:list`，实体需声明 `parentId` 与 `children` 字段，children 标注 `@TableField(exist = false)`，parentId 为 null 或 0 视为根）。
 
 ## 特性
 
@@ -34,6 +34,9 @@ public class SysUserController {
 - **可替换权限实现**：内置 Sa-Token 之外，也可自定义 `UserResolver`（token→用户）与 `PermissionChecker`（用户→权限码）SPI 对接任意体系
 - **声明式查询条件**：实体字段标注 `@QueryField(LIKE/GT/IN/BETWEEN/...)`，同名请求参数自动变查询条件并做类型转换
 - **时间字段自动填充**：`createTime`/`updateTime` 新增/修改时自动填充（字段加 `@TableField(fill = ...)` 即可，见下文）
+- **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
+- **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
+- **操作日志**：`@QuickLog` 记录操作人/入参/结果/耗时，`OperationLogSink` SPI 异步落库即可
 - **统一响应与异常**：`R<T>` 结构 + 全局异常处理（未登录 401、无权限 403、参数/校验错误 400）
 - MyBatis-Plus 既有能力全部可用：逻辑删除、乐观锁、多租户、`@TableName` 映射等
 
@@ -189,6 +192,10 @@ quick-dev:
     enabled: true          # 方法级注解（@QuickSave 等 AOP 接管）开关
   auto-fill:
     enabled: true          # createTime/updateTime 自动填充开关
+  repeat-submit:
+    enabled: true          # @NoRepeatSubmit 防重复提交开关
+  log:
+    enabled: true          # @QuickLog 操作日志开关
   auth:
     enabled: true          # 鉴权总开关
     token-header: Authorization
@@ -232,6 +239,23 @@ public class ReportController {
 ```
 
 > 角色数据来源与权限一致：Sa-Token 模式下实现 `StpInterface.getRoleList`；自定义模式下实现 `RoleChecker` Bean。
+
+### 防重复提交 / 操作日志
+
+```java
+@NoRepeatSubmit(interval = 2000)                 // 同一用户 2 秒内重复请求 -> 400
+@PostMapping("/order")
+public R<Object> create(@RequestBody Order order) { ... }
+
+@QuickLog(module = "订单管理", description = "创建订单")   // 审计日志
+@NoRepeatSubmit(interval = 2000)
+@PostMapping("/order")
+public R<Object> create(@RequestBody Order order) { ... }
+```
+
+`@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
+结果码、是否成功、异常信息、耗时。落地由 `OperationLogSink` SPI 决定（实现 Bean 即接管，
+默认输出到 Slf4g logger `quick-dev.operation-log`；生产建议异步写库）。
 
 ## 运行演示应用
 

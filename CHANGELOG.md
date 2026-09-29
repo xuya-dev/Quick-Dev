@@ -4,6 +4,9 @@
 
 ## 0.1.0 (2026-09-29)
 
+- ✨ Features|新功能 新增QuickLog操作日志注解与OperationLogSink扩展
+- ✨ Features|新功能 新增NoRepeatSubmit防重复提交注解
+- ✨ Features|新功能 新增TREE树形查询接口并修复非表字段参与查询条件
 - ✨ Features|新功能 新增saveBatch批量新增与导入模板下载接口
 - ✨ Features|新功能 新增RequiresRole角色注解与Sa-Token角色桥接
 - ✨ Features|新功能 新增QuickSave等五个方法级注解与Excel导入导出

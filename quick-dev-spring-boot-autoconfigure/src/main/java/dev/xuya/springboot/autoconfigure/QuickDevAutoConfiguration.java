@@ -3,10 +3,14 @@ package dev.xuya.springboot.autoconfigure;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.auth.AuthInterceptor;
 import dev.xuya.core.auth.AuthSettings;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
+import dev.xuya.core.log.OperationLogSink;
+import dev.xuya.core.log.QuickLogAspect;
+import dev.xuya.core.log.Slf4jOperationLogSink;
 import dev.xuya.core.methodop.QuickOpAspect;
 import dev.xuya.core.web.GlobalExceptionHandler;
 import dev.xuya.core.web.RepeatSubmitInterceptor;
@@ -59,6 +63,23 @@ public class QuickDevAutoConfiguration {
             havingValue = "true", matchIfMissing = true)
     public QuickOpAspect quickOpAspect(ApplicationContext applicationContext) {
         return new QuickOpAspect(applicationContext);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(OperationLogSink.class)
+    public OperationLogSink quickDevSlf4jOperationLogSink() {
+        return new Slf4jOperationLogSink();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnClass(name = "org.aspectj.lang.annotation.Aspect")
+    @ConditionalOnProperty(prefix = "quick-dev.log", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public QuickLogAspect quickLogAspect(OperationLogSink sink, ApplicationContext applicationContext) {
+        ObjectMapper objectMapper = applicationContext.getBeanProvider(ObjectMapper.class)
+                .getIfAvailable(ObjectMapper::new);
+        return new QuickLogAspect(sink, objectMapper);
     }
 
     @Bean
