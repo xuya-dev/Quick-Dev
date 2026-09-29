@@ -11,6 +11,8 @@ public enum CrudOp {
     PAGE("page", "/page", RequestMethod.GET, "list"),
     /** GET {base}/list 列表查询（不分页） */
     LIST("list", "/list", RequestMethod.GET, "list"),
+    /** GET {base}/count 按条件统计数量 */
+    COUNT("count", "/count", RequestMethod.GET, "list"),
     /** GET {base}/{id} 详情 */
     DETAIL("detail", "/{id}", RequestMethod.GET, "detail"),
     /** POST {base} 新增 */

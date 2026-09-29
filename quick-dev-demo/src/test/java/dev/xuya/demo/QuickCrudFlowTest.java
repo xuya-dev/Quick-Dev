@@ -61,6 +61,11 @@ class QuickCrudFlowTest {
         assertThat(records.get(0).get("username")).isEqualTo("admin");
         assertThat((String) records.get(0).get("password")).isNull(); // @JsonIgnore 生效
 
+        // 统计接口（与分页共用同一套查询条件）
+        ResponseEntity<Map> count = call(HttpMethod.GET, "/sys-user/count?username=ad", token, null);
+        assertThat(code(count)).isEqualTo(200);
+        assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(1);
+
         // 新增
         ResponseEntity<Map> save = call(HttpMethod.POST, "/sys-user", token,
                 Map.of("username", "tester01", "nickname", "测试用户", "email", "tester01@quickdev.cn", "status", 1));
@@ -168,6 +173,18 @@ class QuickCrudFlowTest {
                 Map.of("id", id, "name", "testbook-v2")))).isEqualTo(200);
         assertThat(data(call(HttpMethod.GET, "/product/" + id, null, null)).get("name")).isEqualTo("testbook-v2");
         assertThat(code(call(HttpMethod.DELETE, "/product/" + id, null, null))).isEqualTo(200);
+
+        // BETWEEN 范围查询 + COUNT 统计（删除 testbook 后剩两粒今年创建的种子数据）
+        int year = java.time.Year.now().getValue();
+        String createTimeRange = (year - 1) + "-01-01T00:00:00," + year + "-12-31T23:59:59";
+        ResponseEntity<Map> range = call(HttpMethod.GET,
+                "/product/page?createTime=" + createTimeRange, null, null);
+        assertThat(code(range)).isEqualTo(200);
+        assertThat((List<Map<String, Object>>) data(range).get("records")).hasSize(2);
+        ResponseEntity<Map> count = call(HttpMethod.GET,
+                "/product/count?createTime=" + createTimeRange, null, null);
+        assertThat(code(count)).isEqualTo(200);
+        assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(2);
 
         // CrudOp.LIST 被排除：/product/list 未注册为列表接口，
         // 请求落入 GET /product/{id}（id="list"，记录不存在）-> body code 404

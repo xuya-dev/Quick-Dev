@@ -29,6 +29,7 @@ public class Product {
     @QueryField(QueryType.GE)
     private Integer stock;
 
+    @QueryField(QueryType.BETWEEN)
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

@@ -68,6 +68,15 @@ public final class QueryHelper {
                         wrapper.in(column, values);
                     }
                 }
+                case BETWEEN -> {
+                    String[] range = value.split(",", -1);
+                    if (range.length != 2 || range[0].isBlank() || range[1].isBlank()) {
+                        throw new ParamException("参数 " + name + " 的 BETWEEN 值必须为 \"起始值,结束值\"");
+                    }
+                    wrapper.between(column,
+                            convert(meta, field, range[0].trim(), conversionService, name),
+                            convert(meta, field, range[1].trim(), conversionService, name));
+                }
                 default -> wrapper.eq(column, value);
             }
         }

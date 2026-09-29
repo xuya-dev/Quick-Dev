@@ -21,5 +21,7 @@ public enum QueryType {
     /** 小于等于 &lt;= */
     LE,
     /** 包含 IN (v1,v2,...)，参数值用英文逗号分隔 */
-    IN
+    IN,
+    /** 闭区间 BETWEEN v1 AND v2，参数值为 v1,v2（英文逗号分隔，常用于时间范围） */
+    BETWEEN
 }

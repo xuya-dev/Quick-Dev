@@ -9,12 +9,13 @@ public class SysUserController {
 }
 ```
 
-启动后自动注册 6 个接口：
+启动后自动注册 7 个接口：
 
 | 方法 | 路径 | 权限码 | 说明 |
 |---|---|---|---|
 | GET | `/sys-user/page` | `sys:user:list` | 分页查询（current/size + 动态条件 + 排序） |
 | GET | `/sys-user/list` | `sys:user:list` | 列表查询（不分页） |
+| GET | `/sys-user/count` | `sys:user:list` | 按条件统计数量 |
 | GET | `/sys-user/{id}` | `sys:user:detail` | 详情 |
 | POST | `/sys-user` | `sys:user:add` | 新增（支持 Bean Validation 校验） |
 | PUT | `/sys-user` | `sys:user:edit` | 修改（按 ID，null 字段不更新） |
@@ -66,8 +67,9 @@ public class SysUser {
     private String nickname;                    // ?nickname=张 -> LIKE '%张%'
     @QueryField(QueryType.IN)
     private Integer type;                       // ?type=1,2 -> IN (1,2)
+    @QueryField(QueryType.BETWEEN)
     @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;           // 新增时自动填充；?createTime=2026-01-01T00:00:00 自动转类型
+    private LocalDateTime createTime;           // ?createTime=2026-01-01T00:00:00,2026-12-31T23:59:59 -> BETWEEN；新增时自动填充
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;           // 新增/修改时自动填充
     // getter/setter 略

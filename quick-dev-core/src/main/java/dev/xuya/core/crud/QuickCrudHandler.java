@@ -73,6 +73,7 @@ public class QuickCrudHandler {
         return switch (op) {
             case PAGE -> QuickCrudHandler.class.getMethod("page", Map.class);
             case LIST -> QuickCrudHandler.class.getMethod("list", Map.class);
+            case COUNT -> QuickCrudHandler.class.getMethod("count", Map.class);
             case DETAIL -> QuickCrudHandler.class.getMethod("detail", String.class);
             case SAVE -> QuickCrudHandler.class.getMethod("save", String.class);
             case UPDATE -> QuickCrudHandler.class.getMethod("update", String.class);
@@ -95,6 +96,13 @@ public class QuickCrudHandler {
     // ---------------------------------------------------------------------
     public R<Object> list(@RequestParam Map<String, String> params) {
         return R.ok(mapper.selectList(QueryHelper.build(meta, params, conversionService)));
+    }
+
+    // ---------------------------------------------------------------------
+    // 按条件统计数量：GET {base}/count?status=1
+    // ---------------------------------------------------------------------
+    public R<Object> count(@RequestParam Map<String, String> params) {
+        return R.ok(mapper.selectCount(QueryHelper.build(meta, params, conversionService)));
     }
 
     // ---------------------------------------------------------------------
