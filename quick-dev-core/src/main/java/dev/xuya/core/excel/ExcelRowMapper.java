@@ -23,7 +23,7 @@ import java.util.Map;
  * <p>为什么要绕开 FastExcel 的实体直读：用户在字典/状态列填的是中文标签，
  * 直接读 Integer 字段会在转换阶段报错；先反解为原始值再转换才能成功。</p>
  */
-public class ExcelRowMapper {
+public final class ExcelRowMapper {
 
     private final Map<Integer, Field> columns = new LinkedHashMap<>();
     private final ConversionService conversionService = new DefaultFormattingConversionService();

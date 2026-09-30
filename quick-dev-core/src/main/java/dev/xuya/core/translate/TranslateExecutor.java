@@ -27,6 +27,11 @@ public class TranslateExecutor {
     private static final Logger log = LoggerFactory.getLogger(TranslateExecutor.class);
 
     private static final int CACHE_LIMIT = 8192;
+    /** 缓存 key 前缀：枚举 / 字典 / 关联三种模式 */
+    private static final String KEY_ENUM = "enum:";
+    private static final String KEY_DICT = "dict:";
+    private static final String KEY_REF = "ref:";
+    private static final String KEY_REVERSE = "rev:";
     private static volatile TranslateExecutor instance;
 
     private final boolean enabled;
@@ -145,7 +150,7 @@ public class TranslateExecutor {
         }
         try {
             // 缓存值统一字符串化即可，调用方（Excel 导入）随后会做字段类型转换
-            String cacheKey = "rev:" + cacheKey(annotation, label);
+            String cacheKey = KEY_REVERSE + cacheKey(annotation, label);
             CacheEntry cached = cache.get(cacheKey);
             long now = System.currentTimeMillis();
             if (cached != null && (cacheMillis <= 0 || now - cached.at < cacheMillis)) {
@@ -270,12 +275,12 @@ public class TranslateExecutor {
 
     private String cacheKey(Translate annotation, Object value) {
         if (annotation.enumClass() != Void.class) {
-            return "enum:" + annotation.enumClass().getName() + ':' + value;
+            return KEY_ENUM + annotation.enumClass().getName() + ':' + value;
         }
         if (!annotation.dict().isEmpty()) {
-            return "dict:" + annotation.dict() + ':' + value;
+            return KEY_DICT + annotation.dict() + ':' + value;
         }
-        return "ref:" + annotation.entity().getName() + ':' + annotation.field() + ':' + value;
+        return KEY_REF + annotation.entity().getName() + ':' + annotation.field() + ':' + value;
     }
 
     private record CacheEntry(String value, long at) {

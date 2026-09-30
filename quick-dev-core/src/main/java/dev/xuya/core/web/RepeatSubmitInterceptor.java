@@ -18,6 +18,9 @@ import org.springframework.web.servlet.HandlerInterceptor;
  */
 public class RepeatSubmitInterceptor implements HandlerInterceptor {
 
+    /** 防重指纹 key 前缀 */
+    public static final String REPEAT_KEY_PREFIX = "quick-dev:repeat:";
+
     private final RepeatSubmitStore store;
 
     public RepeatSubmitInterceptor(RepeatSubmitStore store) {
@@ -38,7 +41,7 @@ public class RepeatSubmitInterceptor implements HandlerInterceptor {
         }
 
         String key = identity(request) + ":" + request.getMethod() + ":" + request.getRequestURI();
-        if (!store.tryAcquire("quick-dev:repeat:" + key, annotation.interval())) {
+        if (!store.tryAcquire(REPEAT_KEY_PREFIX + key, annotation.interval())) {
             throw new ParamException("操作过于频繁，请勿重复提交");
         }
         return true;
