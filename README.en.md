@@ -133,7 +133,7 @@ quick-dev
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 
@@ -436,7 +436,7 @@ Generate the Quick Dev trio (entity/mapper/@QuickCrud controller) from database 
 zero dependencies, pure JDK:
 
 ```bash
-java -cp quick-dev-codegen-0.4.0.jar dev.xuya.codegen.CodeGenerator \
+java -cp quick-dev-codegen-0.5.0.jar dev.xuya.codegen.CodeGenerator \
   --url=jdbc:mysql://localhost:3306/demo --user=root --password=root \
   --table=t_order --package=com.example.order --out=src/main/java
 ```
@@ -468,7 +468,7 @@ descriptions; method-annotation endpoints carry `[QuickSave]`-style markers.
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 ```
 

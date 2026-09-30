@@ -106,11 +106,11 @@ CI 发布流程内置了防呆护栏：
 
 ```bash
 # CI 发布路径下 tag 已自动打好；本地手动发布才需要：
-git tag v0.4.0 && git push origin v0.4.0     # 打版本标签
+git tag v0.5.0 && git push origin v0.5.0     # 打版本标签
 ```
 
 再在 GitHub 上基于 tag 创建 Release 并附 CHANGELOG 说明。
-下一个版本开发时把全部 7 个 POM（父 + 6 个模块）的 `<version>` 一起升级（如 0.5.0）。
+下一个版本开发时把全部 7 个 POM（父 + 6 个模块）的 `<version>` 一起升级（如 0.6.0）。
 
 ## 7. 常见问题
 

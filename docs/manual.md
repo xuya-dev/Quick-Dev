@@ -1,6 +1,6 @@
 # Quick Dev 完整使用手册
 
-> 版本：0.4.0 · 适用于 Spring Boot 3.5.x / JDK 17+
+> 版本：0.5.0 · 适用于 Spring Boot 3.5.x / JDK 17+
 > 本手册是框架的**完整**使用说明：从安装到每个注解、每个配置、每条边界约定。
 > 快速入门可先读 [README](../README.md)；本手册覆盖全部细节。
 
@@ -49,13 +49,13 @@ Quick Dev 解决一个问题：**在 Controller 上贴一个注解，获得一�
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 <!-- 可选：Redis 支持 -->
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 </dependency>
 <!-- 自备数据库驱动，如 mysql-connector-j / h2 -->
 ```
