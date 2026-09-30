@@ -19,6 +19,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.Year;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -519,7 +520,7 @@ class QuickCrudFlowTest {
     }
 
     private byte[] oversizedProductExcel(int rows) {
-        List<List<Object>> data = new java.util.ArrayList<>();
+        List<List<Object>> data = new ArrayList<>();
         for (int i = 1; i <= rows; i++) {
             data.add(Arrays.asList("超限" + i, 1.0 * i, i));
         }

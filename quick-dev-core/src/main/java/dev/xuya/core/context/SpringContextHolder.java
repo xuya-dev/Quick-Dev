@@ -5,6 +5,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ApplicationContextException;
 
+import java.util.stream.Stream;
+
 /**
  * Spring 容器静态持有器：供 Jackson 序列化器等非 Spring 管理的组件获取 Bean。
  * 由自动配置注册；未初始化时 getBean 抛出明确异常。
@@ -34,9 +36,9 @@ public class SpringContextHolder implements ApplicationContextAware {
      * 按 @Order 顺序返回某类型全部 Bean 的流（无 Bean 时为空流）。
      * 供 SPI 的"多实现链式取第一个非 null"场景使用（如 {@code TranslateSource}）。
      */
-    public static <T> java.util.stream.Stream<T> getBeansOrdered(Class<T> type) {
+    public static <T> Stream<T> getBeansOrdered(Class<T> type) {
         ApplicationContext ctx = context;
-        return ctx == null ? java.util.stream.Stream.empty() : ctx.getBeanProvider(type).orderedStream();
+        return ctx == null ? Stream.empty() : ctx.getBeanProvider(type).orderedStream();
     }
 
     @Override

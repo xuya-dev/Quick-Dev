@@ -5,6 +5,8 @@ import dev.xuya.core.crud.QuickCrudHandler;
 import dev.xuya.core.methodop.QuickMethodOps;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.web.method.HandlerMethod;
@@ -178,7 +180,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                     roleChecker = applicationContext.getBeanProvider(RoleChecker.class).getIfAvailable();
                     if (userResolver == null && !warned) {
                         warned = true;
-                        org.slf4j.LoggerFactory.getLogger(AuthInterceptor.class)
+                        LoggerFactory.getLogger(AuthInterceptor.class)
                                 .warn("未找到 UserResolver 实现，鉴权注解将无法工作");
                     }
                     resolved = true;

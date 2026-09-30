@@ -1,7 +1,10 @@
 package dev.xuya.codegen;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.util.*;
 
@@ -46,7 +49,7 @@ public final class CodeGenerator {
         String table = required(params, "table");
         String packageName = required(params, "package");
         String out = params.getOrDefault("out", "");
-        try (Connection connection = java.sql.DriverManager.getConnection(
+        try (Connection connection = DriverManager.getConnection(
                 url, params.getOrDefault("user", ""), params.getOrDefault("password", ""))) {
             GenerateResult result = generate(connection, table, packageName, params.getOrDefault("author", "quick-dev"));
             if (out.isEmpty()) {
@@ -54,7 +57,7 @@ public final class CodeGenerator {
                 System.out.println(result.mapperSource());
                 System.out.println(result.controllerSource());
             } else {
-                java.nio.file.Path base = java.nio.file.Path.of(out);
+                Path base = Path.of(out);
                 writeFiles(result, base);
                 System.out.println("生成完成 -> " + base.toAbsolutePath());
             }
@@ -84,13 +87,13 @@ public final class CodeGenerator {
     /**
      * 按包路径写出三个源码文件
      */
-    public static void writeFiles(GenerateResult result, java.nio.file.Path sourceRoot) throws Exception {
+    public static void writeFiles(GenerateResult result, Path sourceRoot) throws Exception {
         String packagePath = packageOf(result.entitySource());
-        java.nio.file.Path dir = sourceRoot.resolve(packagePath.replace('.', '/'));
-        java.nio.file.Files.createDirectories(dir);
-        java.nio.file.Files.writeString(dir.resolve(result.entityClassName() + ".java"), result.entitySource());
-        java.nio.file.Files.writeString(dir.resolve(result.mapperClassName() + ".java"), result.mapperSource());
-        java.nio.file.Files.writeString(dir.resolve(result.controllerClassName() + ".java"), result.controllerSource());
+        Path dir = sourceRoot.resolve(packagePath.replace('.', '/'));
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve(result.entityClassName() + ".java"), result.entitySource());
+        Files.writeString(dir.resolve(result.mapperClassName() + ".java"), result.mapperSource());
+        Files.writeString(dir.resolve(result.controllerClassName() + ".java"), result.controllerSource());
     }
 
     private static List<ColumnMeta> readColumns(Connection connection, String tableName) throws Exception {
@@ -258,7 +261,7 @@ public final class CodeGenerator {
     }
 
     private static Map<String, String> parseArgs(String[] args) {
-        Map<String, String> params = new java.util.HashMap<>();
+        Map<String, String> params = new HashMap<>();
         for (String arg : args) {
             int eq = arg.indexOf('=');
             if (arg.startsWith("--") && eq > 0) {

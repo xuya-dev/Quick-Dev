@@ -1,6 +1,7 @@
 package dev.xuya.core.excel;
 
 import cn.idev.excel.FastExcel;
+import cn.idev.excel.annotation.ExcelProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.QuickDevLimits;
 import org.junit.jupiter.api.AfterEach;
@@ -110,7 +111,7 @@ class ExcelSupportTest {
 
     public static class SampleRow {
 
-        @cn.idev.excel.annotation.ExcelProperty("名称")
+        @ExcelProperty("名称")
         private final String name;
 
         private final Integer score;

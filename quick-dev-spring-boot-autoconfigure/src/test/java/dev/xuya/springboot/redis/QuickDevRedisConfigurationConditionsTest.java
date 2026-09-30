@@ -5,6 +5,7 @@ import dev.xuya.core.web.RepeatSubmitInterceptor;
 import dev.xuya.core.web.RepeatSubmitStore;
 import dev.xuya.springboot.autoconfigure.QuickDevAutoConfiguration;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -27,7 +28,7 @@ class QuickDevRedisConfigurationConditionsTest {
     @Test
     void withRedisTemplateShouldBindRedisStoreToInterceptor() {
         runner.withBean("redisTemplate", StringRedisTemplate.class,
-                        () -> org.mockito.Mockito.mock(StringRedisTemplate.class, org.mockito.Mockito.RETURNS_MOCKS))
+                        () -> Mockito.mock(StringRedisTemplate.class, Mockito.RETURNS_MOCKS))
                 .run(context -> {
                     assertThat(context).hasSingleBean(RepeatSubmitStore.class);
                     assertThat(context.getBean(RepeatSubmitStore.class)).isInstanceOf(RedisRepeatSubmitStore.class);
@@ -55,7 +56,7 @@ class QuickDevRedisConfigurationConditionsTest {
     @Test
     void repeatSubmitDisabledShouldSkipStoreEvenWithRedis() {
         runner.withBean("redisTemplate", StringRedisTemplate.class,
-                        () -> org.mockito.Mockito.mock(StringRedisTemplate.class))
+                        () -> Mockito.mock(StringRedisTemplate.class))
                 .withPropertyValues("quick-dev.repeat-submit.enabled=false")
                 .run(context -> assertThat(context).doesNotHaveBean(RepeatSubmitStore.class));
     }
@@ -63,7 +64,7 @@ class QuickDevRedisConfigurationConditionsTest {
     @Test
     void userStoreShouldAlwaysWinOverRedis() {
         runner.withBean("redisTemplate", StringRedisTemplate.class,
-                        () -> org.mockito.Mockito.mock(StringRedisTemplate.class))
+                        () -> Mockito.mock(StringRedisTemplate.class))
                 .withBean("myStore", RepeatSubmitStore.class, () -> (key, interval) -> true)
                 .run(context -> {
                     assertThat(context.getBean(RepeatSubmitStore.class))

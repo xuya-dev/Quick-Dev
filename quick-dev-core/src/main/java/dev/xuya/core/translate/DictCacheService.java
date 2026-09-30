@@ -7,6 +7,9 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 字典内存缓存：全量加载字典表构建双向索引，翻译/反解全部走内存，不查库。
@@ -26,7 +29,7 @@ public class DictCacheService {
     private final DictLoader loader;
 
     private volatile Snapshot snapshot;
-    private volatile java.util.concurrent.ScheduledExecutorService autoRefreshScheduler;
+    private volatile ScheduledExecutorService autoRefreshScheduler;
 
     /**
      * 数据来源为用户自定义 {@link DictLoader}（远程服务/配置中心/自有表）；null 表示仅靠导入端点上传数据
@@ -46,13 +49,13 @@ public class DictCacheService {
             if (autoRefreshScheduler != null) {
                 return;
             }
-            autoRefreshScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
+            autoRefreshScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread thread = new Thread(r, "quick-dev-dict-refresh");
                 thread.setDaemon(true);
                 return thread;
             });
             autoRefreshScheduler.scheduleWithFixedDelay(this::refreshQuietly,
-                    intervalSeconds, intervalSeconds, java.util.concurrent.TimeUnit.SECONDS);
+                intervalSeconds, intervalSeconds, TimeUnit.SECONDS);
             log.info("字典定时刷新已启用，间隔 {} 秒", intervalSeconds);
         }
     }
@@ -72,7 +75,7 @@ public class DictCacheService {
      * @PreDestroy 等价清理（本类非必然为 Spring Bean，公共方法供装配方调用）
      */
     public void shutdown() {
-        java.util.concurrent.ScheduledExecutorService scheduler = this.autoRefreshScheduler;
+        ScheduledExecutorService scheduler = this.autoRefreshScheduler;
         if (scheduler != null) {
             scheduler.shutdownNow();
         }

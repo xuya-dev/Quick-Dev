@@ -11,6 +11,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 实体元信息：主键字段、属性与列名的映射。
@@ -24,8 +25,7 @@ public class EntityMeta {
      * 每请求都会取用，而构建需要全字段反射扫描 + setAccessible，开销不可忽略。
      * 元信息在运行期不可变，进程级缓存是安全的。
      */
-    private static final java.util.concurrent.ConcurrentHashMap<Class<?>, EntityMeta> CACHE =
-            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Class<?>, EntityMeta> CACHE = new ConcurrentHashMap<>();
 
     private final Class<?> entityClass;
     private final Field idField;

@@ -2,6 +2,7 @@ package dev.xuya.core.crud;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import jakarta.validation.constraints.Size;
@@ -196,7 +197,7 @@ class QuickCrudHandlerHookTest {
         assertThat(noTx.save("{\"name\":\"a\"}").getCode()).isEqualTo(200);
     }
 
-    @com.baomidou.mybatisplus.annotation.TableName("sample_entity")
+    @TableName("sample_entity")
     static class SampleEntity {
         @TableId(type = IdType.AUTO)
         private Long id;

@@ -4,6 +4,8 @@ import dev.xuya.core.crud.QuickCrudHandler;
 import dev.xuya.core.methodop.*;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.PathItem;
+import io.swagger.v3.oas.models.Paths;
+import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
@@ -14,6 +16,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.lang.reflect.Method;
@@ -64,16 +67,16 @@ public class QuickDevSpringdocConfiguration {
     private static List<Parameter> queryParameters() {
         return List.of(
                 new Parameter().in("query").name("current").description("页码，默认 1").schema(numSchema()),
-                new Parameter().in("query").name("size").description("每页条数，默认 10，上限 1000").schema(numSchema()),
+                new Parameter().in("query").name("size").description("每页条数，默认 10，上限为 limits.query-max-rows（默认 1000）").schema(numSchema()),
                 new Parameter().in("query").name("orderBy").description("排序字段（实体属性名）"),
                 new Parameter().in("query").name("order").description("asc / desc"));
     }
 
-    private static io.swagger.v3.oas.models.media.NumberSchema numSchema() {
-        return new io.swagger.v3.oas.models.media.NumberSchema();
+    private static NumberSchema numSchema() {
+        return new NumberSchema();
     }
 
-    private static String resolvePath(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
+    private static String resolvePath(RequestMappingInfo info) {
         if (info.getPathPatternsCondition() != null) {
             return info.getPathPatternsCondition().getPatternValues().stream().findFirst().orElse(null);
         }
@@ -83,7 +86,7 @@ public class QuickDevSpringdocConfiguration {
         return null;
     }
 
-    private static RequestMethod firstMethod(org.springframework.web.servlet.mvc.method.RequestMappingInfo info) {
+    private static RequestMethod firstMethod(RequestMappingInfo info) {
         Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
         return methods.isEmpty() ? RequestMethod.GET : methods.iterator().next();
     }
@@ -95,7 +98,7 @@ public class QuickDevSpringdocConfiguration {
     public OpenApiCustomizer quickCrudOpenApiCustomizer(RequestMappingHandlerMapping handlerMapping) {
         return openApi -> {
             if (openApi.getPaths() == null) {
-                openApi.setPaths(new io.swagger.v3.oas.models.Paths());
+                openApi.setPaths(new Paths());
             }
             handlerMapping.getHandlerMethods().forEach((info, handlerMethod) -> {
                 if (!(handlerMethod.getBean() instanceof QuickCrudHandler)) {

@@ -1,9 +1,11 @@
 package dev.xuya.core.translate;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.BeanDescription;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.PropertyMetadata;
 import com.fasterxml.jackson.databind.PropertyName;
 import com.fasterxml.jackson.databind.SerializationConfig;
@@ -31,7 +33,7 @@ import java.util.List;
  *
  * <p>REPLACE 模式不经本模块（仍是注解序列化器直接替换，保持 0.1.x 行为）。</p>
  */
-public class TranslateAppendModule extends com.fasterxml.jackson.databind.Module {
+public class TranslateAppendModule extends Module {
 
     private static final Logger log = LoggerFactory.getLogger(TranslateAppendModule.class);
 
@@ -110,7 +112,7 @@ public class TranslateAppendModule extends com.fasterxml.jackson.databind.Module
         }
 
         @Override
-        protected Object value(Object bean, com.fasterxml.jackson.core.JsonGenerator gen,
+        protected Object value(Object bean, JsonGenerator gen,
                                SerializerProvider prov) throws Exception {
             TranslateExecutor executor = TranslateExecutor.getInstance();
             if (executor == null) {

@@ -82,7 +82,7 @@ PAGE/LIST/COUNT/DETAIL/SAVE/SAVE_BATCH/SAVE_OR_UPDATE/UPDATE/REMOVE；IMPORT/EXP
 | `PermissionChecker`             | `boolean hasPermission(Object user, String code)`               | 自定义权限判定                         | 同上                                                     |
 | `RoleChecker`                   | `boolean hasRole(Object user, String role)`                     | 自定义角色判定                         | 同上                                                     |
 | `CrudHook`                      | `entityType()` + beforeSave/afterSave/beforeUpdate/afterUpdate/beforeRemove/afterRemove（default 空实现） | 写流程聚合逻辑（多表绑定/缓存刷新） | 无钩子行为 |
-| `DictResolver` | `String resolve(String dictType, Object value)` | 字典正向（值→标签） | DictCacheProvider（数据来自 DictLoader） |
+| `DictResolver` | `String resolve(String dictType, Object value)` | 字典正向（值→标签） | DictCacheForwardResolver（数据来自 DictLoader） |
 | `DictLoader` | `List<DictEntry> loadAll()` | 字典全量数据源（远程/配置中心/自有表），必实现 | 无字典数据（刷新跳过） |
 | `DictReverseResolver`           | `Object reverse(String dictType, String label)`                 | 字典反向（标签→值，导入用）            | 同上                                                     |
 | `TranslateSource` | `String translate(Class<?> entity, String field, Object value)` | `@Translate(entity=...)` 关联翻译的内存取值优先源（命中则不回源查库） | 直接按主键查库翻译 |

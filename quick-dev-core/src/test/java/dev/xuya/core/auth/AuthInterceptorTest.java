@@ -4,6 +4,8 @@ import dev.xuya.core.common.QuickDevException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.context.ApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
@@ -46,14 +48,11 @@ class AuthInterceptorTest {
         AuthContext.clear();
     }
 
-    private org.springframework.context.ApplicationContext stubContext() {
-        org.springframework.context.ApplicationContext ctx = mock(org.springframework.context.ApplicationContext.class);
-        org.springframework.beans.factory.ObjectProvider<UserResolver> resolverProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
-        org.springframework.beans.factory.ObjectProvider<PermissionChecker> checkerProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
-        org.springframework.beans.factory.ObjectProvider<RoleChecker> roleProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
+    private ApplicationContext stubContext() {
+        ApplicationContext ctx = mock(ApplicationContext.class);
+        ObjectProvider<UserResolver> resolverProvider = mock(ObjectProvider.class);
+        ObjectProvider<PermissionChecker> checkerProvider = mock(ObjectProvider.class);
+        ObjectProvider<RoleChecker> roleProvider = mock(ObjectProvider.class);
         when(ctx.getBeanProvider(UserResolver.class)).thenReturn(resolverProvider);
         when(ctx.getBeanProvider(PermissionChecker.class)).thenReturn(checkerProvider);
         when(ctx.getBeanProvider(RoleChecker.class)).thenReturn(roleProvider);
@@ -177,14 +176,10 @@ class AuthInterceptorTest {
 
     @Test
     void missingUserResolverShouldFailClosedWithConfigError() {
-        org.springframework.context.ApplicationContext emptyCtx =
-                mock(org.springframework.context.ApplicationContext.class);
-        org.springframework.beans.factory.ObjectProvider<UserResolver> emptyResolverProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
-        org.springframework.beans.factory.ObjectProvider<PermissionChecker> emptyCheckerProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
-        org.springframework.beans.factory.ObjectProvider<RoleChecker> emptyRoleProvider =
-                mock(org.springframework.beans.factory.ObjectProvider.class);
+        ApplicationContext emptyCtx = mock(ApplicationContext.class);
+        ObjectProvider<UserResolver> emptyResolverProvider = mock(ObjectProvider.class);
+        ObjectProvider<PermissionChecker> emptyCheckerProvider = mock(ObjectProvider.class);
+        ObjectProvider<RoleChecker> emptyRoleProvider = mock(ObjectProvider.class);
         when(emptyCtx.getBeanProvider(UserResolver.class)).thenReturn(emptyResolverProvider);
         when(emptyCtx.getBeanProvider(PermissionChecker.class)).thenReturn(emptyCheckerProvider);
         when(emptyCtx.getBeanProvider(RoleChecker.class)).thenReturn(emptyRoleProvider);

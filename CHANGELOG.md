@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+- ♻️ Refactoring|代码重构 内联全限定类名统一改为import导入
+- 🗑️ Removed|移除 删除废弃的DictCacheProvider双接口实现由拆分后的正反解析器取代
 - 🧪 Tests|测试 自动装配条件矩阵全覆盖开关让位与Redis排序此前该模块7/8类零覆盖
 - 🧪 Tests|测试 补齐鉴权拦截器身份泄漏回归与角色OR/AND语义覆盖
 - 🧪 Tests|测试 防重存储补窗口不续期与条目独立过期测试拦截器补指纹身份用例

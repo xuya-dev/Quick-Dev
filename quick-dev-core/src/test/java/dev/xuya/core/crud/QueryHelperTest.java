@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QueryHelperTest {
 
@@ -99,8 +100,7 @@ class QueryHelperTest {
         Map<String, String> params = new HashMap<>();
         params.put("orderBy", "createTime,children");
 
-        org.assertj.core.api.Assertions
-                .assertThatThrownBy(() -> QueryHelper.build(meta, params,
+        assertThatThrownBy(() -> QueryHelper.build(meta, params,
                         new DefaultFormattingConversionService()))
                 .isInstanceOf(ParamException.class)
                 .hasMessageContaining("children");
@@ -122,8 +122,7 @@ class QueryHelperTest {
         try {
             Map<String, String> params = new HashMap<>();
             params.put("type", "1,2,3"); // SampleEntity.type 标注了 @QueryField(IN)
-            org.assertj.core.api.Assertions
-                    .assertThatThrownBy(() -> QueryHelper.build(meta, params,
+            assertThatThrownBy(() -> QueryHelper.build(meta, params,
                             new DefaultFormattingConversionService()))
                     .isInstanceOf(ParamException.class)
                     .hasMessageContaining("超过上限");

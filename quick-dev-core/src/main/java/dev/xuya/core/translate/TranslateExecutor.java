@@ -15,6 +15,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -109,7 +110,7 @@ public class TranslateExecutor {
             // 第一个非 null 命中即返回；全部未命中才回源查库
             String fromSource = SpringContextHolder.getBeansOrdered(TranslateSource.class)
                     .map(s -> s.translate(entityClass, field, value))
-                    .filter(java.util.Objects::nonNull)
+                    .filter(Objects::nonNull)
                     .findFirst()
                     .orElse(null);
             if (fromSource != null) {
