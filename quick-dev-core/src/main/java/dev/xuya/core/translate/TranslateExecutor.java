@@ -95,6 +95,17 @@ public class TranslateExecutor {
         }
         if (annotation.entity() != Void.class) {
             Class<?> entityClass = annotation.entity();
+            String field = annotation.field();
+
+            // 缓存优先：注册了 TranslateSource SPI 时优先取内存值，miss 才回源查库
+            TranslateSource source = SpringContextHolder.getBeanIfAvailable(TranslateSource.class);
+            if (source != null) {
+                String fromSource = source.translate(entityClass, field, value);
+                if (fromSource != null) {
+                    return fromSource;
+                }
+            }
+
             EntityMeta meta = EntityMeta.of(entityClass);
             BaseMapper<Object> mapper = MapperResolver.resolve(
                     SpringContextHolder.getContext(), entityClass, Void.class);
@@ -106,10 +117,10 @@ public class TranslateExecutor {
             if (target == null) {
                 return null;
             }
-            Field field = resolveField(entityClass, annotation.field());
-            field.setAccessible(true);
+            Field targetField = resolveField(entityClass, field);
+            targetField.setAccessible(true);
             try {
-                Object translated = field.get(target);
+                Object translated = targetField.get(target);
                 return translated == null ? null : String.valueOf(translated);
             } catch (IllegalAccessException e) {
                 throw new QuickDevException("读取翻译属性失败: " + e.getMessage(), e);

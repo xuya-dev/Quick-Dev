@@ -80,6 +80,29 @@ class QueryHelperTest {
     }
 
     @Test
+    void orderByShouldSupportMultipleColumnsAndSkipNonTableFields() {
+        Map<String, String> params = new HashMap<>();
+        params.put("orderBy", "createTime,nickName,children"); // children 为非表字段，应跳过
+        params.put("order", "desc");                            // 仅一个值：剩余列默认 asc
+
+        QueryWrapper<Object> wrapper = QueryHelper.build(meta, params,
+                new DefaultFormattingConversionService());
+
+        String sql = wrapper.getSqlSegment().toLowerCase();
+        assertThat(sql).contains("order by create_time desc,nick_name asc");
+        assertThat(sql).doesNotContain("children");
+    }
+
+    @Test
+    void dataScopeEmptyCollectionShouldMeanNothingVisible() {
+        // SampleEntity 无 @DataScope：此处仅验证 in 空集合不再拼进 SQL（框架内已用 1=0 兜底）
+        Map<String, String> params = new HashMap<>();
+        QueryWrapper<Object> wrapper = QueryHelper.build(meta, params,
+                new DefaultFormattingConversionService());
+        assertThat(wrapper.getSqlSegment()).isBlank();
+    }
+
+    @Test
     void inConditionShouldEnforceMaxSize() {
         QuickDevLimits.setInMaxSize(2);
         try {

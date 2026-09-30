@@ -95,6 +95,14 @@ public class DictCacheService {
      * 全量替换缓存数据（导入端点调用；也适用于任何"一次性给全量"的场景）。
      * 规定格式：[{type, value, label}, ...]，全量替换而非增量合并。
      */
+    /**
+     * 解析标准 JSON 格式（[{"type","value","label"}, ...]）并全量替换缓存——
+     * "上传规定格式数据"场景的入口：不查任何数据库，解析失败抛 ParamException（HTTP 400）。
+     */
+    public synchronized void replaceByJson(String json) {
+        replaceAll(DictJson.parse(json));
+    }
+
     public synchronized void replaceAll(List<DictLoader.DictEntry> entries) {
         Map<String, Map<String, String>> byValue = new HashMap<>();
         Map<String, Map<String, String>> byLabel = new HashMap<>();

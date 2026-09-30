@@ -16,4 +16,10 @@ import java.lang.annotation.*;
 public @interface QueryField {
 
     QueryType value() default QueryType.EQ;
+
+    /**
+     * LIKE 查询是否转义通配符（%、_、\）：true 时用户输入按字面量匹配，
+     * 防止通配符放大匹配范围；缺省 false 保持"前端可自带通配符"的旧行为
+     */
+    boolean escapeWildcard() default false;
 }

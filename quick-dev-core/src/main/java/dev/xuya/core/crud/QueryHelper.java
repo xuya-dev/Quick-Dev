@@ -62,7 +62,11 @@ public final class QueryHelper {
                 case GE -> wrapper.ge(column, convert(meta, field, value, conversionService, name));
                 case LT -> wrapper.lt(column, convert(meta, field, value, conversionService, name));
                 case LE -> wrapper.le(column, convert(meta, field, value, conversionService, name));
-                case LIKE -> wrapper.like(column, value);
+                case LIKE -> {
+                    QueryField queryField = field.getAnnotation(QueryField.class);
+                    wrapper.like(column, queryField != null && queryField.escapeWildcard()
+                            ? escapeWildcard(value) : value);
+                }
                 case IN -> {
                     List<Object> values = new ArrayList<>();
                     for (String item : value.split(",")) {
@@ -93,18 +97,55 @@ public final class QueryHelper {
             }
         }
 
-        String orderBy = params.get("orderBy");
-        if (orderBy != null && meta.hasField(orderBy)) {
-            boolean desc = "desc".equalsIgnoreCase(params.get("order"));
-            if (desc) {
-                wrapper.orderByDesc(meta.getColumn(orderBy));
-            } else {
-                wrapper.orderByAsc(meta.getColumn(orderBy));
-            }
-        }
-
+        appendOrderBy(meta, params, wrapper);
         applyDataScope(meta, wrapper);
         return wrapper;
+    }
+
+    /**
+     * 排序：orderBy 支持逗号分隔的多列（如 createTime,id），order 逐列对应
+     * （缺省 asc；仅一个 order 值时对所有列生效）。列必须是实体表字段（白名单防注入）。
+     */
+    private static void appendOrderBy(EntityMeta meta, Map<String, String> params,
+                                      QueryWrapper<Object> wrapper) {
+        String orderBy = params.get("orderBy");
+        if (orderBy == null || orderBy.isBlank()) {
+            return;
+        }
+        String[] orderValues = params.getOrDefault("order", "").toLowerCase().split(",");
+        int index = 0;
+        for (String property : orderBy.split(",")) {
+            String name = property.trim();
+            if (name.isEmpty()) {
+                continue;
+            }
+            String column = meta.hasField(name) ? meta.getColumn(name) : null;
+            if (column == null) {
+                continue; // 非表字段（如树形 children）不参与排序
+            }
+            boolean desc = index < orderValues.length
+                    ? "desc".equals(orderValues[index].trim()) : false;
+            if (desc) {
+                wrapper.orderByDesc(column);
+            } else {
+                wrapper.orderByAsc(column);
+            }
+            index++;
+        }
+    }
+
+    /**
+     * LIKE 通配符转义：\ 为转义符（MySQL/H2 默认即支持），用户输入按字面量匹配
+     */
+    private static String escapeWildcard(String value) {
+        StringBuilder sb = new StringBuilder(value.length() + 8);
+        for (char c : value.toCharArray()) {
+            if (c == '%' || c == '_' || c == '\\') {
+                sb.append('\\');
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     /**
@@ -122,7 +163,12 @@ public final class QueryHelper {
         Collection<?> scope = resolver.visibleScope(
                 meta.getEntityClass(), dataScope.column(), AuthContext.getUser());
         if (scope != null) {
-            wrapper.in(dataScope.column(), scope); // 空集合 -> 恒 false（一行都看不到）
+            if (scope.isEmpty()) {
+                // 空集合 = 全不可见。不能拼 IN ()（MySQL 语法错误），用恒假条件表达"一行都看不到"
+                wrapper.apply("1 = 0");
+            } else {
+                wrapper.in(dataScope.column(), scope);
+            }
         }
     }
 

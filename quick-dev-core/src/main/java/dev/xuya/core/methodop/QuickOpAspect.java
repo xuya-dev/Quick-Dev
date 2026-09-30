@@ -106,6 +106,7 @@ public class QuickOpAspect {
             throw new ParamException("@QuickSave 方法需要声明 " + entityClass.getSimpleName()
                     + "（或 List<" + entityClass.getSimpleName() + ">）类型的参数");
         }
+        EntityMeta.of(entityClass).clearSystemFields(entity);
         EntityValidator.validateSave(entity, validator());
         mapper.insert(entity);
         return R.ok("新增成功", entity);
@@ -122,6 +123,7 @@ public class QuickOpAspect {
         if (id == null || String.valueOf(id).isEmpty()) {
             throw new ParamException("更新时主键 " + meta.getIdProperty() + " 不能为空");
         }
+        meta.clearSystemFields(entity);
         EntityValidator.validateUpdate(entity, validator());
         BaseMapper<Object> mapper = mapper(entityClass);
         return R.ok("更新成功", mapper.updateById(entity) > 0);

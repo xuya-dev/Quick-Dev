@@ -1,6 +1,8 @@
 package dev.xuya.core.excel;
 
 import cn.idev.excel.FastExcel;
+import cn.idev.excel.event.AnalysisEventListener;
+import cn.idev.excel.context.AnalysisContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.QuickDevLimits;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,10 +33,35 @@ public final class ExcelSupport {
      */
     @SuppressWarnings("unchecked")
     public static List<Map<Integer, String>> readRawRows(MultipartFile file) throws IOException {
-        return (List<Map<Integer, String>>) (List<?>) FastExcel.read(file.getInputStream())
+        return readRawRows(file, Integer.MAX_VALUE);
+    }
+
+    /**
+     * 读取原始行并在超过 maxRows 时立即中止解析（防超大文件撑爆内存）
+     */
+    public static List<Map<Integer, String>> readRawRows(MultipartFile file, int maxRows) throws IOException {
+        List<Map<Integer, String>> rows = new ArrayList<>();
+        FastExcel.read(file.getInputStream())
                 .sheet()
                 .headRowNumber(0)
-                .doReadSync();
+                .registerReadListener(new AnalysisEventListener<Map<Integer, String>>() {
+                    @Override
+                    public void invoke(Map<Integer, String> row, AnalysisContext context) {
+                        rows.add(row);
+                    }
+
+                    @Override
+                    public boolean hasNext(AnalysisContext context) {
+                        // 含表头计数：达到上限立即停止解析，防超大文件耗尽内存
+                        return rows.size() <= maxRows;
+                    }
+
+                    @Override
+                    public void doAfterAllAnalysed(AnalysisContext context) {
+                    }
+                })
+                .doRead();
+        return rows;
     }
 
     /**

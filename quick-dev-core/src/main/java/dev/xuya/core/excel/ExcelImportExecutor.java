@@ -3,6 +3,7 @@ package dev.xuya.core.excel;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.QuickDevLimits;
+import dev.xuya.core.crud.EntityMeta;
 import dev.xuya.core.crud.EntityValidator;
 import dev.xuya.core.validation.Create;
 import jakarta.validation.ConstraintViolation;
@@ -30,7 +31,7 @@ public final class ExcelImportExecutor {
                                               TransactionOperations transactionOperations) {
         List<Map<Integer, String>> rawRows;
         try {
-            rawRows = ExcelSupport.readRawRows(file);
+            rawRows = ExcelSupport.readRawRows(file, QuickDevLimits.getImportMaxRows() + 1); // +1 为表头
         } catch (Exception e) {
             throw new ParamException("Excel 文件解析失败: " + e.getLocalizedMessage(), e);
         }
@@ -39,10 +40,13 @@ public final class ExcelImportExecutor {
         }
         Map<Integer, String> headRow = rawRows.remove(0);
         ExcelRowMapper rowMapper = ExcelRowMapper.of(entityClass, headRow);
+        EntityMeta meta = EntityMeta.of(entityClass);
 
         List<Object> rows = new ArrayList<>();
         for (int i = 0; i < rawRows.size(); i++) {
-            rows.add(rowMapper.map(rawRows.get(i), i + 1)); // 先反解字典标签，再类型转换
+            Object row = rowMapper.map(rawRows.get(i), i + 1); // 先反解字典标签，再类型转换
+            meta.clearSystemFields(row);
+            rows.add(row);
         }
         int maxRows = QuickDevLimits.getImportMaxRows();
         if (rows.size() > maxRows) {

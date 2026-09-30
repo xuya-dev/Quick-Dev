@@ -7,7 +7,7 @@
     <parent>
         <groupId>dev.xuya</groupId>
         <artifactId>quick-dev</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0</version>
     </parent>
 
     <artifactId>quick-dev-demo</artifactId>
@@ -19,7 +19,7 @@
         <dependency>
             <groupId>dev.xuya</groupId>
             <artifactId>quick-dev-spring-boot-starter</artifactId>
-            <version>0.3.0</version>
+            <version>0.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>

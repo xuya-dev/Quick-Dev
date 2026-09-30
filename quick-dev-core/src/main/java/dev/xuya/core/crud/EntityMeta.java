@@ -23,15 +23,18 @@ public class EntityMeta {
     private final Field idField;
     private final String idProperty;
     private final String idColumn;
+    private final String logicDeleteProperty;
     private final Map<String, Field> fieldMap = new LinkedHashMap<>();
     private final Map<String, String> columnMap = new LinkedHashMap<>();
 
     private EntityMeta(Class<?> entityClass, Field idField, String idColumn,
+                       String logicDeleteProperty,
                        Map<String, Field> fieldMap, Map<String, String> columnMap) {
         this.entityClass = entityClass;
         this.idField = idField;
         this.idProperty = idField.getName();
         this.idColumn = idColumn;
+        this.logicDeleteProperty = logicDeleteProperty;
         this.fieldMap.putAll(fieldMap);
         this.columnMap.putAll(columnMap);
     }
@@ -58,10 +61,14 @@ public class EntityMeta {
         }
 
         Map<String, String> columns = new LinkedHashMap<>();
+        String logicDeleteProperty = null;
         TableInfo tableInfo = TableInfoHelper.getTableInfo(entityClass);
         if (tableInfo != null) {
             for (TableFieldInfo fieldInfo : tableInfo.getFieldList()) {
                 columns.put(fieldInfo.getProperty(), fieldInfo.getColumn());
+                if (fieldInfo.isLogicDelete()) {
+                    logicDeleteProperty = fieldInfo.getProperty();
+                }
             }
         }
         for (String property : fields.keySet()) {
@@ -74,7 +81,7 @@ public class EntityMeta {
                 ? tableInfo.getKeyColumn() : camelToSnake(idField.getName());
         columns.put(idField.getName(), idColumn);
 
-        return new EntityMeta(entityClass, idField, idColumn, fields, columns);
+        return new EntityMeta(entityClass, idField, idColumn, logicDeleteProperty, fields, columns);
     }
 
     /**
@@ -138,5 +145,41 @@ public class EntityMeta {
 
     public Map<String, String> getColumnMap() {
         return columnMap;
+    }
+
+    /**
+     * 逻辑删除字段属性名（无逻辑删除时为 null）
+     */
+    public String getLogicDeleteProperty() {
+        return logicDeleteProperty;
+    }
+
+    /**
+     * 写路径保护：清空客户端不应操纵的系统字段——
+     * 逻辑删除字段（防 PUT {"delFlag":2} 越权删除/复活记录）与
+     * createBy/updateBy（防伪造审计归属，清空后由 AutoFill 按登录人填充）。
+     */
+    public void clearSystemFields(Object entity) {
+        if (entity == null) {
+            return;
+        }
+        clearField(entity, logicDeleteProperty);
+        clearField(entity, AutoFillMetaObjectHandler.CREATE_BY);
+        clearField(entity, AutoFillMetaObjectHandler.UPDATE_BY);
+    }
+
+    private void clearField(Object entity, String property) {
+        if (property == null) {
+            return;
+        }
+        Field field = fieldMap.get(property);
+        if (field == null) {
+            return;
+        }
+        try {
+            field.set(entity, null);
+        } catch (IllegalAccessException e) {
+            throw new QuickDevException("无法清空保护字段 " + property + ": " + e.getMessage(), e);
+        }
     }
 }

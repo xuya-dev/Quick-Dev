@@ -5,7 +5,9 @@ import dev.xuya.core.auth.NoRepeatSubmit;
 import dev.xuya.core.common.ParamException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -45,7 +47,8 @@ public class RepeatSubmitInterceptor implements HandlerInterceptor {
     private String identity(HttpServletRequest request) {
         String token = AuthContext.getToken();
         if (token != null && !token.isBlank()) {
-            return "t:" + token;
+            // 指纹存内存/Redis：token 只留哈希，避免明文凭据落入存储
+            return "t:" + DigestUtils.md5DigestAsHex(token.getBytes(StandardCharsets.UTF_8));
         }
         Object user = AuthContext.getUser();
         if (user != null) {

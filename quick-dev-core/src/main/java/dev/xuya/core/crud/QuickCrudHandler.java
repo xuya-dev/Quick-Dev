@@ -168,6 +168,7 @@ public class QuickCrudHandler {
     // ---------------------------------------------------------------------
     public R<Object> save(@RequestBody String body) {
         Object entity = parseEntity(body);
+        meta.clearSystemFields(entity);
         EntityValidator.validateSave(entity, validator);
         inTx(() -> {
             callBefore("beforeSave", h -> h.beforeSave(entity));
@@ -191,6 +192,7 @@ public class QuickCrudHandler {
         if (list.isEmpty()) {
             throw new ParamException("批量新增列表不能为空");
         }
+        list.forEach(meta::clearSystemFields);
         if (validator != null) {
             for (int i = 0; i < list.size(); i++) {
                 try {
@@ -218,6 +220,7 @@ public class QuickCrudHandler {
     public R<Object> saveOrUpdate(@RequestBody String body) {
         // 先解析不校验：按有无 ID 分支决定校验策略（更新是部分更新，只校验提交的非空字段）
         Object entity = parseEntity(body);
+        meta.clearSystemFields(entity);
         Object id = idValue(entity);
         if (id != null && !String.valueOf(id).isEmpty()) {
             boolean[] updated = {false};
@@ -245,6 +248,7 @@ public class QuickCrudHandler {
     // ---------------------------------------------------------------------
     public R<Object> update(@RequestBody String body) {
         Object entity = parseEntity(body);
+        meta.clearSystemFields(entity);
         Object id = idValue(entity);
         if (id == null || String.valueOf(id).isEmpty()) {
             throw new ParamException("更新时主键 " + meta.getIdProperty() + " 不能为空");

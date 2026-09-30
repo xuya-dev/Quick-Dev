@@ -17,11 +17,19 @@ public class MemoryRepeatSubmitStore implements RepeatSubmitStore {
     @Override
     public boolean tryAcquire(String key, long intervalMillis) {
         long now = System.currentTimeMillis();
-        Long previous = lastSubmit.put(key, now);
+        // compute 原子执行；被拒绝时保留原时间戳——重试不续期窗口，连续点击不会无限推迟放行
+        boolean[] allowed = {false};
+        lastSubmit.compute(key, (k, previous) -> {
+            if (previous != null && now - previous < intervalMillis) {
+                return previous;
+            }
+            allowed[0] = true;
+            return now;
+        });
         if (lastSubmit.size() > CLEAN_THRESHOLD) {
             clean(now, intervalMillis);
         }
-        return previous == null || now - previous >= intervalMillis;
+        return allowed[0];
     }
 
     /**

@@ -31,3 +31,7 @@ values ('user_status', '1', '启用'),
 insert into product (id, name, type, channel, price, stock, create_time)
 values ('p0000000000000000000000000000001', '机械键盘', 1, 1, 399.00, 120, current_timestamp),
        ('p0000000000000000000000000000002', '无线鼠标', 2, 2, 129.50, 300, current_timestamp);
+
+insert into demo_goods (name, remark, stock, reason, status, create_time) values
+       ('演示商品A', '库存充足', 100, null, 1, current_timestamp),
+       ('演示商品B', null,       0, '清仓',   0, current_timestamp);
