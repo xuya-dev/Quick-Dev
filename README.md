@@ -67,14 +67,18 @@ public class SysUserController {
 - **时间与操作人自动填充**：`createTime`/`updateTime` + `createBy`/`updateBy`（当前登录人）新增/修改时自动填充（字段加
   `@TableField(fill = ...)` 即可，见下文）
 - **字段翻译（VO Translation）**：`@Translate` 标注在字段上，JSON 输出时自动把 ID/状态码翻译为可读文本（字典、枚举、关联表三种模式），带
-  TTL 缓存； **Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方实现 `DictLoader` 接口提供，**框架不查任何数据库**
+  TTL 缓存； **Excel 导入时反向自动转换**（中文标签 -> 库值）；字典数据由使用方实现 `DictLoader` 接口提供，**框架不查任何数据库**；
+  支持 APPEND 附加模式——字段保留原值、翻译结果写入兄弟字段（编辑表单需要原始 ID 的场景）
 - **行级数据权限**：`@DataScope(column = "dept_id")` 标注实体，分页/列表/统计/树/导出自动按 `DataScopeResolver`
   返回的可见范围过滤（"只看本部门"）
 - **可选 Redis**：引入 `quick-dev-redis-spring-boot-starter` 后，Sa-Token 登录态/权限缓存到 Redis（多实例共享、重启不失效），防重复提交自动切换为
   Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
-- **操作日志**：`@QuickLog` 记录操作人/入参/结果/耗时，`OperationLogSink` SPI 异步落库即可
+- **CRUD 生命周期钩子**：实现 `CrudHook` SPI（beforeSave/afterSave/beforeUpdate/afterUpdate/beforeRemove/afterRemove）
+  即可介入内置写流程——多表绑定、缓存刷新不再需要为聚合写手写 Controller；写操作统一纳入事务，
+  before 异常回滚、after 提交后执行（失败仅告警）
+- **操作日志**：`@QuickLog` 记录操作人/入参/结果/耗时，`OperationLogSink` SPI 自定义落库即可（默认打印到 Slf4j）
 - **统一响应与异常**：`R<T>` 结构 + 全局异常处理（未登录 401、无权限 403、参数/校验错误 400）
 - MyBatis-Plus 既有能力全部可用：逻辑删除、乐观锁、多租户、`@TableName` 映射等
 
@@ -98,7 +102,7 @@ quick-dev
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -239,7 +243,9 @@ quick-dev:
     enabled: true          # @NoRepeatSubmit 防重复提交开关
   log:
     enabled: true          # @QuickLog 操作日志开关
-    async: false           # 操作日志异步落地（后台单线程，队列满丢弃不阻塞业务）
+  crud:
+    default-includes: PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE  # 全局默认注册操作（注解未显式指定 includes 时生效）
+    default-excludes: SAVE_BATCH,SAVE_OR_UPDATE            # 全局排除操作（对所有控制器做减法）
   translate:
     enabled: true          # @Translate 字段翻译开关
     cache-seconds: 60      # 翻译结果本地缓存秒数（0 禁用）
@@ -287,6 +293,39 @@ public class ReportController {
 
 > 角色数据来源与权限一致：Sa-Token 模式下实现 `StpInterface.getRoleList`；自定义模式下实现 `RoleChecker` Bean。
 
+### CRUD 生命周期钩子（CrudHook）
+
+实现 `CrudHook` SPI 并注册为 Spring Bean，即可介入 `@QuickCrud` 生成的全部写流程，
+完成"校验 + 多表绑定 + 缓存刷新"这类聚合逻辑——不必再为聚合写手写 Controller：
+
+```java
+@Component
+public class DictDataHook implements CrudHook {
+
+    @Override
+    public Class<?> entityType() {
+        return SysDictData.class;
+    }
+
+    @Override
+    public void beforeSave(Object entity) { /* 事务内：校验、补默认值；抛异常则回滚 */ }
+
+    @Override
+    public void afterSave(Object entity) { /* 提交后：刷新缓存、发事件；失败仅告警 */ }
+}
+```
+
+| 钩子            | 时机         | 异常语义                       |
+|-----------------|--------------|--------------------------------|
+| `beforeSave`    | 新增，事务内 | 抛异常回滚本次写、请求失败     |
+| `afterSave`     | 新增，提交后 | 失败仅记 WARN，不影响响应      |
+| `beforeUpdate` / `afterUpdate` | 修改（仅实际更新到行时回调 after） | 同上 |
+| `beforeRemove` / `afterRemove` | 删除（ids 为主键类型列表）         | 同上 |
+
+- 同一实体可注册多个 Hook，按 Spring Bean 顺序执行；方法均为 default 空实现，按需覆盖
+- `saveBatch` 在同一事务内逐条回调 `beforeSave`；`saveOrUpdate` 按分支回调 Save/Update 钩子
+- 写操作（save/saveBatch/saveOrUpdate/update/remove）统一纳入事务：无事务基础设施时直接执行，语义不变
+
 ### 防重复提交 / 操作日志
 
 ```java
@@ -304,7 +343,7 @@ public R<Object> create(@RequestBody Order order) { ...}
 `@QuickLog` 记录：模块/描述、操作人（loginId）、URI、HTTP 方法、IP、入参 JSON（截断）、
 结果码、是否成功、异常信息、耗时。落地由使用方决定（框架不直接写库）：
 
-1. 自定义 `OperationLogSink` Bean（写库/ES/MQ，建议配合 `quick-dev.log.async: true` 异步）
+1. 自定义 `OperationLogSink` Bean（写库/ES/MQ，线程模型自行决定：同步直写或内部异步批量）
 2. 未自定义时默认输出到 Slf4j logger `quick-dev.operation-log`
 
 ### 代码生成器（quick-dev-codegen）
@@ -312,7 +351,7 @@ public R<Object> create(@RequestBody Order order) { ...}
 从数据库表结构一键生成 Quick Dev 三件套（实体/Mapper/@QuickCrud Controller），零依赖纯 JDK：
 
 ```bash
-java -cp quick-dev-codegen-0.1.0.jar dev.xuya.codegen.CodeGenerator   --url=jdbc:mysql://localhost:3306/demo --user=root --password=root   --table=t_order --package=com.example.order --out=src/main/java
+java -cp quick-dev-codegen-0.2.0.jar dev.xuya.codegen.CodeGenerator   --url=jdbc:mysql://localhost:3306/demo --user=root --password=root   --table=t_order --package=com.example.order --out=src/main/java
 ```
 
 约定：主键数值列生成 `IdType.AUTO`、字符列生成 `ASSIGN_UUID`；审计列
@@ -339,7 +378,7 @@ Controller 的 permission 为建议前缀（如 `t:order`）按业务调整。�
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -375,6 +414,12 @@ public class OrderVO {
     /** 关联翻译：字段值作为目标实体主键，取其某属性 */
     @Translate(entity = SysUser.class, field = "nickname")
     private String createBy;                 // "1" 序列化为 "管理员"
+
+    /** 附加模式（APPEND）：deptId 保留原值输出，另附兄弟字段 deptName="研发部门"
+     *  ——编辑表单需要原始 ID、列表又要展示可读文本的场景 */
+    @Translate(entity = SysDept.class, field = "deptName",
+            mode = TranslateMode.APPEND, appendField = "deptName")
+    private Long deptId;
 }
 ```
 
@@ -383,6 +428,8 @@ public class OrderVO {
 - 结果带 TTL 本地缓存（默认 60 秒），避免列表页同值重复查库：`quick-dev.translate.cache-seconds`（0 关闭）、
   `quick-dev.translate.enabled=false` 可整体停用
 - 字典数据源：实现 `DictResolver` Bean（查字典表/枚举/远程服务均可）；固定枚举直接 `enumClass` 引用（实现 `DictEnum` 接口）
+- APPEND 附加模式：`quick-dev.translate.enabled=true` 时框架自动注册 `TranslateAppendModule`，序列化期为 APPEND 字段
+  追加兄弟属性（默认命名「字段名+Name」，`appendField` 可指定）；无翻译结果时该属性输出 null，REPLACE 默认行为不变
 
 ### 字典数据来源：DictLoader SPI（框架不查库）
 
@@ -555,6 +602,8 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `auto-fill.enabled`             | `true`                    | 时间/操作人自动填充开关                                                          |
 | `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit 防重复提交开关                                                   |
 | `log.enabled`                   | `true`                    | @QuickLog 操作日志开关                                                           |
+| `crud.default-includes`         | -                         | 全局默认注册操作（注解未显式指定 includes 时生效；如 PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE） |
+| `crud.default-excludes`         | -                         | 全局排除操作（对所有 @QuickCrud 控制器做减法；如 SAVE_BATCH,SAVE_OR_UPDATE）     |
 | `translate.enabled`             | `true`                    | @Translate 字段翻译开关                                                          |
 | `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 禁用）                                                   |
 | `dict.enabled`                  | `true`                    | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效）                           |

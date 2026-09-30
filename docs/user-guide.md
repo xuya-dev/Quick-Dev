@@ -18,7 +18,7 @@
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
         <!-- 再加你的数据库驱动，例如： -->
 <dependency>
@@ -250,10 +250,16 @@ private Integer type;                                    // 1 -> "普通商品"
 
 @Translate(entity = User.class, field = "nickname")      // 关联表（值作为目标主键）
 private String createBy;                                 // "1" -> "管理员"
+
+// 附加模式：deptId 保留原值，翻译结果写到兄弟字段 deptName（编辑表单需要原始 ID 时用）
+@Translate(entity = Dept.class, field = "deptName",
+        mode = TranslateMode.APPEND, appendField = "deptName")
+private Long deptId;                                     // {"deptId":103, "deptName":"研发部门"}
 ```
 
 翻译发生在 JSON 序列化期：分页/详情/你的自定义接口 **全部自动生效**，无需调用任何方法。
-失败（无字典/无记录/未实现）保留原值，不影响接口。
+失败（无字典/无记录/未实现）保留原值，不影响接口。APPEND 模式无翻译结果时兄弟字段输出 `null`；
+`appendField` 缺省为「字段名 + Name」。
 
 ### 6.2 字典存数据库：零代码方案
 
@@ -334,7 +340,7 @@ public R<Object> pay(@RequestBody PayDTO dto) { ...}
 public R<Object> create(@RequestBody OrderDTO dto) { ...}
 ```
 
-操作日志落地：实现 `OperationLogSink` Bean（建议异步写库），默认输出 Slf4j。
+操作日志落地：实现 `OperationLogSink` Bean（写库/ES/MQ，线程模型自行决定），默认输出 Slf4j。
 防重存储：单实例内存；引入 redis starter 后自动切 Redis 原子实现（集群一致）。
 
 ## 11. Redis 部署
@@ -344,7 +350,7 @@ public R<Object> create(@RequestBody OrderDTO dto) { ...}
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 

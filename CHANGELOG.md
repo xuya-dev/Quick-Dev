@@ -2,6 +2,14 @@
 
 所有显著变更记录于此，格式：`<类型> <简短中文描述>`，新条目在前。
 
+## 0.2.0 (2026-09-30)
+
+- ✨ Features|新功能 Translate新增APPEND模式保留原值并附加兄弟字段输出翻译
+- ✨ Features|新功能 新增CrudHook生命周期钩子支持写流程聚合校验与缓存刷新
+- ✨ Features|新功能 CRUD写操作统一纳入事务批量新增与删除具备原子性
+- ✨ Features|新功能 新增quick-dev.crud全局默认includes与excludes配置
+- ♻️ Refactoring|代码重构 移除AsyncOperationLogSink默认打印落库由用户自实现
+
 ## 0.1.0 (2026-09-29)
 
 - ✨ Features|新功能 新增导出导入行数与IN条件防御上限及异常详情开关

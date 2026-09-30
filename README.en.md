@@ -85,7 +85,7 @@ quick-dev
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
@@ -330,7 +330,7 @@ descriptions; method-annotation endpoints carry `[QuickSave]`-style markers.
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
