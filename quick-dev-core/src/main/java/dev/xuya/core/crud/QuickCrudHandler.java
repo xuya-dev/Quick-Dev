@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.annotation.CrudOp;
 import dev.xuya.core.common.ParamException;
+import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.common.R;
 import dev.xuya.core.excel.ExcelImportExecutor;
 import dev.xuya.core.excel.ExcelSupport;
@@ -13,7 +14,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,6 +31,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -39,6 +44,8 @@ import java.util.stream.Collectors;
 @ResponseBody
 public class QuickCrudHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(QuickCrudHandler.class);
+
     private final EntityMeta meta;
     private final BaseMapper<Object> mapper;
     private final ObjectMapper objectMapper;
@@ -46,11 +53,12 @@ public class QuickCrudHandler {
     private final Validator validator;
     private final boolean loginRequired;
     private final TransactionOperations transactionOperations;
+    private final List<CrudHook> hooks;
     private final Map<Method, String> requiredPermissions = new HashMap<>();
 
     public QuickCrudHandler(EntityMeta meta, BaseMapper<Object> mapper, ObjectMapper objectMapper,
                             ConversionService conversionService, Validator validator, boolean loginRequired,
-                            TransactionOperations transactionOperations) {
+                            TransactionOperations transactionOperations, List<CrudHook> hooks) {
         this.meta = meta;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
@@ -58,6 +66,7 @@ public class QuickCrudHandler {
         this.validator = validator;
         this.loginRequired = loginRequired;
         this.transactionOperations = transactionOperations;
+        this.hooks = hooks == null ? List.of() : hooks;
     }
 
     static Method methodOf(CrudOp op) throws NoSuchMethodException {
@@ -156,16 +165,20 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
-    // 新增：POST {base}
+    // 新增：POST {base}（事务内执行 beforeSave 钩子，提交后执行 afterSave）
     // ---------------------------------------------------------------------
     public R<Object> save(@RequestBody String body) {
         Object entity = parseAndValidate(body, true);
-        mapper.insert(entity);
+        inTx(() -> {
+            callBefore("beforeSave", h -> h.beforeSave(entity));
+            mapper.insert(entity);
+        });
+        callAfter("afterSave", h -> h.afterSave(entity));
         return R.ok("新增成功", entity);
     }
 
     // ---------------------------------------------------------------------
-    // 批量新增：POST {base}/batch（JSON 数组，逐条校验后批量插入）
+    // 批量新增：POST {base}/batch（JSON 数组，逐条校验后批量插入，事务原子）
     // ---------------------------------------------------------------------
     public R<Object> saveBatch(@RequestBody String body) {
         List<Object> list;
@@ -189,7 +202,15 @@ public class QuickCrudHandler {
                 }
             }
         }
-        Db.saveBatch(list);
+        inTx(() -> {
+            for (Object entity : list) {
+                callBefore("beforeSave", h -> h.beforeSave(entity));
+            }
+            Db.saveBatch(list);
+        });
+        for (Object entity : list) {
+            callAfter("afterSave", h -> h.afterSave(entity));
+        }
         return R.ok("批量新增成功", list.size());
     }
 
@@ -201,10 +222,22 @@ public class QuickCrudHandler {
         Object entity = parseAndValidate(body, false);
         Object id = idValue(entity);
         if (id != null && !String.valueOf(id).isEmpty()) {
-            return R.ok("更新成功", mapper.updateById(entity) > 0);
+            boolean[] updated = {false};
+            inTx(() -> {
+                callBefore("beforeUpdate", h -> h.beforeUpdate(entity));
+                updated[0] = mapper.updateById(entity) > 0;
+            });
+            if (updated[0]) {
+                callAfter("afterUpdate", h -> h.afterUpdate(entity));
+            }
+            return R.ok("更新成功", updated[0]);
         }
         validateEntity(entity);
-        mapper.insert(entity);
+        inTx(() -> {
+            callBefore("beforeSave", h -> h.beforeSave(entity));
+            mapper.insert(entity);
+        });
+        callAfter("afterSave", h -> h.afterSave(entity));
         return R.ok("新增成功", entity);
     }
 
@@ -217,11 +250,19 @@ public class QuickCrudHandler {
         if (id == null || String.valueOf(id).isEmpty()) {
             throw new ParamException("更新时主键 " + meta.getIdProperty() + " 不能为空");
         }
-        return R.ok("更新成功", mapper.updateById(entity) > 0);
+        boolean[] updated = {false};
+        inTx(() -> {
+            callBefore("beforeUpdate", h -> h.beforeUpdate(entity));
+            updated[0] = mapper.updateById(entity) > 0;
+        });
+        if (updated[0]) {
+            callAfter("afterUpdate", h -> h.afterUpdate(entity));
+        }
+        return R.ok("更新成功", updated[0]);
     }
 
     // ---------------------------------------------------------------------
-    // 删除（支持批量）：DELETE {base}/1 或 DELETE {base}/1,2,3
+    // 删除（支持批量，事务原子）：DELETE {base}/1 或 DELETE {base}/1,2,3
     // ---------------------------------------------------------------------
     public R<Object> remove(@PathVariable("ids") String ids) {
         List<Object> idList = new ArrayList<>();
@@ -234,7 +275,13 @@ public class QuickCrudHandler {
         if (idList.isEmpty()) {
             throw new ParamException("请指定要删除的ID");
         }
-        return R.ok("删除成功", mapper.deleteByIds(idList));
+        long[] removed = {0};
+        inTx(() -> {
+            callBefore("beforeRemove", h -> h.beforeRemove(idList));
+            removed[0] = mapper.deleteByIds(idList);
+        });
+        callAfter("afterRemove", h -> h.afterRemove(idList));
+        return R.ok("删除成功", removed[0]);
     }
 
     // ---------------------------------------------------------------------
@@ -269,6 +316,50 @@ public class QuickCrudHandler {
     // ---------------------------------------------------------------------
     public void importTemplate(HttpServletResponse response) throws IOException {
         ExcelSupport.writeTemplate(response, meta.getEntityClass());
+    }
+
+    // ---------------------------------------------------------------------
+    // 事务与 CrudHook 钩子
+    // ---------------------------------------------------------------------
+
+    /**
+     * 写操作统一包事务：有事务基础设施（TransactionOperations）时在事务内执行，
+     * 保证批量写入/删除的原子性；before 钩子在事务内执行（异常回滚）。
+     */
+    private void inTx(Runnable action) {
+        if (transactionOperations == null) {
+            action.run();
+            return;
+        }
+        try {
+            transactionOperations.executeWithoutResult(status -> action.run());
+        } catch (TransactionException e) {
+            throw new QuickDevException("写操作事务执行失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * before 钩子：事务内执行，异常直接抛出（回滚本次写操作）
+     */
+    private void callBefore(String phase, Consumer<CrudHook> action) {
+        for (CrudHook hook : hooks) {
+            action.accept(hook);
+        }
+    }
+
+    /**
+     * after 钩子：事务提交后执行，失败仅告警——数据已提交，缓存刷新等
+     * 副作用失败不应让已成功的写操作返回错误。
+     */
+    private void callAfter(String phase, Consumer<CrudHook> action) {
+        for (CrudHook hook : hooks) {
+            try {
+                action.accept(hook);
+            } catch (Exception e) {
+                log.warn("CrudHook[{}] {} 执行失败(数据已提交,不影响响应): {}",
+                        hook.getClass().getSimpleName(), phase, e.getMessage());
+            }
+        }
     }
 
     private Object parseAndValidate(String body, boolean validate) {

@@ -10,11 +10,11 @@ import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
 import dev.xuya.core.crud.QuickCrudRegistrar;
-import dev.xuya.core.log.AsyncOperationLogSink;
 import dev.xuya.core.log.OperationLogSink;
 import dev.xuya.core.log.QuickLogAspect;
 import dev.xuya.core.log.Slf4jOperationLogSink;
 import dev.xuya.core.methodop.QuickOpAspect;
+import dev.xuya.core.translate.TranslateAppendModule;
 import dev.xuya.core.translate.TranslateExecutor;
 import dev.xuya.core.web.GlobalExceptionHandler;
 import dev.xuya.core.web.MemoryRepeatSubmitStore;
@@ -50,8 +50,9 @@ public class QuickDevAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "quick-dev", name = "enabled", havingValue = "true", matchIfMissing = true)
-    public QuickCrudRegistrar quickCrudRegistrar() {
-        return new QuickCrudRegistrar();
+    public QuickCrudRegistrar quickCrudRegistrar(QuickDevProperties properties) {
+        return new QuickCrudRegistrar(properties.getCrud().getDefaultIncludes(),
+                properties.getCrud().getDefaultExcludes());
     }
 
     @Bean
@@ -86,8 +87,9 @@ public class QuickDevAutoConfiguration {
                                          ApplicationContext applicationContext) {
         ObjectMapper objectMapper = applicationContext.getBeanProvider(ObjectMapper.class)
                 .getIfAvailable(ObjectMapper::new);
-        OperationLogSink effective = AsyncOperationLogSink.wrap(sink, properties.getLog().isAsync());
-        return new QuickLogAspect(effective, objectMapper);
+        // 默认 sink 仅打印（Slf4j）；写库等落地方式由用户自实现 OperationLogSink
+        // 并自行决定线程模型（同步/异步批量）
+        return new QuickLogAspect(sink, objectMapper);
     }
 
     @Bean
@@ -104,6 +106,18 @@ public class QuickDevAutoConfiguration {
                 translate.isEnabled(), translate.getCacheSeconds() * 1000);
         TranslateExecutor.register(executor);
         return executor;
+    }
+
+    /**
+     * @Translate(mode = APPEND) 附加模式：注册 Module Bean，Spring Boot 自动装配进
+     * ObjectMapper，序列化期为 APPEND 字段追加兄弟属性输出翻译结果
+     */
+    @Bean
+    @ConditionalOnClass(ObjectMapper.class)
+    @ConditionalOnProperty(prefix = "quick-dev.translate", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public TranslateAppendModule translateAppendModule() {
+        return new TranslateAppendModule();
     }
 
     @Bean

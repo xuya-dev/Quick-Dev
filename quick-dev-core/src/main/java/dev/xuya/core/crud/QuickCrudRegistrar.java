@@ -33,7 +33,30 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
 
     private static final Logger log = LoggerFactory.getLogger(QuickCrudRegistrar.class);
 
+    /**
+     * 与 @QuickCrud.includes() 的声明默认值保持一致（用于判断"用户未显式指定 includes"）
+     */
+    private static final CrudOp[] ANNOTATION_DEFAULT_INCLUDES = {
+            CrudOp.PAGE, CrudOp.LIST, CrudOp.COUNT, CrudOp.DETAIL, CrudOp.SAVE,
+            CrudOp.SAVE_BATCH, CrudOp.SAVE_OR_UPDATE, CrudOp.UPDATE, CrudOp.REMOVE};
+
+    private final CrudOp[] globalDefaultIncludes;
+    private final CrudOp[] globalDefaultExcludes;
+
     private ApplicationContext applicationContext;
+
+    /**
+     * @param globalDefaultIncludes quick-dev.crud.default-includes：
+     *                              注解未显式指定 includes 时使用的全局默认操作（空数组 = 用注解默认值）
+     * @param globalDefaultExcludes quick-dev.crud.default-excludes：
+     *                              全局排除操作，对所有 @QuickCrud 控制器做减法（空数组 = 不排除）
+     */
+    public QuickCrudRegistrar(CrudOp[] globalDefaultIncludes, CrudOp[] globalDefaultExcludes) {
+        this.globalDefaultIncludes = globalDefaultIncludes == null
+                ? new CrudOp[0] : globalDefaultIncludes.clone();
+        this.globalDefaultExcludes = globalDefaultExcludes == null
+                ? new CrudOp[0] : globalDefaultExcludes.clone();
+    }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) {
@@ -78,9 +101,13 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
                         + "（children 需标注 @TableField(exist = false)）");
             }
 
+            List<CrudHook> hooks = applicationContext.getBeanProvider(CrudHook.class)
+                    .orderedStream()
+                    .filter(hook -> hook.entityType() == entityClass)
+                    .toList();
             QuickCrudHandler handler = new QuickCrudHandler(
                     meta, mapper, objectMapper(), conversionService(), validator(),
-                    quickCrud.loginRequired(), transactionOperations());
+                    quickCrud.loginRequired(), transactionOperations(), hooks);
 
             for (CrudOp op : ops) {
                 Method method = QuickCrudHandler.methodOf(op);
@@ -138,9 +165,17 @@ public class QuickCrudRegistrar implements SmartInitializingSingleton, Applicati
         return "/" + sb;
     }
 
-    private Set<CrudOp> resolveOps(QuickCrud quickCrud) {
-        Set<CrudOp> included = new LinkedHashSet<>(Arrays.asList(quickCrud.includes()));
-        Set<CrudOp> excluded = Set.of(quickCrud.excludes());
+    Set<CrudOp> resolveOps(QuickCrud quickCrud) {
+        Set<CrudOp> included;
+        if (Arrays.equals(quickCrud.includes(), ANNOTATION_DEFAULT_INCLUDES)
+                && globalDefaultIncludes.length > 0) {
+            // 注解未显式指定 includes：使用全局默认操作
+            included = new LinkedHashSet<>(Arrays.asList(globalDefaultIncludes));
+        } else {
+            included = new LinkedHashSet<>(Arrays.asList(quickCrud.includes()));
+        }
+        Set<CrudOp> excluded = new LinkedHashSet<>(Arrays.asList(quickCrud.excludes()));
+        excluded.addAll(Arrays.asList(globalDefaultExcludes));
         List<CrudOp> ops = new ArrayList<>();
         for (CrudOp op : included) {
             if (!excluded.contains(op)) {

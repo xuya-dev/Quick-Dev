@@ -1,6 +1,7 @@
 package dev.xuya.springboot.autoconfigure;
 
 import com.baomidou.mybatisplus.annotation.DbType;
+import dev.xuya.core.annotation.CrudOp;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -18,6 +19,7 @@ public class QuickDevProperties {
     private final Translate translate = new Translate();
     private final Dict dict = new Dict();
     private final Limits limits = new Limits();
+    private final Crud crud = new Crud();
     /**
      * 是否启用 @QuickCrud 动态端点注册
      */
@@ -85,6 +87,44 @@ public class QuickDevProperties {
 
     public Limits getLimits() {
         return limits;
+    }
+
+    public Crud getCrud() {
+        return crud;
+    }
+
+    /**
+     * @QuickCrud 全局默认端点集
+     */
+    public static class Crud {
+
+        /**
+         * 全局默认注册的操作：注解未显式指定 includes 时生效（空 = 用注解默认值）。
+         * 配置示例：quick-dev.crud.default-includes: PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE
+         */
+        private CrudOp[] defaultIncludes = {};
+
+        /**
+         * 全局排除的操作：对所有 @QuickCrud 控制器做减法（含显式指定 includes 的控制器）。
+         * 例如只想要"读+单条写"：quick-dev.crud.default-excludes: SAVE_BATCH,SAVE_OR_UPDATE
+         */
+        private CrudOp[] defaultExcludes = {};
+
+        public CrudOp[] getDefaultIncludes() {
+            return defaultIncludes;
+        }
+
+        public void setDefaultIncludes(CrudOp[] defaultIncludes) {
+            this.defaultIncludes = defaultIncludes;
+        }
+
+        public CrudOp[] getDefaultExcludes() {
+            return defaultExcludes;
+        }
+
+        public void setDefaultExcludes(CrudOp[] defaultExcludes) {
+            this.defaultExcludes = defaultExcludes;
+        }
     }
 
     public static class Auth {
@@ -184,25 +224,12 @@ public class QuickDevProperties {
          */
         private boolean enabled = true;
 
-        /**
-         * 是否异步落地（后台单线程执行 sink，队列满丢弃并告警，不影响业务）
-         */
-        private boolean async = false;
-
         public boolean isEnabled() {
             return enabled;
         }
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
-        }
-
-        public boolean isAsync() {
-            return async;
-        }
-
-        public void setAsync(boolean async) {
-            this.async = async;
         }
     }
 
