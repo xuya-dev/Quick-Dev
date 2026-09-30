@@ -154,9 +154,10 @@ public class QuickDevProperties {
         private String tokenHeader = "Authorization";
 
         /**
-         * 兜底：携带 token 的请求参数名
+         * 兜底：携带 token 的请求参数名。0.4.0 起默认禁用（URL 传 token 会泄露到访问日志/历史记录），
+         * 需要时显式配置（如 token-param: token）
          */
-        private String tokenParam = "token";
+        private String tokenParam = "";
 
         public boolean isEnabled() {
             return enabled;

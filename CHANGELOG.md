@@ -2,6 +2,19 @@
 
 所有显著变更记录于此，格式：`<类型> <简短中文描述>`，新条目在前。
 
+## 0.4.0 (2026-09-30)
+
+- ✨ Features|新功能 排序支持多列orderBy与order逐列对应
+- ✨ Features|新功能 新增TranslateSource SPI关联翻译优先内存取值不回源查库
+- ✨ Features|新功能 新增DictJson标准JSON字典格式解析配合缓存全量替换
+- 🐛 Bug Fixes|Bug 修复 数据权限空集合改为恒假条件避免空IN导致SQL错误
+- 🐛 Bug Fixes|Bug 修复 排序跳过非表字段避免构造参数触发500
+- 🐛 Bug Fixes|Bug 修复 防重被拒重试不再续期时间窗口
+- 🐛 Bug Fixes|Bug 修复 Excel导入解析阶段强制行数上限防超大文件耗尽内存
+- 🐛 Bug Fixes|Bug 修复 LIKE查询支持escapeWildcard按字面量匹配防通配符放大
+- 🐛 Bug Fixes|Bug 修复 写路径强制清空逻辑删除与审计字段防越权删除与伪造归属
+- 🔧 Chores|杂务 URL传token默认禁用避免泄露访问日志需时显式配置
+
 ## 0.3.0 (2026-09-30)
 
 - ✨ Features|新功能 修改操作支持提交字段部分校验避免部分更新被整实体校验误伤

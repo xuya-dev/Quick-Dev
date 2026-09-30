@@ -75,6 +75,11 @@ public class SysUserController {
   Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
+- **查询多列排序**：`?orderBy=createTime,id&order=desc,asc` 逐列对应（列名为实体属性白名单，非表字段自动跳过）
+- **关联翻译内存化（TranslateSource SPI）**：`@Translate(entity=...)` 优先从业务侧全量内存缓存取值，miss 才回源查库；
+  字典支持标准 JSON 格式上传（`DictJson.parse` + `DictCacheService.replaceByJson`），全链路零查库
+- **安全加固**：唯一索引冲突转友好 400；数据权限空集合恒不可见；写路径强制清空逻辑删除与审计字段
+  （客户端无法越权删除/伪造归属）；防重指纹对 token 哈希、URL 传 token 默认禁用；LIKE 支持通配符转义开关
 - **分阶段参数校验**：新增走全实体 Bean Validation（`Default + Create` 组），修改为部分更新语义——
   只校验提交值非空的字段（`Default + Update` 组），`@NotBlank` 传空串照拦、未提交字段不误伤；
   内置 `@QuickRequire` 条件必填注解（依赖字段值匹配时本字段必填，支持分组、可重复），
@@ -106,7 +111,7 @@ quick-dev
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -266,9 +271,10 @@ quick-dev:
 |---------------------|--------------------------------------------------------------------|
 | `current` / `size`  | 分页参数，默认 1 / 10，size 上限 1000                              |
 | 与实体属性同名      | 生成查询条件，方式由 `@QueryField` 决定（默认 EQ），值自动转换类型 |
-| `orderBy` / `order` | 排序字段（必须是实体属性名，防注入）+ `asc`/`desc`                 |
+| `orderBy` / `order` | 排序字段（实体属性名白名单，逗号分隔多列，非表字段跳过）；`order` 逐列对应 `asc`/`desc` |
 
 示例：`GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=create_time&order=desc`
+多列排序：`orderBy=createTime,id&order=desc,asc`（逐列对应，缺省 asc）
 
 > 注意：`orderBy` 传的是 **实体属性名**（createTime），框架内部映射为列名。
 
@@ -413,7 +419,7 @@ Controller 的 permission 为建议前缀（如 `t:order`）按业务调整。�
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
@@ -632,7 +638,7 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `db-type`                       | -                         | 分页插件方言（mysql/h2/postgresql…；用户自定义 MybatisPlusInterceptor 时不生效） |
 | `auth.enabled`                  | `true`                    | 鉴权总开关（false 时所有鉴权注解放行）                                           |
 | `auth.token-header`             | `Authorization`           | token 请求头（兼容 Bearer 前缀）                                                 |
-| `auth.token-param`              | `token`                   | 兜底 token 请求参数名                                                            |
+| `auth.token-param`              | -（禁用）                 | 兜底 token 请求参数名（URL 传 token 会泄露日志，需要时显式配置）                  |
 | `method-op.enabled`             | `true`                    | 方法级注解（@QuickSave 等）AOP 开关                                              |
 | `auto-fill.enabled`             | `true`                    | 时间/操作人自动填充开关                                                          |
 | `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit 防重复提交开关                                                   |

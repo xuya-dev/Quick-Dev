@@ -18,7 +18,7 @@
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
         <!-- 再加你的数据库驱动，例如： -->
 <dependency>
@@ -370,7 +370,7 @@ public R<Object> create(@RequestBody OrderDTO dto) { ...}
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
 </dependency>
 ```
 
