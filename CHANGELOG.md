@@ -9,6 +9,7 @@
 - ✨ Features|新功能 CRUD写操作统一纳入事务批量新增与删除具备原子性
 - ✨ Features|新功能 新增quick-dev.crud全局默认includes与excludes配置
 - ♻️ Refactoring|代码重构 移除AsyncOperationLogSink默认打印落库由用户自实现
+- 🔧 Chores|杂务 接入CentralPortal发布插件GPG签名与发布手册支持deploy到中央仓库
 
 ## 0.1.0 (2026-09-29)
 

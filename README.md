@@ -622,6 +622,7 @@ Sa-Token 自身配置见其官方文档（`sa-token.*`，如 token-name、timeou
 - 参与贡献请阅读 [贡献指南](CONTRIBUTING.md)（提交格式、测试要求、模块职责）
 - 社区行为规范见 [行为准则](CODE_OF_CONDUCT.md)
 - 发现问题或提出建议：[提交 Issue](https://github.com/xuya-dev/Quick-Dev/issues)（含 Bug 报告 / 功能建议模板）
+- 维护者发布：[Maven Central 发布手册](docs/publish-guide.md)（Portal 命名空间验证 / GPG / mvn deploy -Prelease）
 
 ## 环境要求
 

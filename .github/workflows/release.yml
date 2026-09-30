@@ -1,0 +1,34 @@
+name: Release to Maven Central
+
+# 手动触发：先在仓库 Settings → Secrets and variables → Actions 配置 4 个 Secret
+# （CENTRAL_USERNAME / CENTRAL_PASSWORD / GPG_PRIVATE_KEY / GPG_PASSPHRASE），
+# 详见 docs/publish-guide.md
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 and Central credentials
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          # 写入 settings.xml：<server><id>central</id> 与 central-publishing-maven-plugin 对应
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+          # 导入 GPG 私钥并注入 gpg.passphrase
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+          gpg-passphrase: GPG_PASSPHRASE
+
+      - name: Deploy to Maven Central
+        run: mvn clean deploy -Prelease
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

@@ -54,6 +54,8 @@
         <sa-token.version>1.42.0</sa-token.version>
         <fastexcel.version>1.2.0</fastexcel.version>
         <springdoc.version>2.8.17</springdoc.version>
+        <central-publishing.version>0.11.0</central-publishing.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -146,11 +148,26 @@
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>${maven-gpg-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>${central-publishing.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
 
-    <!-- 发布 profile：mvn deploy -Prelease 时附带 sources/javadoc（GPG/分发仓库按需自行补充） -->
+    <!--
+        发布 profile：发布到 Maven Central（Central Portal，命名空间 dev.xuya 需在 Portal 完成 DNS 验证）。
+        前置条件见 docs/publish-guide.md：Portal 账号与 User Token、GPG 密钥并发布公钥。
+        用法：mvn clean deploy -Prelease
+        本地只验证产物（不出签名/不发布）：mvn package -Prelease -Dgpg.skip=true
+    -->
     <profiles>
         <profile>
             <id>release</id>
@@ -179,6 +196,32 @@
                                 </goals>
                             </execution>
                         </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- settings.xml 中 <server><id>central</id> 的 Portal User Token -->
+                            <publishingServerId>central</publishingServerId>
+                            <!-- demo 演示模块不发布 -->
+                            <excludeMavenModules>quick-dev-demo</excludeMavenModules>
+                            <!-- 首次发布建议 false：上传校验通过后到 Portal 页面人工确认 Publish -->
+                            <autoPublish>false</autoPublish>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>
