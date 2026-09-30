@@ -53,7 +53,7 @@ public final class EntityValidator {
         for (ConstraintViolation<Object> violation : validator.validate(entity, Default.class, Create.class)) {
             problems.add(violation.getPropertyPath() + " " + violation.getMessage());
         }
-        problems.addAll(quickRequireProblems(entity, Create.class));
+        problems.addAll(checkQuickRequire(entity, Create.class));
         if (!problems.isEmpty()) {
             throw new ParamException("参数校验失败: " + String.join("; ", problems));
         }
@@ -89,17 +89,18 @@ public final class EntityValidator {
                 }
             }
         }
-        problems.addAll(quickRequireProblems(entity, Update.class));
+        problems.addAll(checkQuickRequire(entity, Update.class));
         if (!problems.isEmpty()) {
             throw new ParamException("修改参数校验失败: " + String.join("; ", problems));
         }
     }
 
     /**
-     * @QuickRequire 条件必填。修改阶段的语义：仅当依赖字段在本次提交中非空且值匹配时
+     * @QuickRequire 条件必填检查（供新增/修改/Excel 导入路径共用）。
+     * 修改阶段的语义：仅当依赖字段在本次提交中非空且值匹配时
      * 才要求本字段同时提交；依赖字段未提交则跳过（完整状态判断可写 CrudHook.beforeUpdate）
      */
-    private static List<String> quickRequireProblems(Object entity, Class<?> phase) {
+    public static List<String> checkQuickRequire(Object entity, Class<?> phase) {
         List<String> problems = new ArrayList<>();
         for (Class<?> c = entity.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
             for (Field field : c.getDeclaredFields()) {

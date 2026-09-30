@@ -8,6 +8,7 @@ import dev.xuya.core.common.R;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -49,6 +50,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ParamException.class)
     public R<Void> handleParam(ParamException e) {
         return R.fail(400, e.getMessage());
+    }
+
+    /**
+     * 唯一键冲突（新增/修改违反唯一索引）：转成友好 400，不透出 SQL 细节
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public R<Void> handleDuplicateKey(DuplicateKeyException e) {
+        log.warn("唯一键冲突: {}", e.getMessage());
+        return R.fail(400, "保存失败，唯一键冲突：请检查关键字段是否已存在相同记录");
     }
 
     @ExceptionHandler(QuickDevException.class)

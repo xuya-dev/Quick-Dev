@@ -3,11 +3,14 @@ package dev.xuya.core.excel;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.QuickDevLimits;
+import dev.xuya.core.crud.EntityValidator;
+import dev.xuya.core.validation.Create;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,11 +53,14 @@ public final class ExcelImportExecutor {
         if (validator != null) {
             Map<Integer, String> errors = new LinkedHashMap<>();
             for (int i = 0; i < rows.size(); i++) {
-                Set<ConstraintViolation<Object>> violations = validator.validate(rows.get(i));
-                if (!violations.isEmpty()) {
-                    errors.put(i + 1, violations.stream()
-                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                            .collect(Collectors.joining("; ")));
+                List<String> problems = new ArrayList<>();
+                for (ConstraintViolation<Object> violation : validator.validate(rows.get(i))) {
+                    problems.add(violation.getPropertyPath() + " " + violation.getMessage());
+                }
+                // @QuickRequire 条件必填与导入（新增）阶段一致
+                problems.addAll(EntityValidator.checkQuickRequire(rows.get(i), Create.class));
+                if (!problems.isEmpty()) {
+                    errors.put(i + 1, String.join("; ", problems));
                 }
             }
             if (!errors.isEmpty()) {
