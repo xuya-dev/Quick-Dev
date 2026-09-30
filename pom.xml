@@ -217,8 +217,10 @@
                         <configuration>
                             <!-- settings.xml 中 <server><id>central</id> 的 Portal User Token -->
                             <publishingServerId>central</publishingServerId>
-                            <!-- demo 演示模块不发布 -->
-                            <excludeMavenModules>quick-dev-demo</excludeMavenModules>
+                            <!-- demo 演示模块不发布（excludeArtifacts 按 artifactId 排除） -->
+                            <excludeArtifacts>
+                                <artifact>quick-dev-demo</artifact>
+                            </excludeArtifacts>
                             <!-- 首次发布建议 false：上传校验通过后到 Portal 页面人工确认 Publish -->
                             <autoPublish>false</autoPublish>
                         </configuration>
