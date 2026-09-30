@@ -1,5 +1,7 @@
 # Quick Dev 使用手册
 
+> 场景化速查手册。体系化的完整手册见 [manual.md](manual.md)。
+
 > 面向使用本框架的业务开发者。按场景组织，比 [README](../README.md) 更细；
 > 快速上手请先读 README 的"快速开始"。
 >

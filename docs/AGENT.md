@@ -10,7 +10,7 @@
 - 坐标：`dev.xuya:quick-dev-spring-boot-starter:0.4.0`（可选 `dev.xuya:quick-dev-redis-spring-boot-starter`）
 - 版本基线：JDK 17+ / Spring Boot 3.5.x / MyBatis-Plus 3.5.12 / Sa-Token 1.42.0 / FastExcel 1.2.0
 - 构建验证：`mvn clean verify`（6 模块 reactor；core 36 + autoconfigure 4 + codegen 3 + demo 24 个测试）
-- 用户文档：[README.md](../README.md)（中文）/ [README.en.md](../README.en.md) / [docs/user-guide.md](user-guide.md)（详细手册）
+- 用户文档：[README.md](../README.md)（中文）/ [README.en.md](../README.en.md) / [完整使用手册](manual.md) / [docs/user-guide.md](user-guide.md)（详细手册）
 - 生成业务代码时 **不需要**引入框架内部类以外的任何新依赖（starter 已传递 web/validation/aop/Sa-Token/FastExcel/MP）
 
 ## 使用速查：注解清单

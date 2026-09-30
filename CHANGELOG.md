@@ -4,6 +4,8 @@
 
 ## 0.4.0 (2026-09-30)
 
+- ✨ Features|新功能 唯一键冲突转友好400提示不透出SQL细节
+- ✨ Features|新功能 Excel导入支持QuickRequire条件必填校验
 - ✨ Features|新功能 排序支持多列orderBy与order逐列对应
 - ✨ Features|新功能 新增TranslateSource SPI关联翻译优先内存取值不回源查库
 - ✨ Features|新功能 新增DictJson标准JSON字典格式解析配合缓存全量替换
