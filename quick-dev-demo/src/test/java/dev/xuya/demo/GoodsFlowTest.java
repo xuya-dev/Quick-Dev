@@ -9,6 +9,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.jdbc.Sql;
 
 import java.util.Map;
 
@@ -17,8 +18,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 0.4.0 特性端到端：分阶段校验（Create/Update 分组）、@QuickRequire 条件必填、
  * CrudHook 规范化、delFlag 保护、APPEND 翻译、多列排序。
+ *
+ * <p>与 QuickCrudFlowTest 相同的隔离策略：每用例前清库重播种，用例自清理仅作兜底。</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Sql(scripts = {"classpath:quickdev-cleanup.sql", "classpath:data.sql"},
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class GoodsFlowTest {
 
     @Autowired

@@ -12,6 +12,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -28,8 +29,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * 端到端流程测试：登录 -> 鉴权 -> 动态 CRUD -> 方法级注解 -> Excel 导入导出。
+ *
+ * <p>测试隔离：每个用例前清库并重放 data.sql（quickdev-cleanup.sql + data.sql），
+ * 用例之间不再依赖彼此的清理结果——即使某用例中途失败留下脏数据，也不影响后续用例。
+ * 注意：字典标签的内存缓存（DictCacheService）不在数据库内，涉及字典变更的用例
+ * 仍在 finally 中还原并调刷新接口。</p>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@Sql(scripts = {"classpath:quickdev-cleanup.sql", "classpath:data.sql"},
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class QuickCrudFlowTest {
 
     @Autowired

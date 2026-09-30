@@ -1,10 +1,11 @@
 -- 账号：admin/admin123（超级权限 *）、viewer/viewer123（只读 sys:user:list/detail）
 -- disabled/disabled123：停用账号（status=0，财务部），用于验证"账号已被停用"负路径
-insert into sys_user (username, nickname, password, email, status, dept_id, create_time)
-values ('admin', '管理员', 'admin123', 'admin@quickdev.cn', 1, 2, current_timestamp),
-       ('viewer', '访客', 'viewer123', 'viewer@quickdev.cn', 1, 2, current_timestamp),
-       ('alice', '爱丽丝', 'alice123', 'alice@quickdev.cn', 1, 5, current_timestamp),
-       ('disabled', '停用账号', 'disabled123', 'disabled@quickdev.cn', 0, 5, current_timestamp);
+-- 显式 id：配合测试的 @Sql 每用例重播种，保证 id 稳定为 1..4
+insert into sys_user (id, username, nickname, password, email, status, dept_id, create_time)
+values (1, 'admin', '管理员', 'admin123', 'admin@quickdev.cn', 1, 2, current_timestamp),
+       (2, 'viewer', '访客', 'viewer123', 'viewer@quickdev.cn', 1, 2, current_timestamp),
+       (3, 'alice', '爱丽丝', 'alice123', 'alice@quickdev.cn', 1, 5, current_timestamp),
+       (4, 'disabled', '停用账号', 'disabled123', 'disabled@quickdev.cn', 0, 5, current_timestamp);
 
 insert into sys_user_perm (user_id, perm_code)
 values (1, '*'),
@@ -37,3 +38,8 @@ values ('p0000000000000000000000000000001', '机械键盘', 1, 1, 399.00, 120, c
 insert into demo_goods (name, remark, stock, reason, status, create_time) values
        ('演示商品A', '库存充足', 100, null, 1, current_timestamp),
        ('演示商品B', null,       0, '清仓',   0, current_timestamp);
+
+-- sys_user 用了显式 id（1..4，配合测试每用例重播种），H2 的 identity 计数器不会因此推进；
+-- 不重启的话框架插入新用户时从 1 开始分配，直接撞唯一键。product 主键是应用侧 UUID、
+-- demo_goods 走生成式插入（计数器正常推进），均无需处理。
+alter table sys_user alter column id restart with 5;
