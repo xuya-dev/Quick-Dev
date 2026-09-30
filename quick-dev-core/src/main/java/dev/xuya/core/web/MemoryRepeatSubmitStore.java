@@ -20,6 +20,10 @@ public class MemoryRepeatSubmitStore implements RepeatSubmitStore {
 
     @Override
     public boolean tryAcquire(String key, long intervalMillis) {
+        // 契约：非正窗口 = 不设防（与 Redis 实现一致，避免两个实现语义分叉）
+        if (intervalMillis <= 0) {
+            return true;
+        }
         long now = System.currentTimeMillis();
         // compute 原子执行；被拒绝时保留原过期时间——重试不续期窗口，连续点击不会无限推迟放行
         boolean[] allowed = {false};
@@ -28,7 +32,7 @@ public class MemoryRepeatSubmitStore implements RepeatSubmitStore {
                 return previousExpiry;
             }
             allowed[0] = true;
-            return now + Math.max(1, intervalMillis);
+            return now + intervalMillis;
         });
         if (expiryByKey.size() > CLEAN_THRESHOLD) {
             clean(now);

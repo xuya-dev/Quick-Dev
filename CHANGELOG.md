@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- 🧪 Tests|测试 自动装配条件矩阵全覆盖开关让位与Redis排序此前该模块7/8类零覆盖
+- 🧪 Tests|测试 补齐鉴权拦截器身份泄漏回归与角色OR/AND语义覆盖
+- 🧪 Tests|测试 防重存储补窗口不续期与条目独立过期测试拦截器补指纹身份用例
+- 🧪 Tests|测试 全局异常处理器覆盖全部映射契约含error-detail开关
+- 🧪 Tests|测试 Excel导出补分批边界用例跨批截断恰好等于上限空结果
+- 🐛 Bug Fixes|Bug 修复 内置字典解析拆分正反两类消除用户自定义单方向时的类型污染
 - 📝 Documentation|文档 英文README全面同步至0.4.0补齐0.3与0.4特性与配置总表
 - 📝 Documentation|文档 修正URL传token默认禁用的文档自相矛盾与用户指南幻影字典接口
 - 🧰 Build|构建 提供MavenWrapper并接入CI与贡献指南版本可复现

@@ -46,4 +46,12 @@ class RedisRepeatSubmitStoreTest {
         store.tryAcquire("k", 1500);
         Mockito.verify(valueOperations).setIfAbsent(eq("k"), anyString(), eq(Duration.ofMillis(1500)));
     }
+
+    @Test
+    void nonPositiveIntervalShouldDisableGuardWithoutTouchingRedis() {
+        // 契约：interval <= 0 = 不设防（与内存实现一致），且不触发任何 Redis 调用
+        assertThat(store.tryAcquire("k", 0)).isTrue();
+        assertThat(store.tryAcquire("k", -5)).isTrue();
+        Mockito.verifyNoInteractions(valueOperations);
+    }
 }

@@ -18,11 +18,14 @@ public class RedisRepeatSubmitStore implements RepeatSubmitStore {
 
     @Override
     public boolean tryAcquire(String key, long intervalMillis) {
-        // Redis 对 0 过期时间报错（invalid expire time），-1 表示永不过期（会把端点永久锁死）。
-        // 与内存实现对齐：亚毫秒间隔一律视为 1ms，保证"窗口极小"语义而非"永久/报错"。
-        long ttl = Math.max(1, intervalMillis);
+        // 契约：非正窗口 = 不设防（与内存实现一致）。
+        // 同时规避 Redis 的两个坑：0 过期时间报错（invalid expire time），
+        // -1 过期时间表示永不过期（会把端点永久锁死）。
+        if (intervalMillis <= 0) {
+            return true;
+        }
         Boolean acquired = redisTemplate.opsForValue().setIfAbsent(
-                key, String.valueOf(System.currentTimeMillis()), Duration.ofMillis(ttl));
+                key, String.valueOf(System.currentTimeMillis()), Duration.ofMillis(intervalMillis));
         return Boolean.TRUE.equals(acquired);
     }
 }

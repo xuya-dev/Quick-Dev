@@ -1,18 +1,20 @@
 package dev.xuya.core.translate;
 
 /**
- * 内置字典解析器：基于 {@link DictCacheService} 内存缓存的双向解析（值-&gt;标签 / 标签-&gt;值），
- * 不查任何数据库。数据来源见 DictLoader SPI 与导入端点。
- * <p>自动装配按方向分别让位：用户自定义了 DictResolver 时正向让位、
- * 自定义了 DictReverseResolver 时反向让位，另一方向仍由本实现兜底。</p>
+ * @deprecated 拆分为 {@link DictCacheForwardResolver}（值-&gt;标签）与
+ * {@link DictCacheReverseResolver}（标签-&gt;值）：单一类同时实现两个接口会导致
+ * 自动装配无法按方向独立让位（类型污染）。本类仅为既有子类/调用方保留兼容，
+ * 新代码请使用拆分后的实现。
  */
-
+@Deprecated
 public class DictCacheProvider implements DictResolver, DictReverseResolver {
 
-    private final DictCacheService cacheService;
+    private final DictCacheForwardResolver forward;
+    private final DictCacheReverseResolver reverse;
 
     public DictCacheProvider(DictCacheService cacheService) {
-        this.cacheService = cacheService;
+        this.forward = new DictCacheForwardResolver(cacheService);
+        this.reverse = new DictCacheReverseResolver(cacheService);
     }
 
     /**
@@ -20,7 +22,7 @@ public class DictCacheProvider implements DictResolver, DictReverseResolver {
      */
     @Override
     public String resolve(String dictType, Object dictValue) {
-        return cacheService.getLabel(dictType, String.valueOf(dictValue));
+        return forward.resolve(dictType, dictValue);
     }
 
     /**
@@ -28,6 +30,6 @@ public class DictCacheProvider implements DictResolver, DictReverseResolver {
      */
     @Override
     public Object reverse(String dictType, String label) {
-        return cacheService.getValue(dictType, label);
+        return reverse.reverse(dictType, label);
     }
 }

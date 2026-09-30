@@ -1,6 +1,7 @@
 package dev.xuya.springboot.autoconfigure;
 
-import dev.xuya.core.translate.DictCacheProvider;
+import dev.xuya.core.translate.DictCacheForwardResolver;
+import dev.xuya.core.translate.DictCacheReverseResolver;
 import dev.xuya.core.translate.DictCacheService;
 import dev.xuya.core.translate.DictLoader;
 import dev.xuya.core.translate.DictResolver;
@@ -45,7 +46,7 @@ public class QuickDevDictConfiguration {
     @Bean
     @ConditionalOnMissingBean(DictResolver.class)
     public DictResolver dictCacheResolver(DictCacheService cacheService) {
-        return new DictCacheProvider(cacheService);
+        return new DictCacheForwardResolver(cacheService);
     }
 
     /**
@@ -54,7 +55,7 @@ public class QuickDevDictConfiguration {
     @Bean
     @ConditionalOnMissingBean(DictReverseResolver.class)
     public DictReverseResolver dictCacheReverseResolver(DictCacheService cacheService) {
-        return new DictCacheProvider(cacheService);
+        return new DictCacheReverseResolver(cacheService);
     }
 
     @Bean
