@@ -80,9 +80,9 @@ class QueryHelperTest {
     }
 
     @Test
-    void orderByShouldSupportMultipleColumnsAndSkipNonTableFields() {
+    void orderByShouldSupportMultipleColumns() {
         Map<String, String> params = new HashMap<>();
-        params.put("orderBy", "createTime,nickName,children"); // children 为非表字段，应跳过
+        params.put("orderBy", "createTime,nickName");
         params.put("order", "desc");                            // 仅一个值：剩余列默认 asc
 
         QueryWrapper<Object> wrapper = QueryHelper.build(meta, params,
@@ -90,7 +90,20 @@ class QueryHelperTest {
 
         String sql = wrapper.getSqlSegment().toLowerCase();
         assertThat(sql).contains("order by create_time desc,nick_name asc");
-        assertThat(sql).doesNotContain("children");
+    }
+
+    @Test
+    void orderByWithNonTableFieldShouldFailFast() {
+        // 非表字段（如树形 children）或拼错的属性名：直接报 400，
+        // 静默忽略会让"排序不生效"变成无法排查的悬案
+        Map<String, String> params = new HashMap<>();
+        params.put("orderBy", "createTime,children");
+
+        org.assertj.core.api.Assertions
+                .assertThatThrownBy(() -> QueryHelper.build(meta, params,
+                        new DefaultFormattingConversionService()))
+                .isInstanceOf(ParamException.class)
+                .hasMessageContaining("children");
     }
 
     @Test
@@ -104,6 +117,7 @@ class QueryHelperTest {
 
     @Test
     void inConditionShouldEnforceMaxSize() {
+        int original = QuickDevLimits.getInMaxSize();
         QuickDevLimits.setInMaxSize(2);
         try {
             Map<String, String> params = new HashMap<>();
@@ -114,7 +128,7 @@ class QueryHelperTest {
                     .isInstanceOf(ParamException.class)
                     .hasMessageContaining("超过上限");
         } finally {
-            QuickDevLimits.setInMaxSize(1000);
+            QuickDevLimits.setInMaxSize(original);
         }
     }
 

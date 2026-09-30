@@ -25,10 +25,8 @@ sa-token:
 quick-dev:
   enabled: true
   db-type: h2
-  # 防御性上限（此处调小以便测试验证：默认导出 100000 / 导入 10000 / IN 1000）
-  limits:
-    export-max-rows: 1
-    import-max-rows: 3
+  # 防御性上限沿用框架默认值（导出 100000 / 导入 10000 / 不分页查询 1000 / IN 1000）；
+  # 需要验证"超限"行为的测试自己在测试内用 QuickDevLimits 调整并还原。
   dict:
     # 框架不查库：demo 自定义 DbDictLoader 提供数据（远程服务/配置中心同理）
     refresh-interval-seconds: 2   # 定时自动刷新演示（多实例最终一致方案，默认 0 禁用）
@@ -37,7 +35,7 @@ quick-dev:
   auth:
     enabled: true
     token-header: Authorization
-    token-param: token
+    # 0.4.0 起默认禁用 URL 传 token（会泄露到访问日志/历史记录）；demo 不重新开启
 
 logging:
   level:

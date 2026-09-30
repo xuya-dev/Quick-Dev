@@ -15,7 +15,7 @@
 ```bash
 git clone https://github.com/xuya-dev/Quick-Dev.git
 cd quick-dev
-mvn clean verify      # 构建并运行全部测试（core 14 + autoconfigure 4 + demo 22）
+mvn clean verify      # 构建并运行全部测试（6 模块 reactor，全部须绿）
 ```
 
 ## 项目结构

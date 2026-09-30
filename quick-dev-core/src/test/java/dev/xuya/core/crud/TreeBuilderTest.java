@@ -52,6 +52,41 @@ class TreeBuilderTest {
     }
 
     @Test
+    void selfReferencingNodeShouldFailFast() {
+        // id = parentId 的自引用会构建出循环对象图，Jackson 序列化时无限递归
+        Dept self = new Dept(1L, "自引用", 1L);
+        assertThatThrownBy(() -> TreeBuilder.build(EntityMeta.of(Dept.class), List.of(self)))
+                .isInstanceOf(QuickDevException.class)
+                .hasMessageContaining("自引用");
+    }
+
+    @Test
+    void cyclicParentChainShouldFailFast() {
+        // 1 -> 2 -> 1 的环同样会产生循环对象图
+        Dept a = new Dept(1L, "A", 2L);
+        Dept b = new Dept(2L, "B", 1L);
+        assertThatThrownBy(() -> TreeBuilder.build(EntityMeta.of(Dept.class), List.of(a, b)))
+                .isInstanceOf(QuickDevException.class)
+                .hasMessageContaining("环");
+    }
+
+    @Test
+    void orphanNodeShouldBePromotedToRootInsteadOfVanishing() {
+        // 父节点(99)不在结果集内：节点按根返回，而不是从结果里静默消失
+        Dept orphan = new Dept(3L, "孤儿", 99L);
+        Dept root = new Dept(1L, "根", 0L);
+
+        List<Object> tree = TreeBuilder.build(EntityMeta.of(Dept.class), List.of(orphan, root));
+
+        assertThat(tree).hasSize(2);
+        assertThat(tree).extracting(d -> ((Dept) d).getName())
+                .containsExactlyInAnyOrder("孤儿", "根");
+        Dept builtOrphan = tree.stream().filter(d -> ((Dept) d).getName().equals("孤儿"))
+                .map(d -> (Dept) d).findFirst().orElseThrow();
+        assertThat(builtOrphan.getChildren()).isEmpty();
+    }
+
+    @Test
     void nonColumnFieldShouldNotAppearInColumnMap() {
         EntityMeta meta = EntityMeta.of(Dept.class);
         assertThat(meta.getColumn("children")).isNull();      // exist=false 不参与查询条件

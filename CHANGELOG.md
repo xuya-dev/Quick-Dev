@@ -2,6 +2,25 @@
 
 所有显著变更记录于此，格式：`<类型> <简短中文描述>`，新条目在前。
 
+## Unreleased
+
+- ✨ Features|新功能 新增limits.query-max-rows护栏list与tree超限返回400不再全量返回
+- ✨ Features|新功能 新增limits.export-batch-size导出分批取数内存占用与导出总量解耦
+- ✨ Features|新功能 排序字段非法时返回400不再静默忽略便于定位排序不生效问题
+- 🐛 Bug Fixes|Bug 修复 导出改为分批拉取修复全量物化后才截断的内存放大问题
+- 🐛 Bug Fixes|Bug 修复 树形接口检测parentId环与自引用避免序列化无限递归
+- 🐛 Bug Fixes|Bug 修复 树形孤儿节点按根返回不再从结果中静默消失
+- 🐛 Bug Fixes|Bug 修复 鉴权拒绝时不再遗留用户身份到线程避免跨请求串号
+- 🐛 Bug Fixes|Bug 修复 translate.cache-seconds=0按文档语义禁用缓存不再永久缓存
+- 🐛 Bug Fixes|Bug 修复 Excel导入表头不匹配直接报错不再静默插入空记录
+- 🐛 Bug Fixes|Bug 修复 Excel导入行数恰好等于上限不再被误拒并正确拒绝超限文件
+- 🐛 Bug Fixes|Bug 修复 翻译反解返回类型固定为String消除随缓存状态变化的导入行为
+- 🐛 Bug Fixes|Bug 修复 方法级注解写入路径补齐事务与类级CRUD语义一致
+- 🐛 Bug Fixes|Bug 修复 校验器缺失时显式告警不再静默停用全部校验
+- 🐛 Bug Fixes|Bug 修复 分页size非法值钳制不再透传负数到分页插件
+- 🧪 Tests|测试 防御性上限测试改为进程内调整并还原移除demo中的测试专用配置
+- 🔧 Chores|杂务 demo对starter的依赖改为${project.version}避免解析到历史发布版本
+
 ## 0.4.0 (2026-09-30)
 
 - ✨ Features|新功能 唯一键冲突转友好400提示不透出SQL细节

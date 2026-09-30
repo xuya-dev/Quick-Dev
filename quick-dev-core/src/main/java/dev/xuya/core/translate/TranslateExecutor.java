@@ -36,7 +36,7 @@ public class TranslateExecutor {
 
     private final boolean enabled;
     /**
-     * 缓存毫秒数，<=0 表示禁用
+     * 缓存毫秒数，&lt;=0 表示禁用缓存（每次实时翻译）
      */
     private final long cacheMillis;
     private final Map<String, CacheEntry> cache = new ConcurrentHashMap<>();
@@ -72,10 +72,14 @@ public class TranslateExecutor {
             return null;
         }
         try {
+            if (cacheMillis <= 0) {
+                // 缓存已禁用：实时翻译，不写缓存
+                return doTranslate(annotation, value);
+            }
             String cacheKey = cacheKey(annotation, value);
             CacheEntry cached = cache.get(cacheKey);
             long now = System.currentTimeMillis();
-            if (cached != null && (cacheMillis <= 0 || now - cached.at < cacheMillis)) {
+            if (cached != null && now - cached.at < cacheMillis) {
                 return cached.value;
             }
             String result = doTranslate(annotation, value);
@@ -142,26 +146,34 @@ public class TranslateExecutor {
      *   <li>关联模式：按目标属性值反查主键（多条取第一条）</li>
      * </ul>
      *
+     * <p>返回类型固定为 String（含缓存命中与未命中两条路径），由调用方按目标字段类型转换；
+     * 这样"第一次导入成功、TTL 后同一文件失败"这类随缓存状态变化的行为不会出现。</p>
+     *
      * @return 反解出的值；null 表示无法反解（调用方保留原值）
      */
-    public Object reverse(Translate annotation, String label) {
+    public String reverse(Translate annotation, String label) {
         if (!enabled || annotation == null || label == null) {
             return null;
         }
         try {
-            // 缓存值统一字符串化即可，调用方（Excel 导入）随后会做字段类型转换
+            if (cacheMillis <= 0) {
+                // 缓存已禁用：实时反解，不写缓存
+                Object result = doReverse(annotation, label);
+                return result == null ? null : String.valueOf(result);
+            }
             String cacheKey = KEY_REVERSE + cacheKey(annotation, label);
             CacheEntry cached = cache.get(cacheKey);
             long now = System.currentTimeMillis();
-            if (cached != null && (cacheMillis <= 0 || now - cached.at < cacheMillis)) {
+            if (cached != null && now - cached.at < cacheMillis) {
                 return cached.value;
             }
             Object result = doReverse(annotation, label);
+            String asText = result == null ? null : String.valueOf(result);
             if (cache.size() > CACHE_LIMIT) {
                 cache.clear();
             }
-            cache.put(cacheKey, new CacheEntry(result == null ? null : String.valueOf(result), now));
-            return result;
+            cache.put(cacheKey, new CacheEntry(asText, now));
+            return asText;
         } catch (Exception e) {
             log.debug("字典反解失败, 保留原值[{}]: {}", label, e.getMessage());
             return null;

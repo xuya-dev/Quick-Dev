@@ -4,11 +4,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.ParamException;
+import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.common.R;
 import dev.xuya.core.crud.EntityMeta;
 import dev.xuya.core.crud.EntityValidator;
 import dev.xuya.core.crud.MapperResolver;
-import dev.xuya.core.crud.QueryHelper;
+import dev.xuya.core.crud.QuickCrudHandler;
 import dev.xuya.core.excel.ExcelImportExecutor;
 import dev.xuya.core.excel.ExcelSupport;
 import jakarta.servlet.http.HttpServletRequest;
@@ -97,8 +98,12 @@ public class QuickOpAspect {
         BaseMapper<Object> mapper = mapper(entityClass);
         List<Object> batch = findListArg(args, entityClass);
         if (batch != null) {
-            batch.forEach(entity -> EntityValidator.validateSave(entity, validator()));
-            Db.saveBatch(batch);
+            batch.forEach(entity -> {
+                EntityMeta.of(entityClass).clearSystemFields(entity);
+                EntityValidator.validateSave(entity, validator());
+            });
+            // 与 @QuickCrud 的批量新增保持一致：整体一个事务，避免部分入库
+            runInTx(() -> Db.saveBatch(batch));
             return R.ok("批量新增成功", batch.size());
         }
         Object entity = findEntityArg(args, entityClass);
@@ -108,7 +113,7 @@ public class QuickOpAspect {
         }
         EntityMeta.of(entityClass).clearSystemFields(entity);
         EntityValidator.validateSave(entity, validator());
-        mapper.insert(entity);
+        runInTx(() -> mapper.insert(entity));
         return R.ok("新增成功", entity);
     }
 
@@ -126,7 +131,9 @@ public class QuickOpAspect {
         meta.clearSystemFields(entity);
         EntityValidator.validateUpdate(entity, validator());
         BaseMapper<Object> mapper = mapper(entityClass);
-        return R.ok("更新成功", mapper.updateById(entity) > 0);
+        int[] affected = {0};
+        runInTx(() -> affected[0] = mapper.updateById(entity));
+        return R.ok("更新成功", affected[0] > 0);
     }
 
     private Object doRemove(QuickRemove annotation, Object[] args) {
@@ -152,7 +159,9 @@ public class QuickOpAspect {
             throw new ParamException("@QuickRemove 方法需要声明 ids 参数（单个、List 或逗号分隔字符串）");
         }
         BaseMapper<Object> mapper = mapper(entityClass);
-        return R.ok("删除成功", mapper.deleteBatchIds(idList));
+        int[] affected = {0};
+        runInTx(() -> affected[0] = mapper.deleteBatchIds(idList));
+        return R.ok("删除成功", affected[0]);
     }
 
     private Object doExport(QuickExport annotation, Object[] args) throws Exception {
@@ -176,13 +185,17 @@ public class QuickOpAspect {
                 }
             });
         }
-        List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService()));
+        // 分批取数：命中行数再多也只按 export-batch-size 翻页，受 export-max-rows 截断
+        ExcelSupport.BatchFetcher fetcher = QuickCrudHandler.batchFetcher(
+                params, meta, mapper, conversionService());
         if (annotation.translate()) {
-            ExcelSupport.writeTranslated(response, entityClass, data, objectMapper());
-            log.info("QuickExport[{}] 导出 {} 行（已翻译）", entityClass.getSimpleName(), data.size());
+            ExcelSupport.writeTranslated(response, entityClass, fetcher, objectMapper());
+            log.info("QuickExport[{}] 导出（已翻译，上限 {} 行）", entityClass.getSimpleName(),
+                    QuickDevLimits.getExportMaxRows());
         } else {
-            ExcelSupport.write(response, entityClass, data);
-            log.info("QuickExport[{}] 导出 {} 行", entityClass.getSimpleName(), data.size());
+            ExcelSupport.write(response, entityClass, fetcher);
+            log.info("QuickExport[{}] 导出（上限 {} 行）", entityClass.getSimpleName(),
+                    QuickDevLimits.getExportMaxRows());
         }
         return null;
     }
@@ -298,5 +311,18 @@ public class QuickOpAspect {
             }
         }
         return transactionOperations;
+    }
+
+    /**
+     * 写操作统一包事务：与 {@link dev.xuya.core.crud.QuickCrudHandler} 的类级 CRUD 端点语义一致。
+     * 无事务基础设施（未引入 spring-tx）时直接执行。
+     */
+    private void runInTx(Runnable action) {
+        TransactionOperations tx = transactionOperations();
+        if (tx == null) {
+            action.run();
+            return;
+        }
+        tx.executeWithoutResult(status -> action.run());
     }
 }

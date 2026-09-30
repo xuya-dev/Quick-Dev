@@ -70,12 +70,16 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true; // 全局开关关闭时直接放行
         }
 
-        Object user = resolveUser(request);
+        String token = resolveToken(request);
+        Object user = resolveUser(token);
         if (user == null) {
             throw new AuthException("未登录或登录已过期");
         }
-        AuthContext.set(user, resolveToken(request));
 
+        // 注意：AuthContext 必须在所有校验通过后才写入。
+        // Spring 的 HandlerExecutionChain.applyPreHandle 只在 preHandle 返回 true 后记录
+        // interceptorIndex，因此本方法抛异常时 afterCompletion 不会被回调；
+        // 若提前 set，被拒请求会把用户身份遗留在 Tomcat 线程上，污染后续请求。
         if (requiresPerm != null) {
             PermissionChecker checker = getPermissionChecker();
             for (String code : requiresPerm.value()) {
@@ -106,6 +110,8 @@ public class AuthInterceptor implements HandlerInterceptor {
                 throw new ForbiddenException("缺少所需角色: " + String.join(", ", requiresRole.value()));
             }
         }
+
+        AuthContext.set(user, token);
         return true;
     }
 
@@ -123,12 +129,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         return annotation;
     }
 
-    private Object resolveUser(HttpServletRequest request) {
+    private Object resolveUser(String token) {
         UserResolver resolver = getUserResolver();
         if (resolver == null) {
             throw new QuickDevException("接口需要鉴权，但容器中未找到 UserResolver 实现，请实现并注册该 Bean");
         }
-        return resolver.getUser(resolveToken(request));
+        return resolver.getUser(token);
     }
 
     private String resolveToken(HttpServletRequest request) {

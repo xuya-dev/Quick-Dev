@@ -28,7 +28,13 @@ import java.util.List;
  */
 public final class EntityValidator {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EntityValidator.class);
+
     private static volatile boolean updateValidationEnabled = true;
+    /**
+     * 校验器缺失的告警只打一次，避免每个请求刷屏
+     */
+    private static volatile boolean validatorMissingWarned = false;
 
     private EntityValidator() {
     }
@@ -46,7 +52,11 @@ public final class EntityValidator {
      * 任一约束不满足抛出 {@link ParamException}（HTTP 400）
      */
     public static void validateSave(Object entity, Validator validator) {
-        if (validator == null || entity == null) {
+        if (entity == null) {
+            return;
+        }
+        if (validator == null) {
+            warnValidatorMissing();
             return;
         }
         List<String> problems = new ArrayList<>();
@@ -64,7 +74,11 @@ public final class EntityValidator {
      * + @QuickRequire 条件必填；任一约束不满足抛出 {@link ParamException}（HTTP 400）
      */
     public static void validateUpdate(Object entity, Validator validator) {
-        if (!updateValidationEnabled || validator == null || entity == null) {
+        if (!updateValidationEnabled || entity == null) {
+            return;
+        }
+        if (validator == null) {
+            warnValidatorMissing();
             return;
         }
         List<String> problems = new ArrayList<>();
@@ -93,6 +107,21 @@ public final class EntityValidator {
         if (!problems.isEmpty()) {
             throw new ParamException("修改参数校验失败: " + String.join("; ", problems));
         }
+    }
+
+    /**
+     * 校验器缺失时的显式告警。
+     * <p>此前这里是静默 return：容器里没有 Bean Validation 实现（例如只引 core 未引
+     * spring-boot-starter-validation）时，新增/修改/批量/导入的校验会 <b>100% 失效且无任何日志</b>。</p>
+     */
+    private static void warnValidatorMissing() {
+        if (validatorMissingWarned) {
+            return;
+        }
+        validatorMissingWarned = true;
+        log.warn("容器中未找到 jakarta.validation.Validator，Bean Validation 与 @QuickRequire 校验已全部停用"
+                + "（新增/修改/批量/导入均不校验）。请引入 spring-boot-starter-validation，"
+                + "或确认该降级是你有意为之");
     }
 
     /**

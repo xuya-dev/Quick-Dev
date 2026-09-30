@@ -253,24 +253,25 @@ quick-dev:
     enabled: true          # @QuickLog operation log switch
   translate:
     enabled: true          # @Translate field translation switch
-    cache-seconds: 60      # translation result cache TTL seconds (0 disables)
+    cache-seconds: 60      # translation result cache TTL seconds (0 = no cache)
   auth:
     enabled: true          # auth master switch
     token-header: Authorization
-    token-param: token
+    # token-param intentionally omitted: URL tokens are disabled by default since 0.4.0
 ```
 
 ## Query Parameter Conventions (page / list)
 
 | Parameter                    | Description                                                                               |
 |------------------------------|-------------------------------------------------------------------------------------------|
-| `current` / `size`           | Pagination, defaults 1 / 10, size capped at 1000                                          |
+| `current` / `size`           | Pagination, defaults 1 / 10, size capped at `limits.query-max-rows` (default 1000)        |
 | Same name as entity property | Becomes a condition per `@QueryField` (EQ by default), value type-converted automatically |
-| `orderBy` / `order`          | Sort field (must be an entity property name, injection-safe) + `asc`/`desc`               |
+| `orderBy` / `order`          | Sort field (**entity property name**, comma-separated for multiple columns; an unknown name is rejected with 400) + `asc`/`desc` per column |
 
-Example: `GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=create_time&order=desc`
+Example: `GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=createTime&order=desc`
 
-> Note: `orderBy` takes the **entity property name** (createTime); the framework maps it to the column internally.
+> Note: `orderBy` takes the **entity property name** (`createTime`); a column name (`create_time`) is rejected.
+> Unpaginated `list`/`tree` queries are capped by `limits.query-max-rows` and return 400 beyond it.
 
 ## Permission Annotations on Regular Endpoints
 
@@ -381,7 +382,7 @@ public class OrderVO {
 
 - Translation happens at serialization time: **zero intrusion** — every JSON endpoint (page/detail/export) just works
 - On failure (no dict entry, no record, no SPI) the **original value is kept**; endpoints never break
-- Results are TTL-cached locally (default 60s): `quick-dev.translate.cache-seconds` (0 disables),
+- Results are TTL-cached locally (default 60s): `quick-dev.translate.cache-seconds` (0 = no cache),
   `quick-dev.translate.enabled=false` disables entirely
 - Dictionary sources: implement a `DictResolver` bean (dict table / enum / remote service);
   for fixed enums use `enumClass` directly (implement the `DictEnum` interface)
@@ -561,21 +562,23 @@ templates).
 | `db-type`                       | -                         | Pagination dialect (mysql/h2/postgresql…; ignored with a custom MybatisPlusInterceptor) |
 | `auth.enabled`                  | `true`                    | Auth master switch (false makes all auth annotations pass)                              |
 | `auth.token-header`             | `Authorization`           | Token header (Bearer prefix tolerated)                                                  |
-| `auth.token-param`              | `token`                   | Fallback token request parameter                                                        |
+| `auth.token-param`              | - (disabled)              | Fallback token request parameter (URL tokens leak into logs; configure explicitly)      |
 | `method-op.enabled`             | `true`                    | Method-level annotation (@QuickSave etc.) AOP switch                                    |
 | `auto-fill.enabled`             | `true`                    | Time/operator auto-fill switch                                                          |
 | `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit switch                                                                  |
 | `log.enabled`                   | `true`                    | @QuickLog operation log switch                                                          |
 | `translate.enabled`             | `true`                    | @Translate field translation switch                                                     |
-| `translate.cache-seconds`       | `60`                      | Translation cache TTL seconds (0 disables)                                              |
+| `translate.cache-seconds`       | `60`                      | Translation cache TTL seconds (0 = translate on every call, no cache)                   |
 | `dict.enabled`                  | `true`                    | Dict cache/translation switch (data source: DictLoader SPI)                             |
 | `dict.refresh-endpoint-enabled` | `true`                    | Dict cache refresh endpoint switch                                                      |
 | `dict.refresh-path`             | `/quick-dev/dict/refresh` | Refresh endpoint path (dict:refresh permission)                                         |
 | `crud.update-validate`          | `true`                    | Validate submitted non-null fields on update + apply @QuickRequire                      |
 | `crud.default-includes`         | -                         | Global default ops when the annotation omits `includes`                                 |
 | `crud.default-excludes`         | -                         | Global ops excluded from all @QuickCrud controllers                                     |
-| `limits.export-max-rows`        | `100000`                  | Max rows per export (truncated with a warning beyond)                                   |
-| `limits.import-max-rows`        | `10000`                   | Max rows per import (rejected beyond)                                                   |
+| `limits.query-max-rows`         | `1000`                    | Max rows for unpaginated list/tree queries (400 beyond; also caps page `size`)          |
+| `limits.export-max-rows`        | `100000`                  | Max rows per export (fetched in batches, stops and warns at the cap)                    |
+| `limits.export-batch-size`      | `1000`                    | Export batch size when fetching from the database                                       |
+| `limits.import-max-rows`        | `10000`                   | Max rows per import (rejected beyond; exactly at the cap is accepted)                   |
 | `limits.in-max-size`            | `1000`                    | Max values per IN condition (400 beyond)                                                |
 
 See the Sa-Token docs for `sa-token.*` (token-name, timeout, …) and Spring Boot docs for `spring.data.redis.*`.

@@ -182,7 +182,9 @@ public class QuickDevAutoConfiguration {
     @Bean
     public String quickDevLimitsConfigurer(QuickDevProperties properties) {
         QuickDevProperties.Limits limits = properties.getLimits();
+        QuickDevLimits.setQueryMaxRows(limits.getQueryMaxRows());
         QuickDevLimits.setExportMaxRows(limits.getExportMaxRows());
+        QuickDevLimits.setExportBatchSize(limits.getExportBatchSize());
         QuickDevLimits.setImportMaxRows(limits.getImportMaxRows());
         QuickDevLimits.setInMaxSize(limits.getInMaxSize());
         EntityValidator.setUpdateValidationEnabled(properties.getCrud().isUpdateValidate());

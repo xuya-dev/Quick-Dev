@@ -335,9 +335,19 @@ public class QuickDevProperties {
     public static class Limits {
 
         /**
+         * list/tree 等不分页查询的单次返回行数上限（超出报 400，不做静默截断）
+         */
+        private int queryMaxRows = 1_000;
+
+        /**
          * 单次 Excel 导出行数上限（超出截断并告警）
          */
         private int exportMaxRows = 100_000;
+
+        /**
+         * 导出分批从数据库读取的批大小（控制导出期间堆内存占用）
+         */
+        private int exportBatchSize = 1_000;
 
         /**
          * 单次 Excel 导入行数上限（超出拒绝）
@@ -349,12 +359,28 @@ public class QuickDevProperties {
          */
         private int inMaxSize = 1_000;
 
+        public int getQueryMaxRows() {
+            return queryMaxRows;
+        }
+
+        public void setQueryMaxRows(int queryMaxRows) {
+            this.queryMaxRows = queryMaxRows;
+        }
+
         public int getExportMaxRows() {
             return exportMaxRows;
         }
 
         public void setExportMaxRows(int exportMaxRows) {
             this.exportMaxRows = exportMaxRows;
+        }
+
+        public int getExportBatchSize() {
+            return exportBatchSize;
+        }
+
+        public void setExportBatchSize(int exportBatchSize) {
+            this.exportBatchSize = exportBatchSize;
         }
 
         public int getImportMaxRows() {

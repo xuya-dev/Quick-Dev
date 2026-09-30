@@ -29,15 +29,20 @@ public final class ExcelImportExecutor {
     public static Map<String, Object> execute(BaseMapper<Object> mapper, Class<?> entityClass,
                                               MultipartFile file, Validator validator,
                                               TransactionOperations transactionOperations) {
+        int maxRows = QuickDevLimits.getImportMaxRows();
         List<Map<Integer, String>> rawRows;
         try {
-            rawRows = ExcelSupport.readRawRows(file, QuickDevLimits.getImportMaxRows() + 1); // +1 为表头
+            // +2：1 行为表头，另 1 行为"是否超限"的判定缓冲。
+            // readRawRows 的 hasNext 会在读满 maxRows 时截断，因此必须比上限多要一行，
+            // 否则超过上限的文件会被悄悄截断成"恰好等于上限"而被接受（数据静默丢失）。
+            rawRows = ExcelSupport.readRawRows(file, maxRows + 2);
         } catch (Exception e) {
             throw new ParamException("Excel 文件解析失败: " + e.getLocalizedMessage(), e);
         }
         if (rawRows == null || rawRows.isEmpty()) {
             throw new ParamException("Excel 内容为空（缺少表头）");
         }
+        boolean truncated = rawRows.size() >= maxRows + 2;
         Map<Integer, String> headRow = rawRows.remove(0);
         ExcelRowMapper rowMapper = ExcelRowMapper.of(entityClass, headRow);
         EntityMeta meta = EntityMeta.of(entityClass);
@@ -48,9 +53,10 @@ public final class ExcelImportExecutor {
             meta.clearSystemFields(row);
             rows.add(row);
         }
-        int maxRows = QuickDevLimits.getImportMaxRows();
         if (rows.size() > maxRows) {
-            throw new ParamException("导入行数 " + rows.size() + " 超过上限 " + maxRows
+            // 被解析截断时真实行数未知，不谎报具体数字
+            String actual = truncated ? "至少 " + rows.size() : String.valueOf(rows.size());
+            throw new ParamException("导入行数 " + actual + " 超过上限 " + maxRows
                     + "，请分批导入（可通过 quick-dev.limits.import-max-rows 调整）");
         }
 

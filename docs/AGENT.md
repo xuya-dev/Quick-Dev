@@ -9,7 +9,7 @@
 - 框架定位：Spring Boot 3 + MyBatis-Plus 快速开发框架（注解式 CRUD + 权限控制）
 - 坐标：`dev.xuya:quick-dev-spring-boot-starter:0.4.0`（可选 `dev.xuya:quick-dev-redis-spring-boot-starter`）
 - 版本基线：JDK 17+ / Spring Boot 3.5.x / MyBatis-Plus 3.5.12 / Sa-Token 1.42.0 / FastExcel 1.2.0
-- 构建验证：`mvn clean verify`（6 模块 reactor；core 36 + autoconfigure 4 + codegen 3 + demo 24 个测试）
+- 构建验证：`mvn clean verify`（6 模块 reactor，全部测试须绿；测试数量以 surefire 报告为准，此处不写死数字）
 - 用户文档：[README.md](../README.md)（中文）/ [README.en.md](../README.en.md) / [完整使用手册](manual.md) / [docs/user-guide.md](user-guide.md)（详细手册）
 - 生成业务代码时 **不需要**引入框架内部类以外的任何新依赖（starter 已传递 web/validation/aop/Sa-Token/FastExcel/MP）
 
@@ -121,7 +121,7 @@ Object loginId = AuthContext.getUser();       // 任意业务代码取当前登�
 
 高频项：`quick-dev.crud.update-validate`（修改部分校验开关）、`quick-dev.crud.default-includes/excludes`
 （全局默认端点集）、`quick-dev.auth.enabled`（鉴权总开关）、`quick-dev.limits.*`
-（导出 10 万/导入 1 万/IN 1000 上限）、`quick-dev.translate.cache-seconds`、
+（不分页查询 1000 行 / 导出 10 万 / 导入 1 万 / IN 1000 上限）、`quick-dev.translate.cache-seconds`、
 `quick-dev.dict.refresh-interval-seconds`（字典缓存定时刷新）。
 Sa-Token 与 Redis 用各自原生配置（`sa-token.*`、`spring.data.redis.*`）。
 

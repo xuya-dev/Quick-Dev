@@ -1,5 +1,6 @@
 package dev.xuya.core.crud;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.toolkit.Db;
@@ -7,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.annotation.CrudOp;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.QuickDevException;
+import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.common.R;
 import dev.xuya.core.excel.ExcelImportExecutor;
 import dev.xuya.core.excel.ExcelSupport;
@@ -124,17 +126,19 @@ public class QuickCrudHandler {
     // 分页查询：GET {base}/page?current=1&size=10&username=张&status=1&orderBy=id&order=desc
     // ---------------------------------------------------------------------
     public R<Object> page(@RequestParam Map<String, String> params) {
-        long current = parseLong(params.get("current"), 1);
-        long size = Math.min(parseLong(params.get("size"), 10), 1000);
+        long current = Math.max(parseLong(params.get("current"), 1), 1);
+        // 上界取 query-max-rows：分页大小同样属于"单次返回行数"，不再写死 1000
+        long size = Math.min(Math.max(parseLong(params.get("size"), 10), 1), QuickDevLimits.getQueryMaxRows());
         Page<Object> page = new Page<>(current, size);
         return R.ok(mapper.selectPage(page, QueryHelper.build(meta, params, conversionService)));
     }
 
     // ---------------------------------------------------------------------
-    // 列表查询（不分页）：GET {base}/list?status=1
+    // 列表查询（不分页，受 query-max-rows 护栏约束）：GET {base}/list?status=1
     // ---------------------------------------------------------------------
     public R<Object> list(@RequestParam Map<String, String> params) {
-        return R.ok(mapper.selectList(QueryHelper.build(meta, params, conversionService)));
+        return R.ok(QueryRowLimiter.selectListLimited(mapper,
+                QueryHelper.build(meta, params, conversionService), "list"));
     }
 
     // ---------------------------------------------------------------------
@@ -145,10 +149,11 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
-    // 树形查询：GET {base}/tree（实体需有 parentId + children 字段）
+    // 树形查询：GET {base}/tree（实体需有 parentId + children 字段）；受 query-max-rows 护栏约束
     // ---------------------------------------------------------------------
     public R<Object> tree(@RequestParam Map<String, String> params) {
-        List<Object> all = mapper.selectList(QueryHelper.build(meta, params, conversionService));
+        List<Object> all = QueryRowLimiter.selectListLimited(mapper,
+                QueryHelper.build(meta, params, conversionService), "tree");
         return R.ok(TreeBuilder.build(meta, all));
     }
 
@@ -297,20 +302,11 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
-    // Excel 导出：GET {base}/export（复用 page 的查询条件）
+    // Excel 导出：GET {base}/export（复用 page 的查询条件，分批取数，受 export-max-rows 约束）
     // ---------------------------------------------------------------------
     public void export(HttpServletResponse response) throws IOException {
-        Map<String, String> params = new HashMap<>();
-        ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-        HttpServletRequest request = attributes.getRequest();
-        request.getParameterMap().forEach((k, v) -> {
-            if (v != null && v.length > 0) {
-                params.put(k, v[0]);
-            }
-        });
-        List<Object> data = mapper.selectList(QueryHelper.build(meta, params, conversionService));
-        ExcelSupport.write(response, meta.getEntityClass(), data);
+        ExcelSupport.write(response, meta.getEntityClass(),
+                batchFetcher(requestParams(), meta, mapper, conversionService));
     }
 
     // ---------------------------------------------------------------------
@@ -390,5 +386,39 @@ public class QuickCrudHandler {
         } catch (IllegalAccessException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    /**
+     * 当前请求的查询参数（导出复用 page 的筛选条件）
+     */
+    private Map<String, String> requestParams() {
+        Map<String, String> params = new HashMap<>();
+        ServletRequestAttributes attributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return params;
+        }
+        HttpServletRequest request = attributes.getRequest();
+        request.getParameterMap().forEach((k, v) -> {
+            if (v != null && v.length > 0) {
+                params.put(k, v[0]);
+            }
+        });
+        return params;
+    }
+
+    /**
+     * 分批取数器（供 {@link ExcelSupport} 使用）：按 export-batch-size 翻页，
+     * 不再把全部命中行一次性物化进堆。类级 CRUD 导出与方法级 {@code @QuickExport} 共用。
+     */
+    public static ExcelSupport.BatchFetcher batchFetcher(Map<String, String> params, EntityMeta meta,
+                                                         BaseMapper<Object> mapper,
+                                                         ConversionService conversionService) {
+        QueryWrapper<Object> wrapper = QueryHelper.build(meta, params, conversionService);
+        int batchSize = Math.max(1, QuickDevLimits.getExportBatchSize());
+        return batchIndex -> {
+            Page<Object> page = new Page<>(batchIndex + 1L, batchSize, false);
+            return mapper.selectPage(page, wrapper).getRecords();
+        };
     }
 }

@@ -104,7 +104,8 @@ public final class QueryHelper {
 
     /**
      * 排序：orderBy 支持逗号分隔的多列（如 createTime,id），order 逐列对应
-     * （缺省 asc；仅一个 order 值时对所有列生效）。列必须是实体表字段（白名单防注入）。
+     * （缺省 asc；仅一个 order 值时对所有列生效）。列必须是实体表字段（白名单防注入）；
+     * 非法属性名直接报 400——静默忽略会让"排序不生效"变成无法排查的悬案。
      */
     private static void appendOrderBy(EntityMeta meta, Map<String, String> params,
                                       QueryWrapper<Object> wrapper) {
@@ -121,7 +122,8 @@ public final class QueryHelper {
             }
             String column = meta.hasField(name) ? meta.getColumn(name) : null;
             if (column == null) {
-                continue; // 非表字段（如树形 children）不参与排序
+                throw new ParamException("排序字段 " + name + " 不是实体 " + meta.getEntityClass().getSimpleName()
+                        + " 的表字段（需传实体属性名，如 createTime）");
             }
             boolean desc = index < orderValues.length
                     ? "desc".equals(orderValues[index].trim()) : false;

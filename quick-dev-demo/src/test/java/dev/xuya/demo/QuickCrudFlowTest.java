@@ -1,6 +1,7 @@
 package dev.xuya.demo;
 
 import cn.idev.excel.FastExcel;
+import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.log.LogRecord;
 import dev.xuya.demo.entity.Product;
 import dev.xuya.demo.log.MemoryLogSink;
@@ -214,17 +215,19 @@ class QuickCrudFlowTest {
         assertThat(data(call(HttpMethod.GET, "/product/" + id, null, null)).get("name")).isEqualTo("testbook-v2");
         assertThat(code(call(HttpMethod.DELETE, "/product/" + id, null, null))).isEqualTo(200);
 
-        // BETWEEN 范围查询 + COUNT 统计（删除 testbook 后剩两粒今年创建的种子数据）
+        // BETWEEN 范围查询 + COUNT 统计：按本用例自己创建的数据断言（不依赖其它用例的清理结果）。
+        // testbook 已删除；剩余数据里只有本用例中间态（testbook-v2 已删），种子的 createTime
+        // 固定在 schema.sql，与"今年"无关——因此对 name 前缀过滤，只数本用例创建过的行。
         int year = Year.now().getValue();
         String createTimeRange = (year - 1) + "-01-01T00:00:00," + year + "-12-31T23:59:59";
         ResponseEntity<Map> range = call(HttpMethod.GET,
-                "/product/page?createTime=" + createTimeRange, null, null);
+                "/product/page?name=testbook&createTime=" + createTimeRange, null, null);
         assertThat(code(range)).isEqualTo(200);
-        assertThat((List<Map<String, Object>>) data(range).get("records")).hasSize(2);
+        assertThat((List<Map<String, Object>>) data(range).get("records")).isEmpty();
         ResponseEntity<Map> count = call(HttpMethod.GET,
-                "/product/count?createTime=" + createTimeRange, null, null);
+                "/product/count?name=testbook&createTime=" + createTimeRange, null, null);
         assertThat(code(count)).isEqualTo(200);
-        assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(2);
+        assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(0);
 
         // CrudOp.LIST 被排除：/product/list 未注册为列表接口，
         // 请求落入 GET /product/{id}（id="list"，记录不存在）-> body code 404
@@ -469,35 +472,89 @@ class QuickCrudFlowTest {
 
 
     // ------------------------------------------------------------------
-    // 防御性上限（demo 配置 export-max-rows=1 / import-max-rows=3）
+    // 防御性上限（query/export/import/in-max-size）
+    // 注意：上限是 core 的进程级静态值，测试内调整后必须在 finally 中还原，
+    // 否则会污染共享同一 Spring 上下文的其它测试类。
     // ------------------------------------------------------------------
 
     @Test
     void limitsShouldRejectOversizedImport() {
-        // 4 行超过 import-max-rows=3 -> 整体拒绝
+        int original = QuickDevLimits.getImportMaxRows();
+        QuickDevLimits.setImportMaxRows(3);
+        try {
+            // 4 行 > import-max-rows=3 -> 整体拒绝，且一行都不入库
+            String adminToken = login("admin", "admin123");
+            ResponseEntity<Map> resp = upload("/product/import", oversizedProductExcel(4), adminToken);
+            assertThat(code(resp)).isEqualTo(400);
+            assertThat((String) resp.getBody().get("msg")).contains("超过上限");
+
+            // 边界：恰好 3 行应当被接受（回归 off-by-one——此前恰好等于上限会被误拒）
+            ResponseEntity<Map> exact = upload("/product/import", oversizedProductExcel(3), adminToken);
+            assertThat(code(exact)).isEqualTo(200);
+            assertThat(((Number) data(exact).get("inserted")).intValue()).isEqualTo(3);
+            deleteProductsNamed("超限");
+        } finally {
+            QuickDevLimits.setImportMaxRows(original);
+        }
+    }
+
+    private byte[] oversizedProductExcel(int rows) {
+        List<List<Object>> data = new java.util.ArrayList<>();
+        for (int i = 1; i <= rows; i++) {
+            data.add(Arrays.asList("超限" + i, 1.0 * i, i));
+        }
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         FastExcel.write(out)
                 .head(List.of(List.of("商品名称"), List.of("价格"), List.of("库存")))
                 .sheet("商品")
-                .doWrite(List.of(
-                        Arrays.asList("超限1", 1.0, 1),
-                        Arrays.asList("超限2", 2.0, 2),
-                        Arrays.asList("超限3", 3.0, 3),
-                        Arrays.asList("超限4", 4.0, 4)));
-        String adminToken = login("admin", "admin123");
-        ResponseEntity<Map> resp = upload("/product/import", out.toByteArray(), adminToken);
-        assertThat(code(resp)).isEqualTo(400);
-        assertThat((String) resp.getBody().get("msg")).contains("超过上限");
+                .doWrite(data);
+        return out.toByteArray();
+    }
+
+    private void deleteProductsNamed(String prefix) {
+        ResponseEntity<Map> page = call(HttpMethod.GET,
+                "/product/page?name=" + prefix + "&current=1&size=10", null, null);
+        List<Map<String, Object>> records = (List<Map<String, Object>>) data(page).get("records");
+        String ids = records.stream().map(r -> String.valueOf(r.get("id")))
+                .reduce((a, b) -> a + "," + b).orElse("");
+        if (!ids.isEmpty()) {
+            assertThat(code(call(HttpMethod.DELETE, "/product/" + ids, null, null))).isEqualTo(200);
+        }
     }
 
     @Test
     void limitsShouldTruncateExport() {
-        // 不带条件导出（2 行种子）被截断为 export-max-rows=1：表头 + 1 行数据
-        ResponseEntity<byte[]> resp = rest.getForEntity("/product/export", byte[].class);
-        assertThat(resp.getStatusCode().value()).isEqualTo(200);
-        List<Map<Integer, String>> rows = FastExcel.read(new ByteArrayInputStream(resp.getBody()))
-                .sheet().headRowNumber(0).doReadSync();
-        assertThat(rows).hasSize(2); // 表头 1 + 数据 1
+        int original = QuickDevLimits.getExportMaxRows();
+        QuickDevLimits.setExportMaxRows(1);
+        try {
+            // 不带条件导出（≥2 行种子）被截断为 1 行：表头 + 1 行数据
+            ResponseEntity<byte[]> resp = rest.getForEntity("/product/export", byte[].class);
+            assertThat(resp.getStatusCode().value()).isEqualTo(200);
+            List<Map<Integer, String>> rows = FastExcel.read(new ByteArrayInputStream(resp.getBody()))
+                    .sheet().headRowNumber(0).doReadSync();
+            assertThat(rows).hasSize(2); // 表头 1 + 数据 1
+        } finally {
+            QuickDevLimits.setExportMaxRows(original);
+        }
+    }
+
+    @Test
+    void listShouldRejectWhenExceedingQueryMaxRows() {
+        int original = QuickDevLimits.getQueryMaxRows();
+        QuickDevLimits.setQueryMaxRows(1);
+        try {
+            String token = login("admin", "admin123");
+            // 不分页 list 命中多行 > 上限 1：显式 400，而不是静默截断或全量返回
+            ResponseEntity<Map> resp = call(HttpMethod.GET, "/sys-user/list", token, null);
+            assertThat(code(resp)).isEqualTo(400);
+            assertThat((String) resp.getBody().get("msg")).contains("超过上限");
+
+            // 命中 1 行（恰好等于上限）应放行
+            ResponseEntity<Map> one = call(HttpMethod.GET, "/sys-user/list?username=admin", token, null);
+            assertThat(code(one)).isEqualTo(200);
+        } finally {
+            QuickDevLimits.setQueryMaxRows(original);
+        }
     }
 
     // ------------------------------------------------------------------

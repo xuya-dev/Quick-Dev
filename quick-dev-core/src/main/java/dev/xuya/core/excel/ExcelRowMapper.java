@@ -3,11 +3,15 @@ package dev.xuya.core.excel;
 import cn.idev.excel.annotation.ExcelIgnore;
 import cn.idev.excel.annotation.ExcelProperty;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.translate.Translate;
 import dev.xuya.core.translate.TranslateExecutor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.format.support.DefaultFormattingConversionService;
+import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -22,33 +26,68 @@ import java.util.Map;
  *
  * <p>为什么要绕开 FastExcel 的实体直读：用户在字典/状态列填的是中文标签，
  * 直接读 Integer 字段会在转换阶段报错；先反解为原始值再转换才能成功。</p>
+ *
+ * <p>表头校验：一个都匹配不上直接报 400（否则会静默插入一堆空记录），
+ * 部分列匹配不上则告警并列出未识别的表头，方便定位列名写错。</p>
  */
 public final class ExcelRowMapper {
 
+    private static final Logger log = LoggerFactory.getLogger(ExcelRowMapper.class);
+
+    private final Class<?> entityClass;
     private final Map<Integer, Field> columns = new LinkedHashMap<>();
     private final ConversionService conversionService = new DefaultFormattingConversionService();
 
-    private ExcelRowMapper() {
+    private ExcelRowMapper(Class<?> entityClass) {
+        this.entityClass = entityClass;
     }
 
     /**
      * 按表头行构建列映射：单元格文本 == @ExcelProperty 值或字段名（去首尾空格）
+     *
+     * @throws ParamException 表头一个字段都匹配不上（列名与实体完全不符）
      */
     public static ExcelRowMapper of(Class<?> entityClass, Map<Integer, String> headRow) {
-        ExcelRowMapper mapper = new ExcelRowMapper();
-        for (Field field : excelFields(entityClass)) {
-            for (Map.Entry<Integer, String> head : headRow.entrySet()) {
-                String cell = head.getValue() == null ? "" : head.getValue().trim();
-                if (cell.isEmpty()) {
-                    continue;
-                }
-                if (cell.equals(headName(field)) || cell.equals(field.getName())) {
-                    mapper.columns.putIfAbsent(head.getKey(), field);
-                    break;
-                }
+        ExcelRowMapper mapper = new ExcelRowMapper(entityClass);
+        List<String> unmatched = new ArrayList<>();
+        for (Map.Entry<Integer, String> head : headRow.entrySet()) {
+            String cell = head.getValue() == null ? "" : head.getValue().trim();
+            if (cell.isEmpty() || isFullyMatched(mapper.columns, cell)) {
+                continue;
+            }
+            Field matched = matchField(entityClass, cell);
+            if (matched != null && !mapper.columns.containsValue(matched)) {
+                mapper.columns.put(head.getKey(), matched);
+            } else {
+                unmatched.add(cell);
             }
         }
+        if (mapper.columns.isEmpty()) {
+            throw new ParamException("Excel 表头未匹配到 " + entityClass.getSimpleName()
+                    + " 的任何字段，请检查列名是否与 @ExcelProperty 或字段名一致。当前表头: " + headRow.values());
+        }
+        if (!unmatched.isEmpty()) {
+            log.warn("Excel 导入 [{}] 有 {} 列表头未识别，将被忽略: {}",
+                    entityClass.getSimpleName(), unmatched.size(), unmatched);
+        }
         return mapper;
+    }
+
+    private static boolean isFullyMatched(Map<Integer, Field> columns, String cell) {
+        return columns.values().stream().anyMatch(f -> matches(f, cell));
+    }
+
+    private static Field matchField(Class<?> entityClass, String cell) {
+        for (Field field : excelFields(entityClass)) {
+            if (matches(field, cell)) {
+                return field;
+            }
+        }
+        return null;
+    }
+
+    private static boolean matches(Field field, String cell) {
+        return cell.equals(headNameOf(field)) || cell.equals(field.getName());
     }
 
     /**
@@ -83,8 +122,15 @@ public final class ExcelRowMapper {
                 ? property.value()[0] : field.getName();
     }
 
-    private static String headName(Field field) {
-        return headNameOf(field);
+    /**
+     * 该字段在 JSON 序列化结果中的属性名。
+     * <p>翻译导出按 JSON 结果取值（@Translate 生效），而 Jackson 的键受
+     * {@code @JsonProperty} 影响，因此不能直接用 {@link Field#getName()}。</p>
+     */
+    static String jsonNameOf(Field field) {
+        JsonProperty jsonProperty = field.getAnnotation(JsonProperty.class);
+        return jsonProperty != null && !jsonProperty.value().isEmpty()
+                ? jsonProperty.value() : field.getName();
     }
 
     /**
@@ -93,14 +139,10 @@ public final class ExcelRowMapper {
     public Object map(Map<Integer, String> row, int rowNumber) {
         Object entity;
         try {
-            entity = columns.isEmpty()
-                    ? null
-                    : columns.values().iterator().next().getDeclaringClass().getDeclaredConstructor().newInstance();
+            entity = ReflectionUtils.accessibleConstructor(entityClass).newInstance();
         } catch (ReflectiveOperationException e) {
-            throw new ParamException("实体需要无参构造函数: " + e.getMessage(), e);
-        }
-        if (entity == null) {
-            return null;
+            throw new ParamException("实体 " + entityClass.getSimpleName() + " 需要可访问的无参构造函数: "
+                    + e.getMessage(), e);
         }
         for (Map.Entry<Integer, Field> entry : columns.entrySet()) {
             String cell = row.get(entry.getKey());
@@ -113,18 +155,19 @@ public final class ExcelRowMapper {
             if (translate != null) {
                 TranslateExecutor executor = TranslateExecutor.getInstance();
                 if (executor != null) {
-                    Object reversed = executor.reverse(translate, String.valueOf(value));
+                    String reversed = executor.reverse(translate, String.valueOf(value));
                     if (reversed != null) {
                         value = reversed; // 标签 -> 值（上传转换）
                     }
                 }
             }
-            if (value instanceof String text && field.getType() != String.class) {
+            // 反解结果统一为 String，按目标字段类型转换（含已经是字符串但类型不同的情况）
+            if (!field.getType().isInstance(value)) {
                 try {
-                    value = conversionService.convert(text, field.getType());
+                    value = conversionService.convert(String.valueOf(value), field.getType());
                 } catch (Exception e) {
-                    throw new ParamException("第 " + rowNumber + " 行 [" + headName(field) + "] 的值 \""
-                            + text + "\" 无法转换为 " + field.getType().getSimpleName());
+                    throw new ParamException("第 " + rowNumber + " 行 [" + headNameOf(field) + "] 的值 \""
+                            + value + "\" 无法转换为 " + field.getType().getSimpleName());
                 }
             }
             try {

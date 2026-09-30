@@ -269,14 +269,15 @@ quick-dev:
 
 | 参数                | 说明                                                               |
 |---------------------|--------------------------------------------------------------------|
-| `current` / `size`  | 分页参数，默认 1 / 10，size 上限 1000                              |
+| `current` / `size`  | 分页参数，默认 1 / 10，size 上限为 `limits.query-max-rows`（默认 1000） |
 | 与实体属性同名      | 生成查询条件，方式由 `@QueryField` 决定（默认 EQ），值自动转换类型 |
-| `orderBy` / `order` | 排序字段（实体属性名白名单，逗号分隔多列，非表字段跳过）；`order` 逐列对应 `asc`/`desc` |
+| `orderBy` / `order` | 排序字段（**实体属性名**白名单，逗号分隔多列，非表字段报错）；`order` 逐列对应 `asc`/`desc` |
 
-示例：`GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=create_time&order=desc`
+示例：`GET /sys-user/page?current=1&size=10&username=ad&status=1&orderBy=createTime&order=desc`
 多列排序：`orderBy=createTime,id&order=desc,asc`（逐列对应，缺省 asc）
 
-> 注意：`orderBy` 传的是 **实体属性名**（createTime），框架内部映射为列名。
+> 注意：`orderBy` 传的是 **实体属性名**（如 `createTime`），传列名（`create_time`）会被拒绝；
+> `list`/`tree` 不分页接口的命中行数受 `limits.query-max-rows` 约束，超出返回 400 而不是静默截断。
 
 ## 在普通接口上使用权限注解
 
@@ -647,13 +648,15 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `crud.default-includes`         | -                         | 全局默认注册操作（注解未显式指定 includes 时生效；如 PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE） |
 | `crud.default-excludes`         | -                         | 全局排除操作（对所有 @QuickCrud 控制器做减法；如 SAVE_BATCH,SAVE_OR_UPDATE）     |
 | `translate.enabled`             | `true`                    | @Translate 字段翻译开关                                                          |
-| `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 禁用）                                                   |
+| `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 = 每次实时翻译，不缓存）                                 |
 | `dict.enabled`                  | `true`                    | 字典内存缓存/翻译开关（数据源：DictLoader SPI）                                  |
 | `dict.refresh-endpoint-enabled` | `true`                    | 字典缓存刷新端点开关                                                             |
 | `dict.refresh-interval-seconds` | `0`                       | 字典定时自动刷新间隔秒数（0 禁用）                                               |
 | `dict.refresh-path`             | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限）                                             |
-| `limits.export-max-rows`        | `100000`                  | 单次导出行数上限（超出截断并告警）                                               |
-| `limits.import-max-rows`        | `10000`                   | 单次导入行数上限（超出拒绝）                                                     |
+| `limits.query-max-rows`         | `1000`                    | list/tree 不分页查询的单次返回行数上限（超出报 400，不做静默截断）；page 的 size 上限亦取此值 |
+| `limits.export-max-rows`        | `100000`                  | 单次导出行数上限（分批取数，达到即停止并告警）                                   |
+| `limits.export-batch-size`      | `1000`                    | 导出分批从数据库读取的批大小                                                     |
+| `limits.import-max-rows`        | `10000`                   | 单次导入行数上限（超出拒绝，恰好等于上限可正常导入）                             |
 | `limits.in-max-size`            | `1000`                    | 单字段 IN 条件值数量上限（超出报 400）                                           |
 
 Sa-Token 自身配置见其官方文档（`sa-token.*`，如 token-name、timeout）；Redis 连接见 `spring.data.redis.*`。
