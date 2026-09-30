@@ -166,18 +166,18 @@ class QuickDevAutoConfigurationConditionsTest {
 
     @Test
     void errorDetailFalseShouldMaskUnexpectedExceptionMessage() {
-        // 默认 true：透出原始信息
+        // 默认 false：只返回通用提示（0.5.0 起安全默认）
         runner.run(context -> {
-            GlobalExceptionHandler handler = context.getBean(GlobalExceptionHandler.class);
-            R<Void> detail = handler.handleOther(new RuntimeException("内部 jdbc:secret 细节"));
-            assertThat(detail.getMsg()).contains("jdbc:secret");
-        });
-        // false：只返回通用提示
-        runner.withPropertyValues("quick-dev.error-detail=false").run(context -> {
             GlobalExceptionHandler handler = context.getBean(GlobalExceptionHandler.class);
             R<Void> masked = handler.handleOther(new RuntimeException("内部 jdbc:secret 细节"));
             assertThat(masked.getMsg()).isEqualTo("系统繁忙，请稍后重试");
             assertThat(masked.getMsg()).doesNotContain("jdbc");
+        });
+        // 显式 true（调试）：透出原始信息
+        runner.withPropertyValues("quick-dev.error-detail=true").run(context -> {
+            GlobalExceptionHandler handler = context.getBean(GlobalExceptionHandler.class);
+            R<Void> detail = handler.handleOther(new RuntimeException("内部 jdbc:secret 细节"));
+            assertThat(detail.getMsg()).contains("jdbc:secret");
         });
     }
 }

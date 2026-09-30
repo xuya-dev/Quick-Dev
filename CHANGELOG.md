@@ -4,6 +4,7 @@
 
 ## Unreleased
 
+- 🔧 Chores|杂务 error-detail默认改为false未预期异常不再透出内部信息调试期显式开启
 - ♻️ Refactoring|代码重构 内联全限定类名统一改为import导入
 - 🗑️ Removed|移除 删除废弃的DictCacheProvider双接口实现由拆分后的正反解析器取代
 - 🧪 Tests|测试 自动装配条件矩阵全覆盖开关让位与Redis排序此前该模块7/8类零覆盖

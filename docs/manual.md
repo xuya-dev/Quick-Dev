@@ -317,14 +317,14 @@ public R<Object> create(@RequestBody Order order) { ... }
 | 校验失败 / 业务异常 | HTTP 200 + `code=400/500` |
 | 唯一键冲突 | HTTP 200 + `code=400`（不透出 SQL） |
 | 未登录 / 无权限 | HTTP 401 / 403 |
-| 未预期异常 | `error-detail=true` 透出详情，否则"系统繁忙" |
+| 未预期异常 | `error-detail=true` 透出详情（默认 false 返回"系统繁忙"） |
 
 ## 15. 配置总表（前缀 quick-dev）
 
 | 配置 | 默认 | 说明 |
 |------|------|------|
 | `enabled` | true | @QuickCrud 总开关 |
-| `error-detail` | true | 未预期异常是否透出详情 |
+| `error-detail` | false | 未预期异常是否透出详情（调试期可开） |
 | `db-type` | - | 分页方言 |
 | `auth.enabled` / `token-header` / `token-param` | true / Authorization / -（禁用） | 鉴权 |
 | `crud.update-validate` | true | 修改部分校验开关 |

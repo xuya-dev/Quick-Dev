@@ -637,7 +637,7 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | 配置项                          | 默认值                    | 说明                                                                             |
 |---------------------------------|---------------------------|----------------------------------------------------------------------------------|
 | `enabled`                       | `true`                    | @QuickCrud 动态端点注册总开关                                                    |
-| `error-detail`                  | `true`                    | 未预期异常是否向客户端透出详情（false 返回"系统繁忙"）                           |
+| `error-detail`                  | `false`                   | 未预期异常是否向客户端透出详情（true 调试用；业务异常 QuickDevException 始终透出）   |
 | `db-type`                       | -                         | 分页插件方言（mysql/h2/postgresql…；用户自定义 MybatisPlusInterceptor 时不生效） |
 | `auth.enabled`                  | `true`                    | 鉴权总开关（false 时所有鉴权注解放行）                                           |
 | `auth.token-header`             | `Authorization`           | token 请求头（兼容 Bearer 前缀）                                                 |

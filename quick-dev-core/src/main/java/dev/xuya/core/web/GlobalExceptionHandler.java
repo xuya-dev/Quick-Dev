@@ -43,7 +43,8 @@ public class GlobalExceptionHandler {
     private final boolean errorDetail;
 
     public GlobalExceptionHandler() {
-        this(true);
+        // 与 quick-dev.error-detail 的安全默认一致：不透出未预期异常详情
+        this(false);
     }
 
     public GlobalExceptionHandler(boolean errorDetail) {

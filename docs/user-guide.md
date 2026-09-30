@@ -398,7 +398,8 @@ spring:
 无权限 403（HTTP 403）、记录不存在 404、其他 500。业务中直接 `throw new ParamException("...")`
 （400）或 `QuickDevException("...")`（500）即可，无需 try-catch。
 
-生产环境建议 `quick-dev.error-detail: false`——未预期异常只返回"系统繁忙"，不泄露内部信息。
+`quick-dev.error-detail` 默认即为 `false`——未预期异常只返回"系统繁忙"，不泄露内部信息；
+调试期可临时开 `true` 看原始异常。
 
 ## 13. FAQ（真实踩坑实录）
 

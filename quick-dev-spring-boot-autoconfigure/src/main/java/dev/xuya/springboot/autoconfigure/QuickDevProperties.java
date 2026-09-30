@@ -25,9 +25,11 @@ public class QuickDevProperties {
      */
     private boolean enabled = true;
     /**
-     * 未预期异常是否向客户端透出详细信息（false 返回"系统繁忙"）
+     * 未预期异常是否向客户端透出详细信息（false 返回"系统繁忙"）。
+     * <p>默认 false：异常内部信息（SQL、类名、连接串等）不应出现在生产响应里；
+     * 业务异常（QuickDevException）不受影响始终透出。调试期可显式开 true。</p>
      */
-    private boolean errorDetail = true;
+    private boolean errorDetail = false;
     /**
      * 分页插件方言（MyBatis-Plus DbType 名称，如 mysql / h2 / postgresql），留空自动
      */

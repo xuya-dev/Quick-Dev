@@ -720,7 +720,7 @@ templates).
 | Property                        | Default                   | Description                                                                             |
 |---------------------------------|---------------------------|-----------------------------------------------------------------------------------------|
 | `enabled`                       | `true`                    | Master switch for @QuickCrud dynamic endpoint registration                              |
-| `error-detail`                  | `true`                    | Expose unexpected exception details to clients (false returns a generic "system busy" message) |
+| `error-detail`                  | `false`                   | Expose unexpected exception details to clients (true for debugging; business exceptions always pass through) |
 | `db-type`                       | -                         | Pagination dialect (mysql/h2/postgresql…; ignored when the user defines a MybatisPlusInterceptor) |
 | `auth.enabled`                  | `true`                    | Auth master switch (false makes all auth annotations pass)                              |
 | `auth.token-header`             | `Authorization`           | Token header (Bearer prefix tolerated)                                                  |
