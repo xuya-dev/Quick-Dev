@@ -85,6 +85,7 @@ PAGE/LIST/COUNT/DETAIL/SAVE/SAVE_BATCH/SAVE_OR_UPDATE/UPDATE/REMOVE；IMPORT/EXP
 | `DictResolver` | `String resolve(String dictType, Object value)` | 字典正向（值→标签） | DictCacheProvider（数据来自 DictLoader） |
 | `DictLoader` | `List<DictEntry> loadAll()` | 字典全量数据源（远程/配置中心/自有表），必实现 | 无字典数据（刷新跳过） |
 | `DictReverseResolver`           | `Object reverse(String dictType, String label)`                 | 字典反向（标签→值，导入用）            | 同上                                                     |
+| `TranslateSource` | `String translate(Class<?> entity, String field, Object value)` | `@Translate(entity=...)` 关联翻译的内存取值优先源（命中则不回源查库） | 直接按主键查库翻译 |
 | `DataScopeResolver`             | `Collection<?> visibleScope(Class, String column, Object user)` | 行级数据范围（null=不限，空=全不可见） | 不过滤                                                   |
 | `OperationLogSink`              | `void save(LogRecord)`                                          | 操作日志落地（线程模型自行决定）       | 输出 Slf4j                                               |
 | `RepeatSubmitStore`             | `boolean tryAcquire(String key, long ms)`                       | 防重指纹存储                           | 内存；有 Redis 自动切换                                  |

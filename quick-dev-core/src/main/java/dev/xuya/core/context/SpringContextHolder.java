@@ -30,6 +30,15 @@ public class SpringContextHolder implements ApplicationContextAware {
         return ctx == null ? null : ctx.getBeanProvider(type).getIfAvailable();
     }
 
+    /**
+     * 按 @Order 顺序返回某类型全部 Bean 的流（无 Bean 时为空流）。
+     * 供 SPI 的"多实现链式取第一个非 null"场景使用（如 {@code TranslateSource}）。
+     */
+    public static <T> java.util.stream.Stream<T> getBeansOrdered(Class<T> type) {
+        ApplicationContext ctx = context;
+        return ctx == null ? java.util.stream.Stream.empty() : ctx.getBeanProvider(type).orderedStream();
+    }
+
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         context = applicationContext;

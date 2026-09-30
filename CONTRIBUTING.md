@@ -7,15 +7,15 @@
 ## 环境要求
 
 - JDK 17+（构建目标 17，兼容 21）
-- Maven 3.8+
+- Maven Wrapper 已随仓库提供（`mvnw`/`mvnw.cmd`），无需单独安装 Maven
 - Git
 
 ## 快速开始
 
 ```bash
 git clone https://github.com/xuya-dev/Quick-Dev.git
-cd quick-dev
-mvn clean verify      # 构建并运行全部测试（6 模块 reactor，全部须绿）
+cd Quick-Dev
+./mvnw clean verify     # Windows 用 mvnw.cmd；Wrapper 会自动下载指定版本的 Maven
 ```
 
 ## 项目结构

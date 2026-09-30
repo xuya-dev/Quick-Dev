@@ -6,12 +6,38 @@ name: Release to Maven Central
 on:
   workflow_dispatch:
 
+# 发布是不可逆动作：只允许最小权限，且同一时间只允许一次发布。
+# contents:write 仅为最后一步打 tag 所需。
+permissions:
+  contents: write
+
+concurrency:
+  group: maven-central-release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # 只允许从 main 发起：防止任意分支（含历史/实验分支）触发不可逆发布
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify version matches the latest tag
+        env:
+          POM_VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+          echo "pom.xml version = ${VERSION}"
+          case "${VERSION}" in
+            *-SNAPSHOT) echo "::error::不要发布 SNAPSHOT 版本"; exit 1;;
+          esac
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::tag v${VERSION} 已存在，请先升级 pom.xml 版本"; exit 1
+          fi
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
 
       - name: Set up JDK 17 and Central credentials
         uses: actions/setup-java@v4
@@ -27,8 +53,16 @@ jobs:
           gpg-passphrase: GPG_PASSPHRASE
 
       - name: Deploy to Maven Central
-        run: mvn clean deploy -Prelease
+        run: ./mvnw -B -ntp clean deploy -Prelease
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      # 发布成功后打 tag，产物与提交可互相追溯（此前 tag 依赖事后手工，经常遗漏）
+      - name: Create release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ env.VERSION }}" -m "Release v${{ env.VERSION }}"
+          git push origin "v${{ env.VERSION }}"

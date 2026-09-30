@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- 📝 Documentation|文档 英文README全面同步至0.4.0补齐0.3与0.4特性与配置总表
+- 📝 Documentation|文档 修正URL传token默认禁用的文档自相矛盾与用户指南幻影字典接口
+- 🧰 Build|构建 提供MavenWrapper并接入CI与贡献指南版本可复现
+- 🧰 Build|构建 CI新增发布profile预演任务与超时并发护栏release工作流加分支门禁与自动打tag
 - 🐛 Bug Fixes|Bug 修复 操作日志不再采集明文令牌参数敏感键脱敏且跳过上传文件
 - 🐛 Bug Fixes|Bug 修复 关联翻译反查改走分页插件方言不再硬编码limit语法
 - 🐛 Bug Fixes|Bug 修复 翻译缓存超限先清过期条目再全清降低回源雪崩风险

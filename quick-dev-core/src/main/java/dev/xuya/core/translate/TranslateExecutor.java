@@ -105,13 +105,15 @@ public class TranslateExecutor {
             Class<?> entityClass = annotation.entity();
             String field = annotation.field();
 
-            // 缓存优先：注册了 TranslateSource SPI 时优先取内存值，miss 才回源查库
-            TranslateSource source = SpringContextHolder.getBeanIfAvailable(TranslateSource.class);
-            if (source != null) {
-                String fromSource = source.translate(entityClass, field, value);
-                if (fromSource != null) {
-                    return fromSource;
-                }
+            // 缓存优先：注册了 TranslateSource SPI 时按 @Order 逐个取内存值，
+            // 第一个非 null 命中即返回；全部未命中才回源查库
+            String fromSource = SpringContextHolder.getBeansOrdered(TranslateSource.class)
+                    .map(s -> s.translate(entityClass, field, value))
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+            if (fromSource != null) {
+                return fromSource;
             }
 
             EntityMeta meta = EntityMeta.of(entityClass);

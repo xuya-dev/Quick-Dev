@@ -283,19 +283,26 @@ private Long deptId;                                     // {"deptId":103, "dept
 失败（无字典/无记录/未实现）保留原值，不影响接口。APPEND 模式无翻译结果时兄弟字段输出 `null`；
 `appendField` 缺省为「字段名 + Name」。
 
-### 6.2 字典存数据库：零代码方案
+### 6.2 字典数据来源：DictLoader SPI（框架不查任何库）
 
-```yaml
-quick-dev:
-  dict:
-    table: sys_dict            # 表结构约定：dict_type/dict_value/dict_label 三列（列名可配）
+框架本身不连任何数据库查字典——数据来源由你实现 `DictLoader` SPI 提供
+（自有字典表 / 远程字典服务 / 配置中心任选），全量驻留内存（懒加载），翻译不查库：
+
+```java
+@Component
+public class MyDictLoader implements DictLoader {
+    @Override
+    public List<DictEntry> loadAll() {
+        // SELECT dict_type, dict_value, dict_label FROM sys_dict（表结构/来源完全自定）
+        ...
+    }
+}
 ```
 
-- 全量驻留内存（懒加载），翻译不查库
 - 字典变更后调刷新接口：`POST /quick-dev/dict/refresh`（需 `dict:refresh` 权限）——重建缓存并清空翻译缓存，立即生效
-- 也可用内置管理接口维护字典（需 `dict:manage` 权限）：`GET /quick-dev/dict/page`、
-  `POST /quick-dev/dict`（type+value 存在即更新）、`DELETE /quick-dev/dict?type=&value=`——
-  写操作自动重建缓存
+- 多实例部署：开 `quick-dev.dict.refresh-interval-seconds` 定时刷新做最终一致，或引入 Redis 后各自调刷新接口
+- 也可以不实现 DictLoader，编程式调 `DictCacheService#replaceAll` /
+  `#replaceByJson`（标准 JSON：`[{"type","value","label"}]`）全量替换缓存
 
 ### 6.3 Excel 导入反解
 
@@ -401,14 +408,15 @@ spring:
 
 **2. 字典翻译没输出，还是原值？**
 按顺序排查：①`@Translate` 的 dict/enumClass/entity 是否配对；②字典缓存里有没有数据
-（`GET /quick-dev/dict/page`）；③自定义了 `DictResolver` 会导致内置方案让位；④翻译失败是静默降级，
-开 debug 日志看 `TranslateExecutor`。
+（调 `POST /quick-dev/dict/refresh` 看返回的 size，或检查 DictLoader 数据源）；③自定义了
+`DictResolver` 会导致内置方案让位；④翻译失败是静默降级，开 debug 日志看 `TranslateExecutor`。
 
 **3. 更新接口为什么不做 @NotBlank 校验？**
 更新是部分更新（null 字段跳过），整实体校验会强制全字段传值。需要强校验用新增接口或自定义。
 
-**4. 排除了 LIST，访问 /list 返回"记录不存在"？**
-`/{id}` 详情路由模板接住了该路径（字面量路由未注册时）。属预期行为。
+**4. 排除了 LIST，访问 /list 返回"记录不存在"或参数错误？**
+`/{id}` 详情路由模板接住了该路径（字面量路由未注册时）：主键为 String 的实体会返回"记录不存在"；
+主键为数值型的实体 "list" 无法转成 ID，返回参数错误（400）。都属预期行为——请按注解声明的实际端点访问。
 
 **5. 详情接口查 String 主键报类型错误？**
 框架会按实体主键类型自动转换（`"1"`→`Long 1`）；若实体主键类型与表列不一致请先修正实体。

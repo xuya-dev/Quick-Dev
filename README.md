@@ -236,7 +236,8 @@ public class MyAuthService implements UserResolver, PermissionChecker {
 }
 ```
 
-请求头默认从 `Authorization`（兼容 `Bearer` 前缀）读取 token，也可用 `?token=xxx` 参数。
+请求头默认从 `Authorization`（兼容 `Bearer` 前缀）读取 token。URL 传 token（`?token=xxx`）
+自 0.4.0 起**默认禁用**（会泄露到访问日志/历史记录），需要时显式配置 `auth.token-param` 开启。
 
 ### 6. 配置（全部可选）
 
@@ -258,11 +259,12 @@ quick-dev:
     default-excludes: SAVE_BATCH,SAVE_OR_UPDATE            # 全局排除操作（对所有控制器做减法）
   translate:
     enabled: true          # @Translate 字段翻译开关
-    cache-seconds: 60      # 翻译结果本地缓存秒数（0 禁用）
+    cache-seconds: 60      # 翻译结果本地缓存秒数（0 = 每次实时翻译，不缓存）
   auth:
     enabled: true          # 鉴权总开关
     token-header: Authorization
-    token-param: token
+    # token-param 默认禁用（URL 传 token 会泄露到访问日志）；如需开启再显式配置：
+    # token-param: token
 ```
 
 ## 查询参数约定（page / list 接口）
@@ -613,7 +615,7 @@ curl http://localhost:8080/product/page
        ├─ QuickCrudRegistrar（SmartInitializingSingleton）
        │    └─ 扫描 @QuickCrud Bean -> 解析实体/Mapper/路径/权限
        │         └─ RequestMappingHandlerMapping.registerMapping(...)
-       │              动态注册 page/list/{id}/save/update/{ids} 六个端点
+       │              动态注册 includes 声明的端点（默认 9 个：page/list/count/{id}/save/batch/save-or-update/update/{ids}）
        ├─ AuthInterceptor（拦截 /**）
        │    └─ @RequiresPerm / @RequiresLogin / CRUD 权限码
        │         -> UserResolver（token→用户）-> PermissionChecker（用户→权限）

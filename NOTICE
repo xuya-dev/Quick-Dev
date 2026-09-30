@@ -6,6 +6,9 @@ This product includes software developed by the Quick Dev contributors
 
 This product depends on the following open source projects:
 - Spring Boot (Apache License 2.0)
+- Spring Framework / springdoc-openapi (Apache License 2.0)
 - MyBatis-Plus (Apache License 2.0)
 - Sa-Token (Apache License 2.0)
 - FastExcel (Apache License 2.0)
+- Hibernate Validator (Apache License 2.0)
+- H2 Database (MPL 2.0 / EPL 1.0，仅 quick-dev-demo 演示模块使用)

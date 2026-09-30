@@ -340,7 +340,8 @@ public class QuickDevProperties {
         private int queryMaxRows = 1_000;
 
         /**
-         * 单次 Excel 导出行数上限（超出截断并告警）
+         * 单次 Excel 导出行数上限（导出按 export-batch-size 分批从数据库拉取，
+         * 达到本上限即停止拉取并告警，不做全量查询后截断）
          */
         private int exportMaxRows = 100_000;
 

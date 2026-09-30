@@ -96,14 +96,21 @@ Portal → **View Deployments** → 选中本次部署 → 检查无误后点 **
 GitHub 仓库页 → Actions → **Release to Maven Central** → Run workflow。
 前提：第 4 步的 4 个 Secrets 已配置。
 
+CI 发布流程内置了防呆护栏：
+
+- 只允许从 `main` 分支发起（其它分支触发直接跳过）；
+- 发布前校验 pom 版本非 SNAPSHOT 且对应 `v版本号` tag 不存在；
+- 发布成功后**自动打 `v版本号` tag 并推送**，无需手工补标签。
+
 ## 6. 发布后收尾
 
 ```bash
-git tag v0.2.0 && git push origin v0.2.0     # 打版本标签
+# CI 发布路径下 tag 已自动打好；本地手动发布才需要：
+git tag v0.4.0 && git push origin v0.4.0     # 打版本标签
 ```
 
 再在 GitHub 上基于 tag 创建 Release 并附 CHANGELOG 说明。
-下一个版本开发时把 6 个 POM 的 `<version>` 一起升级（如 0.3.0）。
+下一个版本开发时把全部 7 个 POM（父 + 6 个模块）的 `<version>` 一起升级（如 0.5.0）。
 
 ## 7. 常见问题
 

@@ -6,10 +6,16 @@ on:
   pull_request:
     branches: [ main ]
 
+# 同一分支的新推送取消仍在跑的旧构建，省 runner 时间
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build & Test (JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -26,7 +32,7 @@ jobs:
           cache: maven
 
       - name: Build and verify
-        run: mvn -B -ntp clean verify
+        run: ./mvnw -B -ntp clean verify
 
       - name: Upload test reports
         if: failure()
@@ -35,3 +41,23 @@ jobs:
           name: surefire-reports-jdk-${{ matrix.java }}
           path: '**/target/surefire-reports'
           if-no-files-found: ignore
+
+  # 发布产物预演：release profile（源码包/javadoc/GPG 元数据/central-plugin 校验）
+  # 只在 CI 从未被真正执行过，发布前的问题（如 javadoc 错误）应在这里暴露
+  release-dry-run:
+    name: Release profile dry-run (JDK 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Package with release profile (no signing, no publish)
+        run: ./mvnw -B -ntp clean package -Prelease -Dgpg.skip=true
