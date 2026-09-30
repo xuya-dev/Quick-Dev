@@ -21,6 +21,11 @@ import java.lang.annotation.*;
  * // 关联翻译：字段值作为目标实体主键，取其某属性
  * &#64;Translate(entity = SysUser.class, field = "nickname")
  * private String createBy;             // "1" 序列化为 "管理员"
+ *
+ * // 附加模式：保留原值，翻译结果写到兄弟字段（deptId 原样输出，另附 deptName="研发部门"）
+ * &#64;Translate(entity = SysDept.class, field = "deptName",
+ *         mode = TranslateMode.APPEND, appendField = "deptName")
+ * private Long deptId;
  * </pre>
  *
  * <p>翻译失败（无对应字典/记录、未实现 SPI）时保留原值输出，不影响接口；
@@ -52,4 +57,15 @@ public @interface Translate {
      * 关联模式：取目标实体的哪个属性作为翻译结果
      */
     String field() default "";
+
+    /**
+     * 工作模式，默认 {@link TranslateMode#REPLACE 替换}（保持 0.1.x 行为）
+     */
+    TranslateMode mode() default TranslateMode.REPLACE;
+
+    /**
+     * 仅 {@link TranslateMode#APPEND 附加模式} 有效：翻译结果输出的兄弟字段名，
+     * 缺省为「字段名 + Name」（如 deptId -&gt; deptIdName）
+     */
+    String appendField() default "";
 }

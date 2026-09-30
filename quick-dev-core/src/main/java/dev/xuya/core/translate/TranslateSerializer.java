@@ -28,6 +28,11 @@ public class TranslateSerializer extends StdSerializer<Object> implements Contex
 
     @Override
     public void serialize(Object value, JsonGenerator gen, SerializerProvider provider) throws IOException {
+        // 附加模式：本字段保留原值输出，翻译结果由 TranslateAppendModule 写入兄弟字段
+        if (annotation != null && annotation.mode() == TranslateMode.APPEND) {
+            gen.writeObject(value);
+            return;
+        }
         TranslateExecutor executor = TranslateExecutor.getInstance();
         String translated = executor == null ? null : executor.translate(annotation, value);
         if (translated != null) {
