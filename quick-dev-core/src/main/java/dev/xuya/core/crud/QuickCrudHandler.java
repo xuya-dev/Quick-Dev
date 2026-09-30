@@ -12,7 +12,6 @@ import dev.xuya.core.excel.ExcelImportExecutor;
 import dev.xuya.core.excel.ExcelSupport;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,7 +167,8 @@ public class QuickCrudHandler {
     // 新增：POST {base}（事务内执行 beforeSave 钩子，提交后执行 afterSave）
     // ---------------------------------------------------------------------
     public R<Object> save(@RequestBody String body) {
-        Object entity = parseAndValidate(body, true);
+        Object entity = parseEntity(body);
+        EntityValidator.validateSave(entity, validator);
         inTx(() -> {
             callBefore("beforeSave", h -> h.beforeSave(entity));
             mapper.insert(entity);
@@ -193,12 +193,10 @@ public class QuickCrudHandler {
         }
         if (validator != null) {
             for (int i = 0; i < list.size(); i++) {
-                Set<ConstraintViolation<Object>> violations = validator.validate(list.get(i));
-                if (!violations.isEmpty()) {
-                    String message = violations.stream()
-                            .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                            .collect(Collectors.joining("; "));
-                    throw new ParamException("第 " + (i + 1) + " 条校验失败: " + message);
+                try {
+                    EntityValidator.validateSave(list.get(i), validator);
+                } catch (ParamException e) {
+                    throw new ParamException("第 " + (i + 1) + " 条: " + e.getMessage());
                 }
             }
         }
@@ -218,12 +216,13 @@ public class QuickCrudHandler {
     // 新增或修改：POST {base}/save-or-update（有 ID 走更新、无 ID 走新增；入库前校验）
     // ---------------------------------------------------------------------
     public R<Object> saveOrUpdate(@RequestBody String body) {
-        // 先解析不校验：按有无 ID 分支决定校验策略（更新是部分更新，不做整实体校验）
-        Object entity = parseAndValidate(body, false);
+        // 先解析不校验：按有无 ID 分支决定校验策略（更新是部分更新，只校验提交的非空字段）
+        Object entity = parseEntity(body);
         Object id = idValue(entity);
         if (id != null && !String.valueOf(id).isEmpty()) {
             boolean[] updated = {false};
             inTx(() -> {
+                EntityValidator.validateUpdate(entity, validator);
                 callBefore("beforeUpdate", h -> h.beforeUpdate(entity));
                 updated[0] = mapper.updateById(entity) > 0;
             });
@@ -232,7 +231,7 @@ public class QuickCrudHandler {
             }
             return R.ok("更新成功", updated[0]);
         }
-        validateEntity(entity);
+        EntityValidator.validateSave(entity, validator);
         inTx(() -> {
             callBefore("beforeSave", h -> h.beforeSave(entity));
             mapper.insert(entity);
@@ -242,14 +241,15 @@ public class QuickCrudHandler {
     }
 
     // ---------------------------------------------------------------------
-    // 修改：PUT {base}（ID 必填，null 字段不更新；部分更新不做整实体校验）
+    // 修改：PUT {base}（ID 必填，null 字段不更新；对提交的非空字段做约束校验）
     // ---------------------------------------------------------------------
     public R<Object> update(@RequestBody String body) {
-        Object entity = parseAndValidate(body, false);
+        Object entity = parseEntity(body);
         Object id = idValue(entity);
         if (id == null || String.valueOf(id).isEmpty()) {
             throw new ParamException("更新时主键 " + meta.getIdProperty() + " 不能为空");
         }
+        EntityValidator.validateUpdate(entity, validator);
         boolean[] updated = {false};
         inTx(() -> {
             callBefore("beforeUpdate", h -> h.beforeUpdate(entity));
@@ -362,30 +362,14 @@ public class QuickCrudHandler {
         }
     }
 
-    private Object parseAndValidate(String body, boolean validate) {
+    private Object parseEntity(String body) {
         Object entity;
         try {
             entity = objectMapper.readValue(body, meta.getEntityClass());
         } catch (Exception e) {
             throw new ParamException("请求体解析失败: " + e.getLocalizedMessage(), e);
         }
-        if (validate) {
-            validateEntity(entity);
-        }
         return entity;
-    }
-
-    private void validateEntity(Object entity) {
-        if (validator == null) {
-            return;
-        }
-        Set<ConstraintViolation<Object>> violations = validator.validate(entity);
-        if (!violations.isEmpty()) {
-            String message = violations.stream()
-                    .map(v -> v.getPropertyPath() + " " + v.getMessage())
-                    .collect(Collectors.joining("; "));
-            throw new ParamException("参数校验失败: " + message);
-        }
     }
 
     private Object convertId(String id) {

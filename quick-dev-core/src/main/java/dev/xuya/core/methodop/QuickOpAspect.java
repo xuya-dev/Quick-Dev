@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.xuya.core.common.ParamException;
 import dev.xuya.core.common.R;
 import dev.xuya.core.crud.EntityMeta;
+import dev.xuya.core.crud.EntityValidator;
 import dev.xuya.core.crud.MapperResolver;
 import dev.xuya.core.crud.QueryHelper;
 import dev.xuya.core.excel.ExcelImportExecutor;
@@ -96,7 +97,7 @@ public class QuickOpAspect {
         BaseMapper<Object> mapper = mapper(entityClass);
         List<Object> batch = findListArg(args, entityClass);
         if (batch != null) {
-            batch.forEach(this::validate);
+            batch.forEach(entity -> EntityValidator.validateSave(entity, validator()));
             Db.saveBatch(batch);
             return R.ok("批量新增成功", batch.size());
         }
@@ -105,7 +106,7 @@ public class QuickOpAspect {
             throw new ParamException("@QuickSave 方法需要声明 " + entityClass.getSimpleName()
                     + "（或 List<" + entityClass.getSimpleName() + ">）类型的参数");
         }
-        validate(entity);
+        EntityValidator.validateSave(entity, validator());
         mapper.insert(entity);
         return R.ok("新增成功", entity);
     }
@@ -121,6 +122,7 @@ public class QuickOpAspect {
         if (id == null || String.valueOf(id).isEmpty()) {
             throw new ParamException("更新时主键 " + meta.getIdProperty() + " 不能为空");
         }
+        EntityValidator.validateUpdate(entity, validator());
         BaseMapper<Object> mapper = mapper(entityClass);
         return R.ok("更新成功", mapper.updateById(entity) > 0);
     }
@@ -199,20 +201,6 @@ public class QuickOpAspect {
 
     private BaseMapper<Object> mapper(Class<?> entityClass) {
         return MapperResolver.resolve(applicationContext, entityClass, Void.class);
-    }
-
-    private void validate(Object entity) {
-        Validator v = validator();
-        if (v == null) {
-            return;
-        }
-        Set<ConstraintViolation<Object>> violations = v.validate(entity);
-        if (!violations.isEmpty()) {
-            String message = violations.stream()
-                    .map(x -> x.getPropertyPath() + " " + x.getMessage())
-                    .collect(Collectors.joining("; "));
-            throw new ParamException("参数校验失败: " + message);
-        }
     }
 
     private <T> T findArg(Object[] args, Class<T> type) {

@@ -9,6 +9,7 @@ import dev.xuya.core.auth.AuthSettings;
 import dev.xuya.core.common.QuickDevLimits;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.AutoFillMetaObjectHandler;
+import dev.xuya.core.crud.EntityValidator;
 import dev.xuya.core.crud.QuickCrudRegistrar;
 import dev.xuya.core.log.OperationLogSink;
 import dev.xuya.core.log.QuickLogAspect;
@@ -184,6 +185,7 @@ public class QuickDevAutoConfiguration {
         QuickDevLimits.setExportMaxRows(limits.getExportMaxRows());
         QuickDevLimits.setImportMaxRows(limits.getImportMaxRows());
         QuickDevLimits.setInMaxSize(limits.getInMaxSize());
+        EntityValidator.setUpdateValidationEnabled(properties.getCrud().isUpdateValidate());
         return "quickDevLimitsConfigured";
     }
 }

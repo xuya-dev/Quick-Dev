@@ -18,7 +18,7 @@
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
         <!-- 再加你的数据库驱动，例如： -->
 <dependency>
@@ -120,6 +120,26 @@ public class UserController {
     }
 }
 ```
+
+### 2.4 分阶段校验（新增必填 / 修改部分校验）
+
+```java
+public class Goods {
+    @NotBlank(groups = Create.class)     // 仅新增必填
+    private String name;
+    @Size(max = 200)                     // 两阶段都校验（修改时只对提交值生效）
+    private String remark;
+    @QuickRequire(dependField = "stock", dependValue = "0")   // stock=0 时 reason 必填
+    private String reason;
+}
+```
+
+- 新增：全实体校验，分组 `Default + Create`（`dev.xuya.core.validation.Create`）
+- 修改：部分更新语义——只校验**提交值非空**的字段，分组 `Default + Update`
+  （`dev.xuya.core.validation.Update`）；未提交字段不会误伤
+- `@QuickRequire(dependField, dependValue)` 条件必填，可重复、支持 groups；
+  修改阶段仅当依赖字段本次提交非空且匹配才生效
+- 关闭修改校验：`quick-dev.crud.update-validate=false`
 
 ## 3. 方法级注解
 
@@ -350,7 +370,7 @@ public R<Object> create(@RequestBody OrderDTO dto) { ...}
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 

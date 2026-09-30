@@ -7,7 +7,7 @@
 ## 项目事实（上下文）
 
 - 框架定位：Spring Boot 3 + MyBatis-Plus 快速开发框架（注解式 CRUD + 权限控制）
-- 坐标：`dev.xuya:quick-dev-spring-boot-starter:0.2.0`（可选 `dev.xuya:quick-dev-redis-spring-boot-starter`）
+- 坐标：`dev.xuya:quick-dev-spring-boot-starter:0.3.0`（可选 `dev.xuya:quick-dev-redis-spring-boot-starter`）
 - 版本基线：JDK 17+ / Spring Boot 3.5.x / MyBatis-Plus 3.5.12 / Sa-Token 1.42.0 / FastExcel 1.2.0
 - 构建验证：`mvn clean verify`（5 模块 reactor；core 14 + autoconfigure 4 + demo 22 个测试）
 - 用户文档：[README.md](../README.md)（中文）/ [README.en.md](../README.en.md) / [docs/user-guide.md](user-guide.md)（详细手册）

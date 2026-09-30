@@ -75,6 +75,10 @@ public class SysUserController {
   Redis 原子实现
 - **树形查询**：`CrudOp.TREE` 一行注解输出部门/菜单/分类树（实体声明 `parentId` + `children` 即可）
 - **防重复提交**：`@NoRepeatSubmit(interval)` 按用户+接口指纹拦截重复点击
+- **分阶段参数校验**：新增走全实体 Bean Validation（`Default + Create` 组），修改为部分更新语义——
+  只校验提交值非空的字段（`Default + Update` 组），`@NotBlank` 传空串照拦、未提交字段不误伤；
+  内置 `@QuickRequire` 条件必填注解（依赖字段值匹配时本字段必填，支持分组、可重复），
+  复杂跨字段判断可写自定义 constraint 或 CrudHook
 - **CRUD 生命周期钩子**：实现 `CrudHook` SPI（beforeSave/afterSave/beforeUpdate/afterUpdate/beforeRemove/afterRemove）
   即可介入内置写流程——多表绑定、缓存刷新不再需要为聚合写手写 Controller；写操作统一纳入事务，
   before 异常回滚、after 提交后执行（失败仅告警）
@@ -102,7 +106,7 @@ quick-dev
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-spring-boot-starter</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
@@ -244,6 +248,7 @@ quick-dev:
   log:
     enabled: true          # @QuickLog 操作日志开关
   crud:
+    update-validate: true   # 修改（部分更新）对提交的非空字段做约束校验 + @QuickRequire 条件必填
     default-includes: PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE  # 全局默认注册操作（注解未显式指定 includes 时生效）
     default-excludes: SAVE_BATCH,SAVE_OR_UPDATE            # 全局排除操作（对所有控制器做减法）
   translate:
@@ -292,6 +297,36 @@ public class ReportController {
 ```
 
 > 角色数据来源与权限一致：Sa-Token 模式下实现 `StpInterface.getRoleList`；自定义模式下实现 `RoleChecker` Bean。
+
+### 分阶段参数校验（新增 / 修改）
+
+新增为全实体校验，修改为**部分更新语义**（null 字段不更新）——框架只对提交值非空的字段
+逐个执行约束，未提交字段不会被误伤：
+
+```java
+public class Goods {
+    @NotBlank(groups = Create.class)                 // 仅新增必填（修改不强制）
+    private String name;
+
+    @Size(max = 200)                                 // 新增、修改（提交时）都校验
+    private String remark;
+
+    @QuickRequire(dependField = "stock", dependValue = "0",
+            groups = {Create.class, Update.class})   // 条件必填：stock=0（售罄）时 reason 必填
+    private String reason;
+}
+```
+
+| 阶段 | 校验范围 | 分组 |
+|------|----------|------|
+| 新增 POST / save-or-update 新增分支 | 全实体 | `Default + Create` |
+| 修改 PUT / save-or-update 修改分支 / @QuickUpdate | 仅提交值非空的字段 | `Default + Update` |
+
+- 分组即 jakarta Bean Validation 标准 groups：框架提供 `Create`/`Update` 标记接口，
+  自定义 constraint 也可声明分组参与对应阶段
+- `@QuickRequire(dependField, dependValue)`：依赖字段值匹配（字符串比较）时本字段必填；
+  修改阶段仅当依赖字段在本次提交中非空且匹配才生效，依赖数据库完整状态的复杂判断写 `CrudHook`
+- 开关：`quick-dev.crud.update-validate=false` 关闭修改校验（新增始终开启）
 
 ### CRUD 生命周期钩子（CrudHook）
 
@@ -378,7 +413,7 @@ Controller 的 permission 为建议前缀（如 `t:order`）按业务调整。�
 <dependency>
     <groupId>dev.xuya</groupId>
     <artifactId>quick-dev-redis-spring-boot-starter</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
@@ -602,6 +637,7 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `auto-fill.enabled`             | `true`                    | 时间/操作人自动填充开关                                                          |
 | `repeat-submit.enabled`         | `true`                    | @NoRepeatSubmit 防重复提交开关                                                   |
 | `log.enabled`                   | `true`                    | @QuickLog 操作日志开关                                                           |
+| `crud.update-validate`          | `true`                    | 修改（部分更新）是否校验提交的非空字段并应用 @QuickRequire 条件必填             |
 | `crud.default-includes`         | -                         | 全局默认注册操作（注解未显式指定 includes 时生效；如 PAGE,LIST,DETAIL,SAVE,UPDATE,REMOVE） |
 | `crud.default-excludes`         | -                         | 全局排除操作（对所有 @QuickCrud 控制器做减法；如 SAVE_BATCH,SAVE_OR_UPDATE）     |
 | `translate.enabled`             | `true`                    | @Translate 字段翻译开关                                                          |

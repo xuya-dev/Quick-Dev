@@ -4,8 +4,12 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import jakarta.validation.constraints.Size;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.xuya.core.common.ParamException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import dev.xuya.core.common.R;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,6 +38,8 @@ import static org.mockito.Mockito.when;
 class QuickCrudHandlerHookTest {
 
     private static EntityMeta meta;
+    private static final Validator VALIDATOR =
+            Validation.buildDefaultValidatorFactory().getValidator();
 
     private BaseMapper<Object> mapper;
     private List<String> calls;
@@ -102,7 +108,7 @@ class QuickCrudHandlerHookTest {
             }
         };
         handler = new QuickCrudHandler(meta, mapper, new ObjectMapper(),
-                new DefaultFormattingConversionService(), null, false, tx, List.of(hook));
+                new DefaultFormattingConversionService(), VALIDATOR, false, tx, List.of(hook));
     }
 
     @Test
@@ -132,7 +138,7 @@ class QuickCrudHandlerHookTest {
             }
         };
         QuickCrudHandler failing = new QuickCrudHandler(meta, mapper, new ObjectMapper(),
-                new DefaultFormattingConversionService(), null, false, tx, List.of(hook));
+                new DefaultFormattingConversionService(), VALIDATOR, false, tx, List.of(hook));
         assertThatThrownBy(() -> failing.save("{\"name\":\"tom\"}"))
                 .isInstanceOf(IllegalStateException.class);
         verify(mapper, never()).insert(any());
@@ -153,7 +159,7 @@ class QuickCrudHandlerHookTest {
             }
         };
         QuickCrudHandler failing = new QuickCrudHandler(meta, mapper, new ObjectMapper(),
-                new DefaultFormattingConversionService(), null, false, tx, List.of(hook));
+                new DefaultFormattingConversionService(), VALIDATOR, false, tx, List.of(hook));
         assertThat(failing.save("{\"name\":\"tom\"}").getCode()).isEqualTo(200);
     }
 
@@ -162,6 +168,15 @@ class QuickCrudHandlerHookTest {
         when(mapper.updateById(any(SampleEntity.class))).thenReturn(1);
         handler.update("{\"id\":1,\"name\":\"new\"}");
         assertThat(calls).containsExactly("beforeUpdate", "afterUpdate");
+    }
+
+    @Test
+    void updateShouldRejectInvalidProvidedField() {
+        // name 超过 @Size(max=3)：部分更新校验拦截，不触达 Mapper
+        assertThatThrownBy(() -> handler.update("{\"id\":1,\"name\":\"toolong\"}"))
+                .isInstanceOf(ParamException.class)
+                .hasMessageContaining("修改参数校验失败");
+        verify(mapper, never()).updateById(any(SampleEntity.class));
     }
 
     @Test
@@ -176,7 +191,7 @@ class QuickCrudHandlerHookTest {
     @Test
     void shouldWorkWithoutTransactionInfrastructure() {
         QuickCrudHandler noTx = new QuickCrudHandler(meta, mapper, new ObjectMapper(),
-                new DefaultFormattingConversionService(), null, false, null, List.of());
+                new DefaultFormattingConversionService(), VALIDATOR, false, null, List.of());
         when(mapper.insert(any(SampleEntity.class))).thenReturn(1);
         assertThat(noTx.save("{\"name\":\"a\"}").getCode()).isEqualTo(200);
     }
@@ -185,6 +200,7 @@ class QuickCrudHandlerHookTest {
     static class SampleEntity {
         @TableId(type = IdType.AUTO)
         private Long id;
+        @Size(max = 3)
         private String name;
 
         public Long getId() {

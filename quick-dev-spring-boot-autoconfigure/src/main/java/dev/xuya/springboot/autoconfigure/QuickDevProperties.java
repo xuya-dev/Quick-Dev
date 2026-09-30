@@ -110,6 +110,12 @@ public class QuickDevProperties {
          */
         private CrudOp[] defaultExcludes = {};
 
+        /**
+         * 修改（部分更新）是否对提交值非空的字段做约束校验 + @QuickRequire 条件必填。
+         * 新增校验不受此开关影响（始终开启）
+         */
+        private boolean updateValidate = true;
+
         public CrudOp[] getDefaultIncludes() {
             return defaultIncludes;
         }
@@ -124,6 +130,14 @@ public class QuickDevProperties {
 
         public void setDefaultExcludes(CrudOp[] defaultExcludes) {
             this.defaultExcludes = defaultExcludes;
+        }
+
+        public boolean isUpdateValidate() {
+            return updateValidate;
+        }
+
+        public void setUpdateValidate(boolean updateValidate) {
+            this.updateValidate = updateValidate;
         }
     }
 
