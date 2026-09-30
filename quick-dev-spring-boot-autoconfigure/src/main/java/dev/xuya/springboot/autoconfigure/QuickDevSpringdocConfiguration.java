@@ -11,6 +11,7 @@ import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -28,9 +29,13 @@ import java.util.Set;
  * RequestMappingHandlerMapping 读取 QuickCrudHandler 的全部动态端点，手动注入
  * PathItem（含摘要与查询参数说明），使其出现在 Swagger UI；方法级注解端点
  * （普通 Controller，springdoc 本就收录）由 {@link OperationCustomizer} 补充摘要。</p>
+ *
+ * <p>类级 servlet 条件：Bean 方法需要 spring-webmvc 的 {@link RequestMappingHandlerMapping}，
+ * 仅 guard springdoc 类时，WebFlux + springdoc-common 组合会在类加载期 NoClassDefFoundError。</p>
  */
 @AutoConfiguration
 @ConditionalOnClass(OpenApiCustomizer.class)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class QuickDevSpringdocConfiguration {
 
     private static final Map<String, String> CRUD_SUMMARIES = Map.ofEntries(
@@ -40,6 +45,7 @@ public class QuickDevSpringdocConfiguration {
             Map.entry("detail", "按主键查询详情"),
             Map.entry("save", "新增（Bean Validation 校验）"),
             Map.entry("saveBatch", "批量新增（JSON 数组）"),
+            Map.entry("saveOrUpdate", "新增或修改（有 ID 更新、无 ID 新增）"),
             Map.entry("update", "按主键修改（null 字段不更新）"),
             Map.entry("remove", "删除（ids 逗号分隔支持批量）"),
             Map.entry("importExcel", "Excel 导入（multipart 字段 file）"),

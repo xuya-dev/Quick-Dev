@@ -25,5 +25,11 @@
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-redis-jackson</artifactId>
         </dependency>
+        <!-- 防重复提交 Redis 原子实现依赖 spring-data-redis：
+             本 starter 的职责就是把 Redis 技术栈带齐，显式声明而不是依赖传递图碰巧包含 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
     </dependencies>
 </project>

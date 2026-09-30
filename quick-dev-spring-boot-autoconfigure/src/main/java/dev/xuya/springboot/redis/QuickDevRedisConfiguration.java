@@ -16,6 +16,10 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * 防重复提交自动切换为 Redis 原子实现。
  *
  * <p>本配置需在 {@link QuickDevAutoConfiguration} 之前处理，确保内存兜底实现让位。</p>
+ *
+ * <p>注意：classpath 有 spring-data-redis 但容器没有 {@link StringRedisTemplate} Bean
+ * （例如排除了 RedisAutoConfiguration）时<b>不算错误</b>——返回 null 让内存实现兜底，
+ * 而不是让整个应用启动失败。</p>
  */
 @AutoConfiguration(before = QuickDevAutoConfiguration.class)
 @ConditionalOnClass(StringRedisTemplate.class)
@@ -26,6 +30,8 @@ public class QuickDevRedisConfiguration {
     @ConditionalOnProperty(prefix = "quick-dev.repeat-submit", name = "enabled",
             havingValue = "true", matchIfMissing = true)
     public RepeatSubmitStore redisRepeatSubmitStore(ObjectProvider<StringRedisTemplate> templateProvider) {
-        return new RedisRepeatSubmitStore(templateProvider.getObject());
+        // getIfAvailable（而非 getObject）：没有 Redis 连接配置时静默让位给内存实现
+        StringRedisTemplate template = templateProvider.getIfAvailable();
+        return template == null ? null : new RedisRepeatSubmitStore(template);
     }
 }

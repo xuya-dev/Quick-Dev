@@ -19,6 +19,14 @@ import java.util.Map;
  */
 public class EntityMeta {
 
+    /**
+     * 实体元信息缓存：EntityMeta 在翻译序列化、方法级注解 AOP 等热路径上
+     * 每请求都会取用，而构建需要全字段反射扫描 + setAccessible，开销不可忽略。
+     * 元信息在运行期不可变，进程级缓存是安全的。
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<Class<?>, EntityMeta> CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
     private final Class<?> entityClass;
     private final Field idField;
     private final String idProperty;
@@ -40,6 +48,14 @@ public class EntityMeta {
     }
 
     public static EntityMeta of(Class<?> entityClass) {
+        EntityMeta cached = CACHE.get(entityClass);
+        if (cached != null) {
+            return cached;
+        }
+        return CACHE.computeIfAbsent(entityClass, EntityMeta::build);
+    }
+
+    private static EntityMeta build(Class<?> entityClass) {
         Map<String, Field> fields = new LinkedHashMap<>();
         for (Class<?> c = entityClass; c != null && c != Object.class; c = c.getSuperclass()) {
             for (Field field : c.getDeclaredFields()) {

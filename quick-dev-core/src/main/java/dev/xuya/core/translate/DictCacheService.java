@@ -98,9 +98,11 @@ public class DictCacheService {
     /**
      * 解析标准 JSON 格式（[{"type","value","label"}, ...]）并全量替换缓存——
      * "上传规定格式数据"场景的入口：不查任何数据库，解析失败抛 ParamException（HTTP 400）。
+     * <p>解析在锁外完成，避免大报文上传期间阻塞定时刷新线程。</p>
      */
     public synchronized void replaceByJson(String json) {
-        replaceAll(DictJson.parse(json));
+        List<DictLoader.DictEntry> parsed = DictJson.parse(json);
+        replaceAll(parsed);
     }
 
     public synchronized void replaceAll(List<DictLoader.DictEntry> entries) {
@@ -166,8 +168,15 @@ public class DictCacheService {
     }
 
     private void ensureLoaded() {
-        if (snapshot == null && loader != null) {
-            refresh();
+        if (snapshot != null || loader == null) {
+            return;
+        }
+        // 双重检查：首次并发访问时只有一个线程执行全量加载，
+        // 其余线程在锁上等待后直接读快照（否则 N 个并发请求会打 N 次远程字典源）
+        synchronized (this) {
+            if (snapshot == null) {
+                replaceAll(loader.loadAll());
+            }
         }
     }
 

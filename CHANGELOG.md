@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+- 🐛 Bug Fixes|Bug 修复 Redis防重存储改为可选依赖无模板Bean时回落内存不再启动崩溃
+- 🐛 Bug Fixes|Bug 修复 防重TTL下限钳制避免Redis对0与-1过期时间的报错与永久锁死
+- 🐛 Bug Fixes|Bug 修复 翻译执行器静态注册改为无条件装配用户自定义Bean不再静默失效
+- 🐛 Bug Fixes|Bug 修复 字典配置补servlet条件与属性注册非web应用不再启动失败
+- 🐛 Bug Fixes|Bug 修复 字典内置翻译与反解按方向独立让位自定义单方向不再丢失另一方向
+- 🐛 Bug Fixes|Bug 修复 字典懒加载双重检查防并发惊群JSON解析移出锁外
+- 🐛 Bug Fixes|Bug 修复 防重指纹按条目过期时间淘汰不同接口窗口互不干扰
+- ⚡ Performance|性能优化 实体元信息进程级缓存热路径不再重复全字段反射扫描
+- ⚡ Performance|性能优化 springdoc补saveOrUpdate摘要与servlet条件修复WebFlux组合类加载
+- 🔧 Chores|杂务 静态装配改为类型化SmartInitializingSingleton替代String类型Bean
+- 🔧 Chores|杂务 Redis starter显式声明spring-data-redis依赖并修复demo登录常量时间比较
 - ✨ Features|新功能 新增limits.query-max-rows护栏list与tree超限返回400不再全量返回
 - ✨ Features|新功能 新增limits.export-batch-size导出分批取数内存占用与导出总量解耦
 - ✨ Features|新功能 排序字段非法时返回400不再静默忽略便于定位排序不生效问题

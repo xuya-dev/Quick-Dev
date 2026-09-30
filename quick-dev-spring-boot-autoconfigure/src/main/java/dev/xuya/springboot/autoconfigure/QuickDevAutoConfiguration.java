@@ -22,6 +22,7 @@ import dev.xuya.core.web.MemoryRepeatSubmitStore;
 import dev.xuya.core.web.RepeatSubmitInterceptor;
 import dev.xuya.core.web.RepeatSubmitStore;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -42,9 +43,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *   <li>AuthInterceptor：@RequiresPerm / @RequiresLogin / CRUD 权限码校验</li>
  *   <li>GlobalExceptionHandler：异常统一响应</li>
  * </ul>
+ *
+ * <p>类级 {@code @ConditionalOnClass} 防御 MyBatis-Plus 缺失：本模块的 pom 把 MP 声明为
+ * optional，且 {@link QuickDevProperties} 的 dbType 绑定也依赖 MP 类型，无 MP 时整个
+ * 框架本就无法工作，直接跳过装配而不是抛 NoClassDefFoundError。</p>
  */
 @AutoConfiguration
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@ConditionalOnClass({MetaObjectHandler.class, MybatisPlusInterceptor.class})
 @EnableConfigurationProperties(QuickDevProperties.class)
 public class QuickDevAutoConfiguration {
 
@@ -84,8 +90,7 @@ public class QuickDevAutoConfiguration {
     @ConditionalOnClass(name = "org.aspectj.lang.annotation.Aspect")
     @ConditionalOnProperty(prefix = "quick-dev.log", name = "enabled",
             havingValue = "true", matchIfMissing = true)
-    public QuickLogAspect quickLogAspect(OperationLogSink sink, QuickDevProperties properties,
-                                         ApplicationContext applicationContext) {
+    public QuickLogAspect quickLogAspect(OperationLogSink sink, ApplicationContext applicationContext) {
         ObjectMapper objectMapper = applicationContext.getBeanProvider(ObjectMapper.class)
                 .getIfAvailable(ObjectMapper::new);
         // 默认 sink 仅打印（Slf4j）；写库等落地方式由用户自实现 OperationLogSink
@@ -103,10 +108,9 @@ public class QuickDevAutoConfiguration {
     @ConditionalOnMissingBean
     public TranslateExecutor translateExecutor(QuickDevProperties properties) {
         QuickDevProperties.Translate translate = properties.getTranslate();
-        TranslateExecutor executor = new TranslateExecutor(
+        // 静态注册由 quickDevStaticConfigurer 统一完成（支持用户自定义 Executor Bean 覆盖）
+        return new TranslateExecutor(
                 translate.isEnabled(), translate.getCacheSeconds() * 1000);
-        TranslateExecutor.register(executor);
-        return executor;
     }
 
     /**
@@ -177,17 +181,16 @@ public class QuickDevAutoConfiguration {
     }
 
     /**
-     * 把 quick-dev.limits.* 写入 core 静态上限（core 静态工具无法走 Bean 注入）
+     * 静态装配：把 quick-dev.limits.* 写入 core 的静态上限、装配校验开关，
+     * 并把（用户自定义或框架默认的）TranslateExecutor 登记到静态入口。
+     *
+     * <p>用类型化的 {@link SmartInitializingSingleton} 而不是返回 String 的 Bean：
+     * 后者会污染容器的 by-type 查找，且没有稳定的初始化时机——
+     * 这里保证在所有单例就绪后执行，读到的都是最终配置。</p>
      */
     @Bean
-    public String quickDevLimitsConfigurer(QuickDevProperties properties) {
-        QuickDevProperties.Limits limits = properties.getLimits();
-        QuickDevLimits.setQueryMaxRows(limits.getQueryMaxRows());
-        QuickDevLimits.setExportMaxRows(limits.getExportMaxRows());
-        QuickDevLimits.setExportBatchSize(limits.getExportBatchSize());
-        QuickDevLimits.setImportMaxRows(limits.getImportMaxRows());
-        QuickDevLimits.setInMaxSize(limits.getInMaxSize());
-        EntityValidator.setUpdateValidationEnabled(properties.getCrud().isUpdateValidate());
-        return "quickDevLimitsConfigured";
+    public QuickDevStaticConfigurer quickDevStaticConfigurer(QuickDevProperties properties,
+                                                              ObjectProvider<TranslateExecutor> executorProvider) {
+        return new QuickDevStaticConfigurer(properties, executorProvider);
     }
 }

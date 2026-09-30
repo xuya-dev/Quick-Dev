@@ -12,6 +12,8 @@ import dev.xuya.demo.mapper.SysUserPermMapper;
 import dev.xuya.demo.mapper.SysUserRoleMapper;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,11 @@ public class DbAuthService implements StpInterface {
 
     public Map<String, Object> login(String username, String password) {
         SysUser user = userMapper.selectOne(new QueryWrapper<SysUser>().eq("username", username));
-        if (user == null || !password.equals(user.getPassword())) {
+        // 演示环境密码为明文种子数据，这里用常量时间比较避免耗时侧信道；
+        // 生产系统请存储 BCrypt/Argon2 哈希并用相应库校验，不要照搬本实现
+        if (user == null || !MessageDigest.isEqual(
+                String.valueOf(user.getPassword()).getBytes(StandardCharsets.UTF_8),
+                String.valueOf(password).getBytes(StandardCharsets.UTF_8))) {
             throw new QuickDevException("用户名或密码错误");
         }
         if (user.getStatus() == null || user.getStatus() != 1) {
