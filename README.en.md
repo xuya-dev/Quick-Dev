@@ -54,14 +54,23 @@ Optional operations (add to `includes`): `POST {base}/import` Excel import (`:im
 - **Audit auto-fill**: `createTime`/`updateTime` + `createBy`/`updateBy` (current login id) filled on insert/update
 - **Field translation (VO Translation)**: `@Translate` on fields translates IDs/status codes to readable text
   in JSON output (dict / enum / entity-ref modes, TTL-cached); **Excel import reverses labels back to values**;
-  **database-backed dictionaries work with zero code** (built-in `JdbcDictProvider`, both directions)
+  dict data is provided by your own `DictLoader` SPI (the framework never queries the DB);
+  `mode = APPEND` keeps the raw value and outputs the label into a sibling field
+- **Staged validation**: create validates the whole entity (`Default + Create` groups); update is
+  partial-update aware — only submitted non-null fields are validated (`Default + Update` groups);
+  built-in `@QuickRequire(dependField, dependValue)` for conditional required fields
+- **CRUD lifecycle hooks**: implement the `CrudHook` SPI (`beforeSave/afterSave/beforeUpdate/afterUpdate/
+  beforeRemove/afterRemove`) for aggregate writes (multi-table binding, cache refresh) — no handwritten
+  controllers needed; writes run inside a transaction
+- **Append translation mode**: `@Translate(mode = TranslateMode.APPEND, appendField = "deptName")` keeps
+  the raw value and adds the translated text to a sibling field
 - **Row-level data permission**: `@DataScope(column = "dept_id")` on an entity auto-filters page/list/count/tree/export
   by the visible scope returned from `DataScopeResolver` ("see only my department")
 - **Optional Redis**: `quick-dev-redis-spring-boot-starter` puts Sa-Token state in Redis (shared across instances,
   survives restarts) and switches repeat-submit protection to an atomic Redis implementation
 - **Tree query**: `CrudOp.TREE` outputs dept/menu/category trees in one line
 - **Repeat-submit protection**: `@NoRepeatSubmit(interval)` keyed by user + endpoint fingerprint
-- **Operation log**: `@QuickLog` records operator/params/result/duration; persist via `OperationLogSink` SPI
+- **Operation log**: `@QuickLog` records operator/params/result/duration; persist via `OperationLogSink` SPI (prints to Slf4j by default)
 - **Unified response & exceptions**: `R<T>` structure + global handler (401 unauthenticated, 403 forbidden, 400 param)
 - All MyBatis-Plus features still work: logic delete, optimistic locking, multi-tenancy, `@TableName`, etc.
 
@@ -306,7 +315,7 @@ public R<Object> create(@RequestBody Order order) { ...}
 
 `@QuickLog` records: module/description, operator (loginId), URI, HTTP method, IP, params JSON (truncated),
 result code, success flag, error message, and duration. Persistence is up to the `OperationLogSink` SPI (register a bean
-to take over; default logs to Slf4j logger `quick-dev.operation-log`; async persistence recommended in production).
+to take over; default logs to Slf4j logger `quick-dev.operation-log`; choose your own threading model inside the sink).
 
 ### OpenAPI Docs (Optional, springdoc)
 
@@ -559,15 +568,12 @@ templates).
 | `log.enabled`                   | `true`                    | @QuickLog operation log switch                                                          |
 | `translate.enabled`             | `true`                    | @Translate field translation switch                                                     |
 | `translate.cache-seconds`       | `60`                      | Translation cache TTL seconds (0 disables)                                              |
-| `dict.enabled`                  | `true`                    | Built-in DB dictionary switch (effective with JdbcTemplate on classpath)                |
-| `dict.table`                    | `sys_dict`                | Dictionary table name                                                                   |
-| `dict.type-column`              | `dict_type`               | Type column                                                                             |
-| `dict.value-column`             | `dict_value`              | Value column                                                                            |
-| `dict.label-column`             | `dict_label`              | Label column                                                                            |
+| `dict.enabled`                  | `true`                    | Dict cache/translation switch (data source: DictLoader SPI)                             |
 | `dict.refresh-endpoint-enabled` | `true`                    | Dict cache refresh endpoint switch                                                      |
 | `dict.refresh-path`             | `/quick-dev/dict/refresh` | Refresh endpoint path (dict:refresh permission)                                         |
-| `dict.admin-endpoint-enabled`   | `true`                    | Dict admin endpoints switch                                                             |
-| `dict.admin-path`               | `/quick-dev/dict`         | Admin endpoint prefix (dict:manage permission)                                          |
+| `crud.update-validate`          | `true`                    | Validate submitted non-null fields on update + apply @QuickRequire                      |
+| `crud.default-includes`         | -                         | Global default ops when the annotation omits `includes`                                 |
+| `crud.default-excludes`         | -                         | Global ops excluded from all @QuickCrud controllers                                     |
 | `limits.export-max-rows`        | `100000`                  | Max rows per export (truncated with a warning beyond)                                   |
 | `limits.import-max-rows`        | `10000`                   | Max rows per import (rejected beyond)                                                   |
 | `limits.in-max-size`            | `1000`                    | Max values per IN condition (400 beyond)                                                |

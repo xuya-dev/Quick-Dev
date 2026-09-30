@@ -642,7 +642,7 @@ ConversionService 处理，从而绕开泛型擦除导致的类型解析问题�
 | `crud.default-excludes`         | -                         | 全局排除操作（对所有 @QuickCrud 控制器做减法；如 SAVE_BATCH,SAVE_OR_UPDATE）     |
 | `translate.enabled`             | `true`                    | @Translate 字段翻译开关                                                          |
 | `translate.cache-seconds`       | `60`                      | 翻译结果本地缓存秒数（0 禁用）                                                   |
-| `dict.enabled`                  | `true`                    | 内置数据库字典开关（classpath 有 JdbcTemplate 时生效）                           |
+| `dict.enabled`                  | `true`                    | 字典内存缓存/翻译开关（数据源：DictLoader SPI）                                  |
 | `dict.refresh-endpoint-enabled` | `true`                    | 字典缓存刷新端点开关                                                             |
 | `dict.refresh-interval-seconds` | `0`                       | 字典定时自动刷新间隔秒数（0 禁用）                                               |
 | `dict.refresh-path`             | `/quick-dev/dict/refresh` | 刷新端点路径（需 dict:refresh 权限）                                             |
