@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+- 🐛 Bug Fixes|Bug 修复 操作日志不再采集明文令牌参数敏感键脱敏且跳过上传文件
+- 🐛 Bug Fixes|Bug 修复 关联翻译反查改走分页插件方言不再硬编码limit语法
+- 🐛 Bug Fixes|Bug 修复 翻译缓存超限先清过期条目再全清降低回源雪崩风险
+- 🐛 Bug Fixes|Bug 修复 404与405交还Spring默认处理不再被兜底handler包装成业务错误
+- 🐛 Bug Fixes|Bug 修复 全局异常处理器显式声明最低优先级用户Advice让位语义稳定
+- 🧪 Tests|测试 补充登录负路径用例覆盖密码错误与停用账号分支
 - 🐛 Bug Fixes|Bug 修复 Redis防重存储改为可选依赖无模板Bean时回落内存不再启动崩溃
 - 🐛 Bug Fixes|Bug 修复 防重TTL下限钳制避免Redis对0与-1过期时间的报错与永久锁死
 - 🐛 Bug Fixes|Bug 修复 翻译执行器静态注册改为无条件装配用户自定义Bean不再静默失效

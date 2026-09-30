@@ -7,21 +7,34 @@ import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.common.R;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * 全局异常 -> 统一响应 R。
- * <p>鉴权失败返回真实 HTTP 状态码（401/403），业务/参数错误 HTTP 200 + code。</p>
- * <p>本 Advice 优先级最低：用户应用自定义的 @RestControllerAdvice 优先生效。</p>
+ * <p>鉴权失败返回真实 HTTP 状态码（401/403），业务/参数错误保持 HTTP 200 + 业务码
+ * （本框架的既定契约，前端按 body.code 判定）。</p>
+ *
+ * <p><b>排序与让位</b>：显式声明 {@code @Order(Ordered.LOWEST_PRECEDENCE)}——
+ * 语义为"用户应用自定义的 @RestControllerAdvice 优先匹配"。Spring 对相同 order 的
+ * Advice 按注册顺序匹配（用户组件先于自动配置注册），因此自定义 Advice 会先接手；
+ * 若你的 Advice 显式声明了更小的 order 值则优先级更稳。</p>
+ *
+ * <p>Spring MVC 自身的资源异常（404/405）不吞：交给框架默认处理返回真实状态码，
+ * 而不是被兜底 handler 包装成业务错误。</p>
+ *
  * <p>{@code errorDetail=false}（quick-dev.error-detail）时，未预期异常不透出内部信息，
  * 只返回"系统繁忙"（日志仍完整记录）。</p>
  */
-@Order
+@Order(Ordered.LOWEST_PRECEDENCE)
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -65,6 +78,25 @@ public class GlobalExceptionHandler {
     public R<Void> handleQuickDev(QuickDevException e) {
         log.warn("业务异常: {}", e.getMessage());
         return R.fail(500, e.getMessage());
+    }
+
+    /**
+     * 路径不存在：返回真实 404（此前被兜底 handler 包成 HTTP 200 + code 500，
+     * 网关与浏览器无法按状态码处理，扫描器还会把全站 404 误判成 200）
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<R<Void>> handleNotFound(Exception e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(R.fail(404, "请求的资源不存在"));
+    }
+
+    /**
+     * HTTP 方法不支持：返回真实 405（同理不再包装为业务错误）
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<R<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .body(R.fail(405, "不支持的请求方法: " + e.getMethod()));
     }
 
     @ExceptionHandler(Exception.class)

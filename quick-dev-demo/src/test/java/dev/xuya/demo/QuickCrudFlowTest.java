@@ -186,6 +186,26 @@ class QuickCrudFlowTest {
         assertThat(data(me).get("username")).isEqualTo("viewer");
     }
 
+    @Test
+    void loginShouldRejectWrongPasswordAndDisabledAccount() {
+        // 密码错误：用户名或密码错误（不区分两种失败，避免账号枚举）
+        ResponseEntity<Map> wrongPwd = call(HttpMethod.POST, "/auth/login", null,
+                Map.of("username", "admin", "password", "wrong-password"));
+        assertThat(code(wrongPwd)).isEqualTo(500);
+        assertThat((String) wrongPwd.getBody().get("msg")).contains("用户名或密码错误");
+
+        // 停用账号（demo 种子 disabled 账号 status != 1）
+        ResponseEntity<Map> disabled = call(HttpMethod.POST, "/auth/login", null,
+                Map.of("username", "disabled", "password", "disabled123"));
+        assertThat(code(disabled)).isEqualTo(500);
+        assertThat((String) disabled.getBody().get("msg")).contains("停用");
+
+        // 不存在的用户同样报"用户名或密码错误"
+        ResponseEntity<Map> unknown = call(HttpMethod.POST, "/auth/login", null,
+                Map.of("username", "no-such-user", "password", "whatever"));
+        assertThat((String) unknown.getBody().get("msg")).contains("用户名或密码错误");
+    }
+
     // ------------------------------------------------------------------
     // UUID 主键实体 + 排除操作
     // ------------------------------------------------------------------
@@ -435,11 +455,11 @@ class QuickCrudFlowTest {
         ResponseEntity<Map> count = call(HttpMethod.GET, "/sys-user/count", viewerToken, null);
         assertThat(((Number) count.getBody().get("data")).intValue()).isEqualTo(2);
 
-        // admin：不受数据权限限制，可看到全部
+        // admin：不受数据权限限制，可看到全部（含停用账号 disabled）
         String adminToken = login("admin", "admin123");
         ResponseEntity<Map> all = call(HttpMethod.GET, "/sys-user/page", adminToken, null);
         assertThat((List<Map<String, Object>>) data(all).get("records"))
-                .extracting(r -> r.get("username")).containsExactlyInAnyOrder("admin", "viewer", "alice");
+                .extracting(r -> r.get("username")).containsExactlyInAnyOrder("admin", "viewer", "alice", "disabled");
     }
 
     // ------------------------------------------------------------------

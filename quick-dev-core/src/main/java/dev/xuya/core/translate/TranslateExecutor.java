@@ -2,6 +2,7 @@ package dev.xuya.core.translate;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import dev.xuya.core.common.QuickDevException;
 import dev.xuya.core.context.SpringContextHolder;
 import dev.xuya.core.crud.EntityMeta;
@@ -83,9 +84,7 @@ public class TranslateExecutor {
                 return cached.value;
             }
             String result = doTranslate(annotation, value);
-            if (cache.size() > CACHE_LIMIT) {
-                cache.clear();
-            }
+            evictIfNeeded(now);
             cache.put(cacheKey, new CacheEntry(result, now));
             return result;
         } catch (Exception e) {
@@ -169,9 +168,7 @@ public class TranslateExecutor {
             }
             Object result = doReverse(annotation, label);
             String asText = result == null ? null : String.valueOf(result);
-            if (cache.size() > CACHE_LIMIT) {
-                cache.clear();
-            }
+            evictIfNeeded(now);
             cache.put(cacheKey, new CacheEntry(asText, now));
             return asText;
         } catch (Exception e) {
@@ -218,10 +215,10 @@ public class TranslateExecutor {
         }
         BaseMapper<Object> mapper = MapperResolver.resolve(
                 SpringContextHolder.getContext(), entityClass, Void.class);
-        List<Object> matched = mapper.selectList(
-                new QueryWrapper<Object>()
-                        .eq(column, label)
-                        .last("limit 1"));
+        // 用分页取第一条：LIMIT 语法由分页插件按方言生成（硬编码 "limit 1" 在 Oracle/SQL Server 上直接语法错误）
+        Page<Object> first = mapper.selectPage(new Page<>(1, 1, false),
+                new QueryWrapper<Object>().eq(column, label));
+        List<Object> matched = first == null ? List.of() : first.getRecords();
         if (matched == null || matched.isEmpty()) {
             return null;
         }
@@ -293,6 +290,20 @@ public class TranslateExecutor {
             return KEY_DICT + annotation.dict() + ':' + value;
         }
         return KEY_REF + annotation.entity().getName() + ':' + annotation.field() + ':' + value;
+    }
+
+    /**
+     * 缓存超限治理：先剔除已过期条目（大概率就够腾出空间），
+     * 仍超限才整体清空——全量 clear 会造成周期性"缓存雪崩"（同一瞬间大量请求同时回源）。
+     */
+    private void evictIfNeeded(long now) {
+        if (cache.size() <= CACHE_LIMIT) {
+            return;
+        }
+        cache.values().removeIf(entry -> now - entry.at >= cacheMillis);
+        if (cache.size() > CACHE_LIMIT) {
+            cache.clear();
+        }
     }
 
     private record CacheEntry(String value, long at) {

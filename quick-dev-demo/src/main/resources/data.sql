@@ -1,8 +1,10 @@
 -- 账号：admin/admin123（超级权限 *）、viewer/viewer123（只读 sys:user:list/detail）
+-- disabled/disabled123：停用账号（status=0，财务部），用于验证"账号已被停用"负路径
 insert into sys_user (username, nickname, password, email, status, dept_id, create_time)
 values ('admin', '管理员', 'admin123', 'admin@quickdev.cn', 1, 2, current_timestamp),
        ('viewer', '访客', 'viewer123', 'viewer@quickdev.cn', 1, 2, current_timestamp),
-       ('alice', '爱丽丝', 'alice123', 'alice@quickdev.cn', 1, 5, current_timestamp);
+       ('alice', '爱丽丝', 'alice123', 'alice@quickdev.cn', 1, 5, current_timestamp),
+       ('disabled', '停用账号', 'disabled123', 'disabled@quickdev.cn', 0, 5, current_timestamp);
 
 insert into sys_user_perm (user_id, perm_code)
 values (1, '*'),
